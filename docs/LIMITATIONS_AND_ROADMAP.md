@@ -25,6 +25,10 @@
 - Attestation routes in the demo are **[TO CONFIRM]** examples from the brief; production starts with none. Expected days are informational only (no SLA alerts yet).
 - An attestation covers one file version. Physical courier/original-document tracking for attestation is not yet linked to stages.
 
+- Phone numbers are validated but never verified (no SMS/WhatsApp verification yet). Numbers without "+" and without a country are treated as Indian (CSV imports).
+- Passport alerts are delivered as tasks; the staff Notification Centre (with read/unread and escalation messages) is a later phase. Expiry tiers (12/6/3 months) are fixed as specified; minimum-validity rules are configurable but "pathway" is represented by course.
+- Email verification needs a working email provider in live mode; in test mode links can only be opened from the outbox.
+
 ## Decisions still needed from the business
 
 1. Legal/accounting relationship between the brands: which legal entity contracts with the student and

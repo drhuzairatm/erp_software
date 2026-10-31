@@ -102,7 +102,7 @@ export async function getStudent(ctx: Ctx, id: string) {
              ls.name as lead_source_name, w.name as workflow_name, ce.name as contracting_entity_name, pe.name as payment_recipient_name,
              cu.full_name as created_by_name, uu.full_name as updated_by_name, m.student_code as merged_into_code,
              pec.name as previous_education_country_name, sc.name as school_country_name, pc.name as passport_country_name,
-             camp.name as campus_name, vac.name as visa_application_country_name
+             camp.name as campus_name, vac.name as visa_application_country_name, rc.name as residence_country_name
         from v_students s
         join stages st on st.key = s.current_stage_key
         join organizations o on o.id = s.originating_org_id
@@ -122,6 +122,7 @@ export async function getStudent(ctx: Ctx, id: string) {
         left join countries pc on pc.id = s.passport_country_id
         left join university_campuses camp on camp.id = s.preferred_campus_id
         left join countries vac on vac.id = s.visa_application_country_id
+        left join countries rc on rc.id = s.residence_country_id
        where s.id = ${id}`
     if (!s) return null
     const [access, assignments, workflowStages, history] = await Promise.all([
@@ -214,6 +215,10 @@ export interface StudentRecord {
   passport_masked: string | null; passport_visible: boolean
   parent_name: string | null; parent_phone: string | null; parent_email: string | null
   visa_application_country_id: string | null; visa_application_country_name: string | null
+  phone_country: string | null; phone2: string | null; phone2_country: string | null; phone2_masked: string | null
+  phone3: string | null; phone3_country: string | null; phone3_label: string | null
+  residence_country_id: string | null; residence_country_name: string | null
+  email_status: 'entered' | 'pending' | 'verified' | 'expired' | 'failed'; email_verified_at: Date | null; passport_status: string | null
   previous_education_country_name: string | null; school_country_name: string | null; passport_country_name: string | null; campus_name: string | null
 }
 
@@ -288,6 +293,13 @@ function studentColumns(v: StudentInput, id?: string) {
     lead_source_id: v.leadSourceId ?? null,
     full_name: v.fullName,
     phone: v.phone ?? null,
+    phone_country: v.phoneCountry ?? null,
+    phone2: v.phone2 ?? null,
+    phone2_country: v.phone2Country ?? null,
+    phone3: v.phone3 ?? null,
+    phone3_country: v.phone3Country ?? null,
+    phone3_label: v.phone3Label ?? null,
+    residence_country_id: v.residenceCountryId ?? null,
     email: v.email?.toLowerCase() ?? null,
     preferred_language: v.preferredLanguage ?? null,
     date_of_birth: v.dateOfBirth ?? null,
@@ -338,7 +350,9 @@ async function validateRefs(tx: Tx, v: StudentInput) {
 }
 
 const FIELD_LABELS: Record<string, string> = {
-  full_name: 'name', phone: 'phone', email: 'email', preferred_language: 'language', date_of_birth: 'date of birth',
+  full_name: 'name', phone: 'primary phone', phone2: 'secondary phone', phone3: 'third phone', phone_country: 'primary phone country',
+  phone2_country: 'secondary phone country', phone3_country: 'third phone country', phone3_label: 'third phone contact type',
+  residence_country_id: 'country of residence', email: 'email', preferred_language: 'language', date_of_birth: 'date of birth',
   destination_country_id: 'country', course_id: 'course', preferred_university_id: 'university', processing_org_id: 'processing team',
   lead_source_id: 'lead source', registration_date: 'registration date', next_action: 'next action', next_action_due: 'next action due date',
   contracting_entity_id: 'contracting entity', payment_recipient_entity_id: 'payment recipient',
@@ -362,7 +376,7 @@ export async function updateStudent(ctx: Ctx, id: string, raw: Record<string, un
     await validateRefs(tx, v)
     const cols = studentColumns(v)
     if (!pii) {
-      delete cols.phone
+      for (const k of ['phone', 'phone_country', 'phone2', 'phone2_country', 'phone3', 'phone3_country', 'phone3_label']) delete cols[k]
       delete cols.email
       delete cols.date_of_birth
       delete cols.parent_phone
@@ -460,6 +474,12 @@ export async function stageWarnings(tx: Tx, studentId: string, toStage: string):
   if (DOC_GATED.includes(toStage) && docs.rejected > 0) w.push(`${docs.rejected} document(s) are rejected and awaiting resubmission.`)
   if (toStage === 'visa_processing' && !s.admission_letter_date) w.push('No admission letter date is recorded.')
   if (['travel_preparation', 'travel_completed'].includes(toStage) && s.visa_outcome !== 'approved') w.push('The visa outcome is not recorded as approved.')
+  if (s.cur_kind !== 'normal' || s.to_order > s.cur_order) {
+    const issues = await tx<{ kind: string; enforcement: string; message: string }[]>`select * from app.stage_requirement_issues(${studentId}, ${toStage})`
+    const blocking = issues.filter((i) => i.enforcement === 'block')
+    if (blocking.length) throw invalid(blocking.map((i) => i.message).join(' · '))
+    for (const i of issues) w.push(i.message)
+  }
   if (['travel_preparation', 'travel_completed'].includes(toStage)) {
     const [{ outstanding }] = await tx<{ outstanding: boolean }[]>`select app.student_has_outstanding_service_balance(${studentId}) as outstanding`
     if (outstanding) w.push('The student has an outstanding service-fee balance.')
@@ -474,6 +494,10 @@ export async function changeStage(ctx: Ctx, studentId: string, raw: Record<strin
   if (!parsed.success) throw invalid('Please correct the highlighted fields.', fieldErrors(parsed.error))
   const v = parsed.data
   return run(ctx, async (tx) => {
+    // permission first, so a user without access is told so (not about missing data)
+    const [{ allowed }] = await tx<{ allowed: boolean }[]>`
+      select coalesce(app.can_on_student(${studentId}, (select permission_key from stages where key = ${v.toStage})), false) as allowed`
+    if (!allowed) throw forbidden('You do not have permission to move students to this stage.')
     const warnings = await stageWarnings(tx, studentId, v.toStage)
     if (warnings.length && !v.acknowledge) return { ok: false as const, warnings }
     await tx`select app.change_student_stage(${studentId}, ${v.toStage}, ${v.reason ?? null}, ${v.nextAction ?? null},

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { normalizePhone } from '@/lib/phone'
 
 /** FormData → plain object; empty strings become undefined. */
 export function formObject(fd: FormData): Record<string, string | undefined> {
@@ -28,12 +29,19 @@ const text = (max: number) => z.string().max(max, `Must be at most ${max} charac
 
 export const PHONE_RE = /^\+?[0-9 ()-]{7,20}$/
 
-export const studentBaseSchema = z.object({
+const studentObject = z.object({
     originatingOrgId: uuid,
     processingOrgId: optUuid,
     leadSourceId: optUuid,
     fullName: z.string().min(2, 'Enter the full name.').max(200),
     phone: z.string().regex(PHONE_RE, 'Enter a valid phone number (digits, spaces, + - ( ) only).').optional(),
+    phoneCountry: z.string().regex(/^[A-Z]{2}$/, 'Choose a country.').optional(),
+    phone2: z.string().regex(PHONE_RE, 'Enter a valid phone number (digits, spaces, + - ( ) only).').optional(),
+    phone2Country: z.string().regex(/^[A-Z]{2}$/, 'Choose a country.').optional(),
+    phone3: z.string().regex(PHONE_RE, 'Enter a valid phone number (digits, spaces, + - ( ) only).').optional(),
+    phone3Country: z.string().regex(/^[A-Z]{2}$/, 'Choose a country.').optional(),
+    phone3Label: text(60).optional(),
+    residenceCountryId: optUuid,
     email: z.email('Enter a valid email address.').max(200).optional(),
     preferredLanguage: text(50).optional(),
     dateOfBirth: optDate.refine((d) => !d || d <= new Date().toISOString().slice(0, 10), 'Date of birth cannot be in the future.'),
@@ -67,7 +75,24 @@ export const studentBaseSchema = z.object({
     confirmDuplicate: z.literal('yes').optional(),
 })
 
-export const studentSchema = studentBaseSchema.refine((v) => v.phone || v.email, { message: 'Enter a phone number or an email address.', path: ['phone'] })
+/** Validates each phone for its own country and stores it in E.164 (+countrycode…). */
+function normalizePhones(v: z.infer<typeof studentObject>, ctx: z.RefinementCtx<z.infer<typeof studentObject>>) {
+  for (const [f, cf] of [['phone', 'phoneCountry'], ['phone2', 'phone2Country'], ['phone3', 'phone3Country']] as const) {
+    const raw = v[f]
+    if (!raw) { v[cf] = undefined; continue }
+    const r = normalizePhone(raw, v[cf])
+    if (!r.ok) { ctx.issues.push({ code: 'custom', message: r.message, path: [f], input: raw }); continue }
+    v[f] = r.e164
+    v[cf] = r.country ?? undefined
+  }
+  if (!v.phone3) v.phone3Label = undefined
+  return v
+}
+export const studentBaseSchema = studentObject.transform(normalizePhones)
+
+export const studentSchema = studentObject
+  .refine((v) => v.phone || v.email, { message: 'Enter a phone number or an email address.', path: ['phone'], when: () => true })
+  .transform(normalizePhones)
 
 export type StudentInput = z.infer<typeof studentSchema>
 
@@ -100,7 +125,7 @@ export const assignmentSchema = z.object({
 
 export const TASK_STATUSES = ['not_started', 'in_progress', 'waiting_external', 'completed', 'cancelled'] as const
 export const DELAY_REASONS = ['internal_staff', 'student', 'university', 'embassy', 'provider', 'finance', 'other_external'] as const
-export const TASK_TYPES = ['general', 'followup', 'documentation', 'attestation', 'apostille', 'translation', 'university_application', 'visa', 'finance', 'travel'] as const
+export const TASK_TYPES = ['general', 'followup', 'documentation', 'attestation', 'apostille', 'translation', 'university_application', 'visa', 'finance', 'travel', 'passport'] as const
 export const PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const
 
 export const taskSchema = z

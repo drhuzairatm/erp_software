@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import type { ActionResult } from '@/components/action-types'
 import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
+import { PhoneField } from '@/components/phone-field'
 import type { DuplicateCandidate } from '@/server/services/students'
 
 interface Opt { id: string; name: string }
@@ -20,6 +21,7 @@ export interface StudentFormProps {
   counsellors?: (Opt & { org_id: string })[]
   contactEditable: boolean
   passportEditable: boolean
+  contactRequiredFrom?: string | null
   canRecordConsent?: boolean
   initial?: Record<string, string | number | null | undefined>
   cancelHref: string
@@ -138,14 +140,33 @@ export function StudentForm(p: StudentFormProps) {
                 {p.contactEditable ? (
                   <>
                     <div>
-                      <label className="label" htmlFor="phone">Phone</label>
-                      <input className="input" id="phone" name="phone" type="tel" defaultValue={v('phone')} placeholder="+91 …" {...err('phone')} />
+                      <PhoneField name="phone" label="Primary phone" defaultValue={v('phone')} defaultCountry={v('phoneCountry')} invalid={!!s.fieldErrors?.phone}
+                        hint={p.contactRequiredFrom ? `Required from ${p.contactRequiredFrom}.` : undefined} />
                       <FieldError state={s} name="phone" />
+                    </div>
+                    <div>
+                      <PhoneField name="phone2" label="Secondary phone" defaultValue={v('phone2')} defaultCountry={v('phone2Country')} invalid={!!s.fieldErrors?.phone2}
+                        hint={p.contactRequiredFrom ? `Required from ${p.contactRequiredFrom}. May be in a different country.` : 'May be in a different country.'} />
+                      <FieldError state={s} name="phone2" />
+                    </div>
+                    <div>
+                      <PhoneField name="phone3" label="Third phone (optional)" defaultValue={v('phone3')} defaultCountry={v('phone3Country')} invalid={!!s.fieldErrors?.phone3} />
+                      <FieldError state={s} name="phone3" />
+                      <label className="label mt-2 text-xs" htmlFor="phone3Label">Third number belongs to</label>
+                      <input className="input py-1 text-sm" id="phone3Label" name="phone3Label" defaultValue={v('phone3Label')} maxLength={60} list="phone-labels" placeholder="e.g. Father, Relative in UAE" />
+                      <datalist id="phone-labels"><option value="Father" /><option value="Mother" /><option value="Guardian" /><option value="Relative" /><option value="Work" /><option value="Home" /></datalist>
                     </div>
                     <div>
                       <label className="label" htmlFor="email">Email</label>
                       <input className="input" id="email" name="email" type="email" defaultValue={v('email')} {...err('email')} />
                       <FieldError state={s} name="email" />
+                    </div>
+                    <div>
+                      <label className="label" htmlFor="residenceCountryId">Country of residence</label>
+                      <select className="input" id="residenceCountryId" name="residenceCountryId" defaultValue={v('residenceCountryId')}>
+                        <option value="">Not recorded</option>{originsFirst.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <p className="hint">Where the student lives now (not nationality or citizenship).</p>
                     </div>
                     <div>
                       <label className="label" htmlFor="dateOfBirth">Date of birth</label>

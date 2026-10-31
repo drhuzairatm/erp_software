@@ -14,6 +14,10 @@ import type { Ctx } from '@/server/services/base'
 import { getConsents, listMessages } from '@/server/services/notifications'
 import { ConsentForm } from '@/app/(app)/notifications/message-forms'
 import { MessageTable } from '@/app/(app)/notifications/message-table'
+import { countryName, formatPhone } from '@/lib/phone'
+import { EMAIL_STATUS, getContactHistory } from '@/server/services/passport'
+import { PassportStatusBadge, PassportTab } from './passport-tab'
+import { VerifyEmailButton } from './passport-forms'
 import { AdmissionForm, ArchiveForm, AssignmentForm, FollowupForm, MergeForm, NoteForm, StageChangeForm, VisaForm } from './panels'
 import { AddChecklistItemForm, CustodyForm, DocumentDetailsForm, PaymentForm, QuickTaskForm, ReverseForm, UploadForm, VerifyForm } from './tab-forms'
 
@@ -22,6 +26,7 @@ export const metadata: Metadata = { title: 'Student profile' }
 const TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'documents', label: 'Documents', perm: 'documentsRead' },
+  { key: 'passport', label: 'Passport', perm: 'passport' },
   { key: 'tasks', label: 'Tasks' },
   { key: 'payments', label: 'Payments', perm: 'paymentsRead' },
   { key: 'notes', label: 'Notes & follow-ups', perm: 'notesRead' },
@@ -45,7 +50,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
         back={{ href: '/students', label: 'Students' }}
         title={<span className="flex flex-wrap items-center gap-2">{s.full_name} {s.is_demo && <DemoBadge />}</span>}
         description={<span className="flex flex-wrap items-center gap-2"><span className="font-mono">{s.student_code}</span>·<Badge tone={s.org_code === 'GRD' ? 'purple' : 'blue'}>{s.org_name}</Badge>
-          {s.processing_org_name && <span className="text-xs">processed by {s.processing_org_name}</span>}·<span>{s.stage_name}</span><StatusBadge status={s.status} />
+          {s.processing_org_name && <span className="text-xs">processed by {s.processing_org_name}</span>}·<span>{s.stage_name}</span><StatusBadge status={s.status} /><PassportStatusBadge status={s.passport_status} />
           {s.archived_at && <Badge tone="slate">Archived</Badge>}</span>}
         actions={p.update && <Link href={`/students/${id}/edit`} className="btn-secondary">Edit details</Link>}
       />
@@ -67,6 +72,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
 
       {tab === 'overview' && <Overview ctx={ctx} profile={profile} />}
       {tab === 'documents' && <Documents ctx={ctx} profile={profile} />}
+      {tab === 'passport' && <PassportTab ctx={ctx} studentId={id} canEdit={p.passport && !s.archived_at && s.status !== 'merged'} />}
       {tab === 'tasks' && <Tasks ctx={ctx} profile={profile} />}
       {tab === 'payments' && <Payments ctx={ctx} profile={profile} />}
       {tab === 'notes' && <Notes ctx={ctx} profile={profile} />}
@@ -81,6 +87,32 @@ function orgOptions(ctx: Ctx, profile: StudentProfile, perm: string) {
     .filter((a, i, arr) => arr.findIndex((b) => b.org_id === a.org_id) === i)
     .filter((a) => can(ctx, perm, a.org_id))
     .map((a) => ({ value: a.org_id, label: a.org_name }))
+}
+
+function phoneText(n: string | null, cc: string | null) {
+  if (!n) return null
+  return <span>{formatPhone(n)}{cc && <span className="text-xs text-slate-500"> · {countryName(cc)}</span>} <span className="text-xs text-slate-400">(not verified)</span></span>
+}
+
+const CONTACT_FIELD: Record<string, string> = { phone: 'Primary phone', phone2: 'Secondary phone', phone3: 'Third phone', email: 'Email', parent_phone: 'Parent phone', parent_email: 'Parent email' }
+
+async function ContactHistory({ ctx, studentId }: { ctx: Ctx; studentId: string }) {
+  const rows = await getContactHistory(ctx, studentId)
+  if (!rows.length) return null
+  return (
+    <Card title="Contact change history" padded={false}>
+      <details><summary className="cursor-pointer px-4 py-3 text-sm text-slate-600">{rows.length} change(s)</summary>
+        <div className="table-wrap"><table>
+          <thead><tr><th>When</th><th>Field</th><th>Old → new</th><th>Country</th><th>Verification</th><th>By</th></tr></thead>
+          <tbody>{rows.map((r) => (
+            <tr key={r.id}><td className="whitespace-nowrap">{fmtDateTime(r.changed_at)}</td><td>{CONTACT_FIELD[r.field] ?? r.field}</td>
+              <td className="text-xs">{r.old_value ?? '—'} → {r.new_value ?? '—'}</td><td className="text-xs">{countryName(r.country_code)}</td>
+              <td className="text-xs">{label(r.verification_status)}</td><td className="text-xs">{r.author ?? 'Student / system'}</td></tr>))}
+          </tbody>
+        </table></div>
+      </details>
+    </Card>
+  )
 }
 
 async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }) {
@@ -99,8 +131,15 @@ async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
       <div className="space-y-6 xl:col-span-2">
         <Card title="Profile">
           <DL items={[
-            ['Phone', s.contact_visible ? s.phone : <span className="text-slate-500">{s.phone_masked ?? '—'} (hidden)</span>],
-            ['Email', s.contact_visible ? s.email : <span className="text-slate-500">{s.email_masked ?? '—'} (hidden)</span>],
+            ['Primary phone', s.contact_visible ? phoneText(s.phone, s.phone_country) : <span className="text-slate-500">{s.phone_masked ?? '—'} (hidden)</span>],
+            ['Secondary phone', s.contact_visible ? phoneText(s.phone2, s.phone2_country) ?? <span className="text-amber-800">Not entered</span>
+              : <span className="text-slate-500">{s.phone2_masked ?? '—'} (hidden)</span>],
+            ...(s.contact_visible && s.phone3 ? [['Third phone', <>{phoneText(s.phone3, s.phone3_country)}{s.phone3_label && <span className="text-xs text-slate-500"> · {s.phone3_label}</span>}</>] as [string, React.ReactNode]] : []),
+            ['Email', s.contact_visible ? (s.email ? <>{s.email} <Badge tone={EMAIL_STATUS[s.email_status].tone}>{EMAIL_STATUS[s.email_status].label}</Badge>
+              {s.email_status === 'verified' && s.email_verified_at && <span className="text-xs text-slate-500"> {fmtDateTime(s.email_verified_at)}</span>}
+              {p.update && s.email_status !== 'verified' && <VerifyEmailButton studentId={s.id} again={s.email_status !== 'entered'} />}</> : null)
+              : <span className="text-slate-500">{s.email_masked ?? '—'} (hidden)</span>],
+            ['Country of residence', s.residence_country_name],
             ['Date of birth', s.contact_visible ? fmtDate(s.date_of_birth) : <span className="text-slate-500">hidden</span>],
             ['Preferred language', s.preferred_language],
             ['Parent / guardian', s.parent_name ? <>{s.parent_name}{s.contact_visible && (s.parent_phone || s.parent_email) && <span className="block text-xs text-slate-500">{[s.parent_phone, s.parent_email].filter(Boolean).join(' · ')}</span>}</> : null],
@@ -111,6 +150,7 @@ async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
             ['Contracting entity', s.contracting_entity_name ?? 'Not yet decided'], ['Payment recipient', s.payment_recipient_name ?? 'Not yet decided'],
           ]} />
         </Card>
+        {s.contact_visible && <ContactHistory ctx={ctx} studentId={s.id} />}
         <Card title="Previous education and academic information">
           <DL items={[
             ['Previous education country', s.previous_education_country_name],
@@ -158,9 +198,11 @@ async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
         </Card>
         <Card title="Passport">
           {s.passport_visible ? (
-            <DL items={[['Number', s.passport_number && <span className="font-mono">{s.passport_number}</span>], ['Expiry', fmtDate(s.passport_expiry)], ['Issuing country', s.passport_country_name]]} />
+            <><DL items={[['Number', s.passport_number && <span className="font-mono">{s.passport_number}</span>], ['Expiry', fmtDate(s.passport_expiry)], ['Issuing country', s.passport_country_name],
+              ['Status', <PassportStatusBadge key="st" status={s.passport_status} />]]} />
+            <p className="mt-2 text-sm"><Link href={`/students/${s.id}?tab=passport`}>Passport details, history and renewal follow-up →</Link></p></>
           ) : <p className="text-sm text-slate-600">{s.passport_masked ? <>Recorded ({s.passport_masked}). </> : 'Not recorded. '}Passport details are hidden for your role.</p>}
-          {s.passport_visible && s.passport_expiry && s.passport_expiry < today && <p className="mt-2 text-sm font-medium text-red-700">Passport has expired.</p>}
+
         </Card>
         <Card title="Next action">
           <p className="text-sm">{s.next_action ?? 'None set'}</p>

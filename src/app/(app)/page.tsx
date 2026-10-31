@@ -51,6 +51,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <StatCard label="Rejected / changes required" value={d.docs.rejected} tone={d.docs.rejected ? 'red' : 'slate'} href="/reports/documents?status=rejected" sub={d.docs.expired ? `${d.docs.expired} expired` : undefined} />
         <StatCard label="Attestation in progress" value={d.attestation.processing} tone="purple" href="/reports/attestation"
           sub={`${d.attestation.ready} approved and ready to start`} />
+        <StatCard label="Passports needing renewal" value={d.passport.urgent + d.passport.critical + d.passport.expired}
+          tone={d.passport.critical + d.passport.expired ? 'red' : d.passport.urgent ? 'orange' : 'slate'} href="/reports/passport-expiry"
+          sub={`${d.passport.expired} expired · ${d.passport.critical} critical · ${d.passport.urgent} urgent · ${d.passport.warning} warning`} />
         <StatCard label="Overdue tasks (internal)" value={d.tasks.overdue_internal} tone={d.tasks.overdue_internal ? 'red' : 'slate'} href="/tasks?view=overdue" />
         <StatCard label="Overdue – waiting on external party" value={d.tasks.overdue_external} tone="amber" href="/tasks?view=waiting" />
         <StatCard label="Tasks due today" value={d.tasks.due_today} tone="blue" href="/tasks?view=today" />

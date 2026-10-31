@@ -58,6 +58,10 @@ Not available yet. In India, business SMS requires **DLT registration** (company
 6-character sender ID, every message template pre-approved), then an SMS provider (e.g. MSG91, Gupshup).
 Until then SMS rules record messages as *Skipped – SMS provider not configured*.
 
+### Daily job
+`GET /api/cron/daily` (same `CRON_SECRET`, scheduled once a day in `vercel.json`) creates passport follow-up and escalation tasks
+and marks expired email-verification links. See docs/PASSPORT_AND_CONTACTS.md.
+
 ### Scheduled sender
 Production calls `GET /api/cron/notifications` every minute with `Authorization: Bearer <CRON_SECRET>`.
 On Vercel this is configured in `vercel.json` (per-minute cron needs the Pro plan) and Vercel adds the header

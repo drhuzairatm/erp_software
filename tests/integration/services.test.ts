@@ -33,6 +33,7 @@ async function expectServiceError(p: Promise<unknown>, kind: string) {
 
 const newStudent = (over: Record<string, unknown> = {}) => ({
   originatingOrgId: EDX, fullName: 'Test Student Alpha', phone: `+91 90000 ${String(Math.floor(Math.random() * 90000) + 10000)}`,
+  phone2: `+91 90020 ${String(Math.floor(Math.random() * 90000) + 10000)}`,
   email: `alpha.${Date.now()}.${Math.random().toString(36).slice(2, 6)}@example.test`, ...over,
 })
 

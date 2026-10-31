@@ -11,7 +11,7 @@ import { getScope } from '@/server/scope'
 
 export const metadata: Metadata = { title: 'Report' }
 
-const STUDENT_FILTER_REPORTS = ['attestation', 'active-by-company', 'by-country-university', 'by-stage', 'documents', 'balances', 'student-list']
+const STUDENT_FILTER_REPORTS = ['passport-expiry', 'attestation', 'active-by-company', 'by-country-university', 'by-stage', 'documents', 'balances', 'student-list']
 
 export default async function ReportPage({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { key } = await params

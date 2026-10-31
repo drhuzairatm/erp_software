@@ -6,6 +6,8 @@ test.afterAll(async () => { await admin.end() })
 
 test('student signs in with a code, sees progress, uploads a requested document', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
+  // repeated local runs reuse the same fictional student: age out earlier attempts so the hourly rate limit does not apply
+  await admin`update auth_private.portal_challenges set created_at = created_at - interval '2 hours' where created_at > now() - interval '1 hour'`
   // a demo student with an email and a document they still need to send
   const [s] = await admin`
     select s.id, s.email from students s

@@ -11,7 +11,9 @@ test('register a student, change stage, upload and review a document, add a task
   await page.goto('/students/new')
   const unique = Date.now().toString().slice(-5)
   await page.getByLabel('Full name (as on passport) *').fill(`E2E Test Student ${unique}`)
-  await page.getByLabel('Phone', { exact: true }).fill(`+91 90000 9${unique.slice(-4)}`)
+  await page.getByLabel('Primary phone', { exact: true }).fill(`+91 90000 9${unique.slice(-4)}`)
+  await page.getByLabel('Secondary phone', { exact: true }).fill(`+91 90021 9${unique.slice(-4)}`)
+  await page.locator('#email').fill(`e2e.${unique}@example.test`)
   await page.getByLabel('Destination country').selectOption({ label: 'Russia' })
   await page.getByLabel('Course').selectOption({ label: 'MBBS' })
   await page.getByRole('button', { name: 'Register student' }).click()
@@ -61,13 +63,25 @@ test('a duplicate phone number triggers a warning', async ({ page }) => {
   const [{ phone }] = await admin`select s.phone from students s join organizations o on o.id = s.originating_org_id where o.code = 'EDX' and s.is_demo order by s.student_code limit 1`
   await page.goto('/students/new')
   await page.getByLabel('Full name (as on passport) *').fill('Duplicate Check Person')
-  await page.getByLabel('Phone', { exact: true }).fill(phone)
+  await page.getByLabel('Primary phone', { exact: true }).fill(phone)
   await page.getByRole('button', { name: 'Register student' }).click()
   await expect(page.getByText('Possible duplicate records')).toBeVisible()
   await expect(page.getByText(/A record in Dr.Expert Edulinks matches on phone. You cannot view it/)).toBeVisible()
 })
 
 test('finance verification requires a second person and CSV export works', async ({ page }) => {
+  // a fresh fictional receipt recorded by the FIRST finance user (the dev database is not reset between runs)
+  const db = adminDb()
+  await db.begin(async (tx) => {
+    const [u] = await tx`select id from user_profiles where email = 'edx.finance@demo.test'`
+    await tx`select set_config('app.user_id', ${u.id}, true)`
+    await tx`insert into payment_entries (org_id, student_id, entry_type, fee_category_id, amount, currency, entry_date, method, reference_no)
+             select o.id, s.id, 'receipt', f.id, 1000, 'INR', current_date, 'upi', 'E2E-' || floor(random() * 1e6)::text
+               from organizations o join students s on s.originating_org_id = o.id and s.is_demo and s.status = 'active'
+               join fee_categories f on f.org_id = o.id and f.key = 'service_fee'
+              where o.code = 'EDX' limit 1`
+  })
+  await db.end()
   await login(page, 'edx.finance2@demo.test')
   await page.goto('/payments?status=pending')
   const verifyButtons = page.getByRole('button', { name: 'Verify' })

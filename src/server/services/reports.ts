@@ -97,6 +97,27 @@ export const REPORTS: ReportDef[] = [
     },
   },
   {
+    key: 'passport-expiry',
+    title: 'Passport expiry',
+    description: 'Active students whose passport expires within 12 months or has expired (most severe first). Passport numbers and dates show only for roles with passport permission.',
+    columns: () => [
+      { key: 'student_code', label: 'Student ID' }, { key: 'student_name', label: 'Student' }, { key: 'status_label', label: 'Passport status' },
+      { key: 'passport_expiry', label: 'Expiry', type: 'date' }, { key: 'counsellor', label: 'Counsellor' }, { key: 'stage', label: 'Stage' },
+      { key: 'last_followup', label: 'Last follow-up' },
+    ],
+    query: (tx, orgIds, f) => tx`
+      select s.student_code, s.full_name as student_name,
+             case s.passport_status when 'expired' then 'Expired' when 'critical' then 'Critical (≤3 months)' when 'urgent' then 'Urgent renewal (≤6 months)' else 'Expiry warning (≤12 months)' end as status_label,
+             s.passport_expiry, (select u.full_name from student_assignments a join user_profiles u on u.id = a.user_id
+                                  where a.student_id = s.id and a.is_active and a.assignment_type = 'counsellor' limit 1) as counsellor,
+             st.name as stage,
+             (select to_char(max(p.created_at), 'DD Mon YYYY') from passport_followups p where p.student_id = s.id) as last_followup,
+             s.id as student_id
+        from v_students s join stages st on st.key = s.current_stage_key
+       where s.passport_status in ('warning', 'urgent', 'critical', 'expired') and s.status in ('active', 'on_hold') and ${studentConditions(tx, orgIds, f)}
+       order by array_position(array['expired', 'critical', 'urgent', 'warning'], s.passport_status), s.full_name limit ${LIMIT}`,
+  },
+  {
     key: 'attestation',
     title: 'Attestation progress',
     description: 'Documents currently in attestation/apostille: current stage, authority, responsible staff and days since the stage started.',

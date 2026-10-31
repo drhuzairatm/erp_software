@@ -31,7 +31,7 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
           <Card title="Details">
             <DL items={[
               ['Student', t.student_id ? (t.student_code ? <Link key="s" href={`/students/${t.student_id}`}>{t.student_name} ({t.student_code})</Link> : 'Restricted') : '—'],
-              ['Type', label(t.task_type)], ['Assigned to', t.assignee_name ?? 'Unassigned'], ['Created by', t.creator_name],
+              ['Type', label(t.task_type)], ['Assigned to', t.assignee_name ?? 'Unassigned'], ['Created by', t.creator_name ?? 'System (automatic)'],
               ['Created', fmtDateTime(t.created_at)], ['Due', fmtDate(t.due_date)],
               ['Waiting on / delay', t.delay_reason ? `${label(t.delay_reason)}${t.delay_note ? ` – ${t.delay_note}` : ''}` : null],
               ['Completed', t.completed_at ? fmtDateTime(t.completed_at) : null],

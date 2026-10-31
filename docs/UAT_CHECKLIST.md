@@ -156,6 +156,19 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 - [ ] The student portal shows "Attestation / apostille in progress: step n of m".
 - [ ] Reports → Attestation progress lists the current stage, authority and days in stage. A GRADUATER-only user sees no Edulinks rows.
 
+## G3. Passport, phones and email verification (Phase 2)
+
+- [ ] Register a student with an Indian primary number and a UAE secondary number (search "971" in the country picker). The profile shows both, each with its country, marked "not verified".
+- [ ] Type a +91 number while the UAE is selected: a warning appears, and saving is refused with an explanation.
+- [ ] A draft student without a secondary phone or email can move to Registration, but not to University Application or later.
+- [ ] Send a verification email; the status becomes "Verification pending". Open the link from Messages (test mode), press Confirm: the status becomes "Verified". Change the email address: it goes back to "Not verified".
+- [ ] Edit a phone number: Overview → Contact change history shows the old and new value, country and your name.
+- [ ] Passport tab: record a renewal with a new number. The old passport stays in the history, the status becomes Valid, and the passport tasks are completed.
+- [ ] A student whose passport expires within 3 months shows "Passport: Critical", and has a counsellor task plus a manager escalation task (only once, even after the daily job runs again).
+- [ ] As System Administrator: add a minimum validity rule (e.g. 18 months from Visa Processing, Block). A student with less validity cannot be moved to Visa Processing.
+- [ ] The CEO sees the passport status but not the passport number or dates.
+- [ ] Dashboard "Passports needing renewal" and Reports → Passport expiry match each other.
+
 ## H. Usability
 | # | Test | Expected |
 |---|---|---|

@@ -19,6 +19,7 @@ export function messageVars(ctx: Record<string, unknown>, params: Record<string,
     next_action_due: params.next_action_due ?? '', document: params.document ?? '', reason: params.reason ?? '',
     visa_outcome: VISA[String(params.visa_outcome)] ?? params.visa_outcome ?? '',
     code: params.code ?? '',
+    link: params.link ?? '',
   }
 }
 

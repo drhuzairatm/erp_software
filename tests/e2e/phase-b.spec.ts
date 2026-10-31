@@ -10,7 +10,7 @@ test('manager records education background and passport; finance sees it masked'
   await page.goto('/students/new')
   const n = Date.now().toString().slice(-5)
   await page.getByLabel('Full name (as on passport) *').fill(`Phase B Person ${n}`)
-  await page.getByLabel('Phone', { exact: true }).fill(`+91 90040 ${n}`)
+  await page.getByLabel('Primary phone', { exact: true }).fill(`+91 90040 ${n}`)
   await page.getByLabel('Destination country').selectOption({ label: 'Russia' })
   await page.getByLabel('Course').selectOption({ label: 'MBBS' })
   await page.getByLabel('Preferred university').selectOption({ label: 'Volga State Medical University (Demo)' })

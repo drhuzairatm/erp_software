@@ -63,6 +63,10 @@ export async function getDashboard(ctx: Ctx, orgIds: string[], f: DashboardFilte
       select count(*) filter (where x.state = 'ready')::int as ready, count(*) filter (where x.state = 'processing')::int as processing
         from student_documents d join v_students s on s.id = d.student_id cross join lateral app.attestation_state(d.id) x
        where ${sw} and d.status = 'approved' and s.status in ('active', 'on_hold')`
+    const [passport] = await tx<{ warning: number; urgent: number; critical: number; expired: number }[]>`
+      select count(*) filter (where s.passport_status = 'warning')::int as warning, count(*) filter (where s.passport_status = 'urgent')::int as urgent,
+             count(*) filter (where s.passport_status = 'critical')::int as critical, count(*) filter (where s.passport_status = 'expired')::int as expired
+        from v_students s where ${sw} and s.status in ('active', 'on_hold')`
     const [docs] = await tx<{ missing: number; awaiting_review: number; pending_approval: number; rejected: number; expired: number }[]>`
       select count(*) filter (where d.status = 'missing' and d.is_required)::int as missing,
              count(*) filter (where d.status in ('uploaded', 'under_review', 'verified'))::int as awaiting_review,
@@ -107,7 +111,7 @@ export async function getDashboard(ctx: Ctx, orgIds: string[], f: DashboardFilte
           select * from app.payment_status_counts(${tx.array(statusOrgs)}::uuid[])`
       : []
     const workload = await workloadQuery(tx, orgIds, canWorkload ? (f.staff && UUID_RE.test(f.staff) ? f.staff : null) : ctx.userId, f)
-    return { cards, byStage, docs, attestation: att, tasks, waitingByParty, finance, canFinance, paymentCounts, workload, canWorkload }
+    return { cards, byStage, docs, attestation: att, passport, tasks, waitingByParty, finance, canFinance, paymentCounts, workload, canWorkload }
   })
 }
 

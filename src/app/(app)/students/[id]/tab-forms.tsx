@@ -169,7 +169,7 @@ export function QuickTaskForm({ studentId, orgs, staff, canAssignOrgs, me }: {
           ) : <input type="hidden" name="orgId" value={org} />}
           <div><label className="label" htmlFor="taskType">Type</label>
             <select id="taskType" name="taskType" className="input">
-              {['general', 'followup', 'documentation', 'attestation', 'apostille', 'translation', 'university_application', 'visa', 'finance', 'travel'].map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+              {['general', 'followup', 'documentation', 'attestation', 'apostille', 'translation', 'university_application', 'visa', 'finance', 'travel', 'passport'].map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
             </select></div>
           <div><label className="label" htmlFor="assignedTo">Assign to</label>
             <select id="assignedTo" name="assignedTo" className="input" defaultValue={me} key={org}>

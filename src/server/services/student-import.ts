@@ -54,6 +54,7 @@ export function parseCsv(text: string): string[][] {
 export const IMPORT_FIELDS = {
   fullName: { label: 'Full name', aliases: ['full name', 'name', 'student name', 'student', 'candidate name', 'lead name'] },
   phone: { label: 'Phone', aliases: ['phone', 'mobile', 'phone number', 'mobile number', 'contact', 'contact number', 'whatsapp', 'whatsapp number'] },
+  phone2: { label: 'Secondary phone', aliases: ['secondary phone', 'alternate phone', 'alternative phone', 'phone 2', 'phone2', 'mobile 2', 'other phone', 'second phone'] },
   email: { label: 'Email', aliases: ['email', 'email address', 'e-mail', 'mail'] },
   previousEducationCountry: { label: 'Previous education country', aliases: ['previous education country', 'education country', 'studied in', 'educated in', 'previous country'] },
   schoolCountry: { label: 'School / institution country', aliases: ['school country', 'institution country'] },
@@ -200,6 +201,8 @@ async function analyse(tx: Tx, ctx: Ctx, orgId: string, csvText: string): Promis
     const messages: string[] = []
     const phone = cleanPhone(get('phone'))
     if (phone.error) messages.push(phone.error)
+    const phone2 = cleanPhone(get('phone2'))
+    if (phone2.error) messages.push(`Secondary phone: ${phone2.error}`)
     const email = get('email')?.toLowerCase()
     const dob = parseDate(get('dateOfBirth'))
     const passportExpiry = parseDate(get('passportExpiry'))
@@ -241,6 +244,7 @@ async function analyse(tx: Tx, ctx: Ctx, orgId: string, csvText: string): Promis
       originatingOrgId: orgId,
       fullName: get('fullName'),
       phone: phone.value,
+      phone2: phone2.value,
       email,
       preferredLanguage: get('preferredLanguage'),
       dateOfBirth: dob.value,

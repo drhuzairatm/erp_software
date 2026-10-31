@@ -112,6 +112,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'System Administrator',
     description: 'Manages users, roles and configuration. No access to student records by default.',
     permissions: [
+      'passport.rules.manage',
       'attestation.routes.manage',
       'notifications.manage',
       'verification.rules.manage',

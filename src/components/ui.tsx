@@ -37,6 +37,7 @@ const TONES = {
   amber: 'bg-amber-50 text-amber-800 ring-amber-200',
   red: 'bg-red-50 text-red-700 ring-red-200',
   purple: 'bg-purple-50 text-purple-700 ring-purple-200',
+  orange: 'bg-orange-50 text-orange-800 ring-orange-200',
 } as const
 export type Tone = keyof typeof TONES
 
@@ -133,7 +134,7 @@ export function Pagination({ page, total, pageSize, params }: { page: number; to
 }
 
 export function StatCard({ label, value, href, tone = 'slate', sub }: { label: string; value: ReactNode; href?: string; tone?: Tone; sub?: ReactNode }) {
-  const accent = { slate: 'border-l-slate-300', blue: 'border-l-blue-500', green: 'border-l-green-500', amber: 'border-l-amber-500', red: 'border-l-red-500', purple: 'border-l-purple-500' }[tone]
+  const accent = { slate: 'border-l-slate-300', blue: 'border-l-blue-500', green: 'border-l-green-500', amber: 'border-l-amber-500', red: 'border-l-red-500', purple: 'border-l-purple-500', orange: 'border-l-orange-500' }[tone]
   const body = (
     <>
       <p className="text-sm text-slate-600">{label}</p>

@@ -1,0 +1,79 @@
+import { expect, test } from '@playwright/test'
+import { adminDb, login } from './helpers'
+
+const admin = adminDb()
+test.afterAll(async () => { await admin.end() })
+
+test('register with phones in different countries (searchable country picker); mismatch is pointed out', async ({ page }) => {
+  await login(page, 'edx.manager@demo.test')
+  await page.getByLabel('Company').selectOption({ label: 'Dr.Expert Edulinks' })
+  await page.goto('/students/new')
+  const n = Date.now().toString().slice(-5)
+  await page.getByLabel('Full name (as on passport) *').fill(`Phones Test ${n}`)
+  await page.getByLabel('Primary phone', { exact: true }).fill(`98760 ${n}`)
+  // secondary phone in the UAE, chosen by searching the calling code
+  await page.getByRole('button', { name: /Country code for Secondary phone/ }).click()
+  await page.getByLabel('Search country or calling code').fill('971')
+  await page.getByRole('option', { name: /United Arab Emirates/ }).getByRole('button').click()
+  await page.getByLabel('Secondary phone', { exact: true }).fill('+91 98765 43210')
+  await expect(page.getByText(/not the code of United Arab Emirates/)).toBeVisible()
+  await page.getByLabel('Secondary phone', { exact: true }).fill(`050 123 ${n.slice(-4)}`)
+  await page.locator('#email').fill(`phones.${n}@example.test`)
+  await page.getByRole('button', { name: 'Register student' }).click()
+  await expect(page.getByText(/Student registered with ID/)).toBeVisible()
+  await expect(page.getByText(/\+971 50 123/)).toBeVisible()
+  await expect(page.getByText('United Arab Emirates').first()).toBeVisible()
+  await expect(page.getByText('Not verified', { exact: true }).first()).toBeVisible()
+
+  // email verification: queued; the student confirms on the public page
+  await page.getByRole('button', { name: 'Send verification email' }).click()
+  await expect(page.getByText('Verification pending')).toBeVisible()
+  const [m] = await admin`select params ->> 'link' as link from notification_messages where to_address = ${`phones.${n}@example.test`} and event_key = 'email_verification'`
+  const student = await page.context().newPage()
+  await student.goto(new URL(m.link).pathname + new URL(m.link).search)
+  await student.getByRole('button', { name: 'Confirm my email address' }).click()
+  await expect(student.getByText('Your email address is now verified.')).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('Verified', { exact: true }).first()).toBeVisible()
+})
+
+test('passport tab: renewal keeps history; status shown on the profile', async ({ page }) => {
+  await login(page, 'edx.manager@demo.test')
+  await page.getByLabel('Company').selectOption({ label: 'Dr.Expert Edulinks' })
+  await page.goto('/students/new')
+  const n = Date.now().toString().slice(-5)
+  const soon = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10)
+  await page.getByLabel('Full name (as on passport) *').fill(`Passport Test ${n}`)
+  await page.getByLabel('Primary phone', { exact: true }).fill(`98761 ${n}`)
+  await page.getByLabel('Passport number').fill(`OL${n}`)
+  await page.getByLabel('Expiry date').fill(soon)
+  await page.getByRole('button', { name: 'Register student' }).click()
+  await expect(page.getByText(/Student registered with ID/)).toBeVisible()
+  await expect(page.getByText('Passport: Critical').first()).toBeVisible()
+  await page.getByRole('link', { name: 'Passport', exact: true }).click()
+  await expect(page.locator('li').filter({ hasText: /CRITICAL: passport expires/ }).first()).toBeVisible()
+  await page.getByLabel('Passport number *').fill(`RN${n}`)
+  await page.getByLabel('Holder name exactly as printed').fill('DEMO HOLDER NAME')
+  await page.getByLabel('Expiry date *').fill('2036-05-01')
+  await page.getByRole('button', { name: 'Record renewed passport' }).click()
+  await expect(page.getByText(/Renewed passport recorded/)).toBeVisible()
+  await expect(page.getByText('Passport: Valid').first()).toBeVisible()
+  await expect(page.getByRole('cell', { name: /v1 · / })).toBeVisible()
+  await expect(page.locator('li').filter({ hasText: 'Renewed passport received' })).toBeVisible()
+})
+
+test('administrator configures a passport validity rule; dashboard shows passports needing renewal', async ({ page }) => {
+  await login(page, 'admin@demo.test')
+  await page.getByRole('link', { name: 'Passport & contact rules' }).click()
+  const name = `E2E rule ${Date.now().toString().slice(-5)}`
+  await page.getByLabel('Rule name').fill(name)
+  await page.getByLabel('Minimum validity (months)').fill('6')
+  await page.getByLabel('Checked from stage').selectOption({ label: 'Visa Processing' })
+  await page.getByRole('button', { name: 'Add rule' }).click()
+  await expect(page.getByRole('cell', { name })).toBeVisible()
+  await admin`update passport_validity_rules set is_active = false where name = ${name}`
+  await login(page, 'md@demo.test')
+  await expect(page.getByText('Passports needing renewal')).toBeVisible()
+  await page.goto('/reports/passport-expiry')
+  await expect(page.getByRole('heading', { name: 'Passport expiry' })).toBeVisible()
+})

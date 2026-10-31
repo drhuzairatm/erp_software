@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { contactRequiredStage } from '@/server/services/passport'
 import { notFound } from 'next/navigation'
 import { updateStudentAction } from '@/app/actions/students'
 import { Alert, PageHeader } from '@/components/ui'
@@ -22,11 +23,12 @@ export default async function EditStudentPage({ params }: { params: Promise<{ id
   return (
     <>
       <PageHeader title={`Edit ${s.full_name}`} description={s.student_code} back={{ href: `/students/${id}`, label: 'Back to profile' }} />
-      <StudentForm action={updateStudentAction.bind(null, id)} mode="edit" cancelHref={`/students/${id}`} contactEditable={s.contact_visible} passportEditable={s.passport_visible}
+      <StudentForm contactRequiredFrom={(await contactRequiredStage(ctx))?.name} action={updateStudentAction.bind(null, id)} mode="edit" cancelHref={`/students/${id}`} contactEditable={s.contact_visible} passportEditable={s.passport_visible}
         registerOrgs={[]} organizations={lookups.organizations} lookups={lookups}
         initial={{
           originatingOrgId: s.originating_org_id, processingOrgId: s.processing_org_id, leadSourceId: s.lead_source_id, fullName: s.full_name,
-          phone: s.phone, email: s.email, dateOfBirth: s.date_of_birth, preferredLanguage: s.preferred_language,
+          phone: s.phone, phoneCountry: s.phone_country, phone2: s.phone2, phone2Country: s.phone2_country, phone3: s.phone3,
+          phone3Country: s.phone3_country, phone3Label: s.phone3_label, residenceCountryId: s.residence_country_id, email: s.email, dateOfBirth: s.date_of_birth, preferredLanguage: s.preferred_language,
           destinationCountryId: s.destination_country_id, courseId: s.course_id, preferredUniversityId: s.preferred_university_id,
           highestQualification: s.highest_qualification, qualificationBoard: s.qualification_board, qualificationYear: s.qualification_year,
           qualificationScore: s.qualification_score, entranceExam: s.entrance_exam, entranceScore: s.entrance_score, academicNotes: s.academic_notes,

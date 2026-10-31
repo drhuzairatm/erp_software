@@ -7,7 +7,7 @@ test('consent at registration, message prepared after a stage change, held in te
   await page.goto('/students/new')
   const n = Date.now().toString().slice(-5)
   await page.getByLabel('Full name (as on passport) *').fill(`Message Person ${n}`)
-  await page.getByLabel('Phone', { exact: true }).fill(`+91 90070 ${n}`)
+  await page.getByLabel('Primary phone', { exact: true }).fill(`+91 90070 ${n}`)
   await page.locator('input[name="consent.student.whatsapp"]').check()
   await page.getByRole('button', { name: 'Register student' }).click()
   await expect(page.getByText(/Student registered with ID/)).toBeVisible()

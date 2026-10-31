@@ -57,6 +57,11 @@ export async function provision(adminUrl: string, log: (m: string) => void = con
                            ${channel === 'whatsapp' ? tx.array(['code']) : tx.array([])}::text[])
                    on conflict (org_id, name, channel, language) do nothing`
         }
+        // Email verification link (sent on staff request; does not use rules)
+        await tx`insert into notification_templates (org_id, name, channel, subject, body)
+                 values (${org.id}, 'Email verification', 'email', 'Please confirm your email address',
+                         ${'Dear {{student_name}},\n\nPlease confirm this email address for your {{company}} student record by opening the link below and pressing "Confirm":\n\n{{link}}\n\nThe link is valid for 48 hours. If you did not expect this message, ignore it.\n\nRegards,\n{{company}}'})
+                 on conflict (org_id, name, channel, language) do nothing`
         for (const name of DEPARTMENTS) {
           await tx`insert into departments (org_id, name) values (${org.id}, ${name}) on conflict (org_id, name) do nothing`
         }
