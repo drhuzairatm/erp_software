@@ -113,6 +113,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'System Administrator',
     description: 'Manages users, roles and configuration. No access to student records by default.',
     permissions: [
+      'requirements.manage',
       'academic.rules.manage',
       'passport.rules.manage',
       'attestation.routes.manage',
@@ -130,7 +131,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
 export const COUNTRIES: [string, string, boolean, boolean][] = [
   ['RU', 'Russia', true, false], ['GE', 'Georgia', true, false], ['KZ', 'Kazakhstan', true, false], ['UZ', 'Uzbekistan', true, false],
   ['KG', 'Kyrgyzstan', true, false], ['PH', 'Philippines', true, false], ['DE', 'Germany', true, false], ['GB', 'United Kingdom', true, false],
-  ['IE', 'Ireland', true, false], ['BG', 'Bulgaria', true, false], ['EG', 'Egypt', true, false], ['TJ', 'Tajikistan', true, false],
+  ['IE', 'Ireland', true, false], ['BG', 'Bulgaria', true, false], ['EG', 'Egypt', true, false], ['TJ', 'Tajikistan', true, false], ['RO', 'Romania', true, false],
   ['IN', 'India', false, true], ['AE', 'United Arab Emirates', true, true], ['QA', 'Qatar', false, true], ['SA', 'Saudi Arabia', false, true],
   ['KW', 'Kuwait', false, true], ['OM', 'Oman', false, true], ['BH', 'Bahrain', false, true],
 ]
@@ -257,10 +258,13 @@ export const PASSPORT_VALIDITY_RULES = [
   { name: 'Passport valid for at least 12 months (all destinations)', stage: 'university_application', months: 12, enforcement: 'block',
     notes: 'MD instruction Oct 2026: 1 year+ passport validity is mandatory.' },
 ]
-export const ACADEMIC_THRESHOLDS = (['chemistry', 'biology', 'physics', 'english'] as const).map((subject) => ({
-  name: 'Bulgaria – Plus Two subject minimum 60%', destination: 'BG', recordKind: 'plus_two', subject, min: 60,
-  note: 'Current business rule from the brief (Oct 2026); flags results below the threshold.',
-}))
+/** Country-wise requirement notices — ADVISORY: shown to staff, acknowledged, compared with marks; never blocking. */
+export const ADVISORY_NOTICES = [
+  { country: 'BG', title: 'BULGARIA – IMPORTANT ACADEMIC REQUIREMENTS', displayType: 'important_warning', priority: 'high',
+    message: "Please note that this destination has specific academic mark requirements. Verify the student's academic records before proceeding with university selection and application.",
+    notes: 'Current business rule from the brief (Oct 2026).',
+    items: (['chemistry', 'biology', 'physics', 'english'] as const).map((k) => ({ subject_key: k, subject_name: k[0].toUpperCase() + k.slice(1), min_percentage: 60 })) },
+]
 export const BONAFIDE_RULES = [
   { name: 'Bonafide – Indian student at a Qatar school → Medical University – Varna (Bulgaria)', previousEducation: 'QA', destination: 'BG',
     university: 'Medical University – Varna',

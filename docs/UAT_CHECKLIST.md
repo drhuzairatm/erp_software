@@ -182,6 +182,15 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 - [ ] A passport valid for less than 12 months cannot move to University Application.
 - [ ] As MD: approve the Bonafide (Qatar school → Varna) draft under Verification rules. Adding a country offers "Used as"; adding a course offers "Academic details".
 
+## G5. Country-wise requirements and alerts (advisory)
+
+- [ ] Registration form: choosing Bulgaria shows the amber "BULGARIA – IMPORTANT ACADEMIC REQUIREMENTS" notice. Choosing Georgia shows nothing.
+- [ ] Profile: the notice compares the recorded marks (Meets / Below requirement / Not recorded). Acknowledge shows "Requirements acknowledged by …".
+- [ ] Marks below 60% or missing still let the student move forward (a reminder to acknowledge only), and an "Academic verification" task is created.
+- [ ] Admin → Country-wise requirements: add Egypt or Romania requirements, edit them (reason required, new version in the history), deactivate them.
+- [ ] An expired passport shows a red CRITICAL banner; less than 12 months shows an amber Passport warning. Registration is not blocked.
+- [ ] Dashboard "Priority attention" lists critical counts and notices awaiting acknowledgement. Check on a phone.
+
 ## H. Usability
 | # | Test | Expected |
 |---|---|---|

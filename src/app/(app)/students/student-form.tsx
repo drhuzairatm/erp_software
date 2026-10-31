@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import type { ActionResult } from '@/components/action-types'
 import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
+import { DISPLAY, NoticeCard } from '@/components/notice'
 import { PhoneField } from '@/components/phone-field'
 import type { DuplicateCandidate } from '@/server/services/students'
 
@@ -23,6 +24,8 @@ export interface StudentFormProps {
   contactEditable: boolean
   passportEditable: boolean
   contactRequiredFrom?: string | null
+  countryNotices?: { country_id: string; title: string; message: string; display_type: string; priority: string; university: string | null; course: string | null
+    items: { subject: string; min_percentage: number | null; min_marks: number | null }[] }[]
   canRecordConsent?: boolean
   initial?: Record<string, string | number | null | undefined>
   cancelHref: string
@@ -214,6 +217,21 @@ export function StudentForm(p: StudentFormProps) {
 
             <fieldset className="card p-4">
               <legend className="px-1 text-sm font-semibold">Programme</legend>
+              {(p.countryNotices ?? []).filter((n) => n.country_id === country).length > 0 && (
+                <div className="mb-4 space-y-2" aria-live="polite">
+                  {(p.countryNotices ?? []).filter((n) => n.country_id === country).map((n, i) => {
+                    const d = DISPLAY[n.display_type] ?? DISPLAY.general_information
+                    return (
+                      <NoticeCard key={i} level={d.level} label={d.label} title={n.title} compact={n.priority === 'normal' || n.priority === 'informational'}
+                        footer={<>Advisory — staff are reminded; this never blocks registration or the application.{(n.university || n.course) && ` Applies to: ${[n.university, n.course].filter(Boolean).join(' · ')}.`}</>}>
+                        <p>{n.message}</p>
+                        {n.items.length > 0 && <ul className="mt-1 grid grid-cols-2 gap-x-4 sm:grid-cols-4">{n.items.map((it) => (
+                          <li key={it.subject}><strong>{it.subject}</strong>: {it.min_percentage != null ? `${Number(it.min_percentage)}%` : `${Number(it.min_marks)} marks`}</li>))}</ul>}
+                      </NoticeCard>
+                    )
+                  })}
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
                   <label className="label" htmlFor="destinationCountryId">Destination country</label>

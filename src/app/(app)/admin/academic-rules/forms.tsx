@@ -94,7 +94,7 @@ export function AcademicCheckSelect({ stageKey, value }: { stageKey: string; val
     <ActionForm action={academicCheckAction.bind(null, stageKey)} className="flex items-center gap-2">
       <label className="sr-only" htmlFor={`ac-${stageKey}`}>Academic check</label>
       <select className="input w-auto py-1 text-sm" id={`ac-${stageKey}`} name="check" defaultValue={value}>
-        <option value="none">No check</option><option value="warn">Warn</option><option value="block">Block</option>
+        <option value="none">No reminder</option><option value="warn">Remind (warning)</option>
       </select>
       <SubmitButton className="btn-ghost btn-sm" pendingText="…">Save</SubmitButton>
     </ActionForm>

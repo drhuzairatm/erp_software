@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { contactRequiredStage } from '@/server/services/passport'
+import { noticesByCountry } from '@/server/services/requirements'
 import { notFound } from 'next/navigation'
 import { updateStudentAction } from '@/app/actions/students'
 import { Alert, PageHeader } from '@/components/ui'
@@ -23,7 +24,7 @@ export default async function EditStudentPage({ params }: { params: Promise<{ id
   return (
     <>
       <PageHeader title={`Edit ${s.full_name}`} description={s.student_code} back={{ href: `/students/${id}`, label: 'Back to profile' }} />
-      <StudentForm contactRequiredFrom={(await contactRequiredStage(ctx))?.name} action={updateStudentAction.bind(null, id)} mode="edit" cancelHref={`/students/${id}`} contactEditable={s.contact_visible} passportEditable={s.passport_visible}
+      <StudentForm contactRequiredFrom={(await contactRequiredStage(ctx))?.name} countryNotices={await noticesByCountry(ctx)} action={updateStudentAction.bind(null, id)} mode="edit" cancelHref={`/students/${id}`} contactEditable={s.contact_visible} passportEditable={s.passport_visible}
         registerOrgs={[]} organizations={lookups.organizations} lookups={lookups}
         initial={{
           originatingOrgId: s.originating_org_id, processingOrgId: s.processing_org_id, leadSourceId: s.lead_source_id, fullName: s.full_name,

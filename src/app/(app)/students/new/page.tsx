@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { contactRequiredStage } from '@/server/services/passport'
+import { noticesByCountry } from '@/server/services/requirements'
 import { createStudentAction } from '@/app/actions/students'
 import { PageHeader } from '@/components/ui'
 import { can, orgsWith } from '@/server/auth/context'
@@ -26,7 +27,7 @@ export default async function NewStudentPage() {
   return (
     <>
       <PageHeader title="Register student" description="Only collect what is needed. A Student ID is generated automatically." back={{ href: '/students', label: 'Students' }} />
-      <StudentForm contactRequiredFrom={(await contactRequiredStage(ctx))?.name} action={createStudentAction} mode="create" cancelHref="/students" contactEditable
+      <StudentForm contactRequiredFrom={(await contactRequiredStage(ctx))?.name} countryNotices={await noticesByCountry(ctx)} action={createStudentAction} mode="create" cancelHref="/students" contactEditable
         passportEditable={ordered.some((o) => can(ctx, 'students.passport.view', o))}
         canRecordConsent={ordered.some((o) => can(ctx, 'notifications.consent', o))}
         registerOrgs={ordered.map((id) => ({ id, name: ctx.memberships.find((m) => m.orgId === id)!.orgName }))}

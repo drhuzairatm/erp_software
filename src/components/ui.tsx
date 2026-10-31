@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { LEVELS, LevelIcon } from './notice'
 import type { ReactNode } from 'react'
 
 export function PageHeader({ title, description, actions, back }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; back?: { href: string; label: string } }) {
@@ -74,11 +75,16 @@ export function DemoBadge() {
 }
 
 export function Alert({ tone = 'blue', title, children }: { tone?: 'blue' | 'green' | 'amber' | 'red'; title?: ReactNode; children?: ReactNode }) {
+  const level = ({ blue: 'info', green: 'success', amber: 'warning', red: 'critical' } as const)[tone]
   const cls = { blue: 'border-blue-200 bg-blue-50 text-blue-900', green: 'border-green-200 bg-green-50 text-green-900', amber: 'border-amber-200 bg-amber-50 text-amber-900', red: 'border-red-200 bg-red-50 text-red-900' }[tone]
   return (
-    <div role={tone === 'red' ? 'alert' : 'status'} className={`rounded-md border px-4 py-3 text-sm ${cls}`}>
-      {title && <p className="font-medium">{title}</p>}
-      {children && <div className={title ? 'mt-1' : ''}>{children}</div>}
+    <div role={tone === 'red' ? 'alert' : 'status'} className={`flex gap-2 rounded-md border px-4 py-3 text-sm ${cls}`}>
+      <LevelIcon level={level} className="mt-0.5 h-4 w-4" />
+      <div className="min-w-0 flex-1">
+        <span className="mr-1.5 text-[11px] font-semibold uppercase tracking-wide opacity-75">{LEVELS[level].label}</span>
+        {title && <span className="font-medium">{title}</span>}
+        {children && <div className={title ? "mt-1" : "inline"}>{children}</div>}
+      </div>
     </div>
   )
 }

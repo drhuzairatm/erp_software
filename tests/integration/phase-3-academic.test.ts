@@ -10,7 +10,6 @@ import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 let EDX: string
 const rand = () => String(Math.floor(Math.random() * 90000) + 10000)
-const country = async (code: string) => (await adminSql()`select id from countries where code = ${code}`)[0].id as string
 const course = async (code: string) => (await adminSql()`select id from courses where code = ${code}`)[0].id as string
 beforeAll(async () => { EDX = await orgId('EDX') })
 afterAll(async () => { await adminSql().end(); await db().end() })
@@ -36,8 +35,10 @@ describe('business configuration supplied by the MD', () => {
     const sql = adminSql()
     const [p] = await sql`select min_months, enforcement, stage_key, is_active from passport_validity_rules where name like 'Passport valid for at least 12 months%'`
     expect(p).toEqual({ min_months: 12, enforcement: 'block', stage_key: 'university_application', is_active: true })
-    const t = await sql`select subject_key, min_percentage::int as m from academic_thresholds t join countries c on c.id = t.destination_country_id where c.code = 'BG' and t.is_active order by 1`
+    const t = await sql`select i.subject_key, i.min_percentage::int as m from advisory_notices n join advisory_notice_items i on i.notice_id = n.id
+                          join countries c on c.id = n.destination_country_id where c.code = 'BG' and n.status = 'active' order by 1`
     expect(t).toEqual(['biology', 'chemistry', 'english', 'physics'].map((s) => ({ subject_key: s, m: 60 })))
+    expect((await sql`select count(*)::int as n from academic_thresholds where is_active`)[0].n).toBe(0) // replaced by advisory notices
     expect((await sql`select name from universities where name like 'Medical University – %' order by 1`).map((r) => r.name)).toEqual(['Medical University – Pleven', 'Medical University – Varna'])
     const [b] = await sql`select r.status, c.code as edu, d.code as dest, u.name as uni, (select array_agg(q.kind order by q.sort_order) from verification_requirements q where q.rule_id = r.id) as kinds,
                                  (select q.text from verification_requirements q where q.rule_id = r.id and q.kind = 'statement') as statement
@@ -84,36 +85,17 @@ describe('academic records', () => {
   })
 })
 
-describe('eligibility thresholds (flags only)', () => {
-  it('Bulgaria: subjects below 60% are flagged; warning at University Application, never an automatic rejection', async () => {
-    const mgr = await ctxFor('edx.manager@demo.test')
-    const { ctx, id } = await newStudent({ destinationCountryId: await country('BG') })
-    const [v, subs] = plusTwo({ physics: 72, chemistry: 55, biology: 81, english: 64 })
-    await ac.saveRecord(ctx, id, null, { ...v }, [...subs])
-    const e = (await ac.getAcademic(ctx, id))!.eligibility
-    expect(e.find((x) => x.subject_key === 'chemistry')).toMatchObject({ result: 'below', actual: '55.00' })
-    expect(e.filter((x) => x.result === 'ok')).toHaveLength(3)
-    await students.changeStage(mgr, id, { toStage: 'registration' })
-    const w = await students.changeStage(mgr, id, { toStage: 'university_application' })
-    expect(w.ok).toBe(false)
-    if (!w.ok) expect(w.warnings.join(' ')).toMatch(/Chemistry 55.00% is below 60/)
-    expect(await students.changeStage(mgr, id, { toStage: 'university_application', acknowledge: 'yes' })).toEqual({ ok: true })
-  })
-
-  it('a missing Plus Two is warned at University Application; an administrator can make it a block', async () => {
+describe('academic reminders at stages (never blocking)', () => {
+  it('a missing Plus Two is a warning at University Application; the stage check cannot be set to block', async () => {
     const mgr = await ctxFor('edx.manager@demo.test')
     const admin = await ctxFor('admin@demo.test')
     const { id } = await newStudent()
     await students.changeStage(mgr, id, { toStage: 'registration' })
     const w = await students.changeStage(mgr, id, { toStage: 'university_application' })
+    expect(w.ok).toBe(false)
     if (!w.ok) expect(w.warnings.join(' ')).toMatch(/Plus Two .* not recorded/)
-    await expectServiceError(ac.setAcademicCheck(mgr, 'university_application', 'block'), 'forbidden')
-    await ac.setAcademicCheck(admin, 'university_application', 'block')
-    try {
-      await expectServiceError(students.changeStage(mgr, id, { toStage: 'university_application', acknowledge: 'yes' }), 'invalid')
-    } finally {
-      await ac.setAcademicCheck(admin, 'university_application', 'warn')
-    }
+    await expectServiceError(ac.setAcademicCheck(admin, 'university_application', 'block'), 'invalid')
+    expect(await students.changeStage(mgr, id, { toStage: 'university_application', acknowledge: 'yes' })).toEqual({ ok: true })
   })
 })
 

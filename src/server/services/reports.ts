@@ -97,6 +97,24 @@ export const REPORTS: ReportDef[] = [
     },
   },
   {
+    key: 'pending-acknowledgements',
+    title: 'Notices awaiting acknowledgement',
+    description: 'Active students with country-wise requirement notices that staff have not yet acknowledged (advisory; nothing is blocked).',
+    columns: () => [
+      { key: 'student_code', label: 'Student ID' }, { key: 'student_name', label: 'Student' }, { key: 'notice', label: 'Notice' },
+      { key: 'priority', label: 'Priority' }, { key: 'academic', label: 'Academic status' }, { key: 'counsellor', label: 'Counsellor' }, { key: 'stage', label: 'Stage' },
+    ],
+    query: (tx, orgIds, f) => tx`
+      select s.student_code, s.full_name as student_name, a.title as notice, initcap(a.priority) as priority,
+             case a.academic_status when 'meets' then 'Meets requirements' when 'below' then 'Below requirements' when 'missing' then 'Information missing'
+                                    when 'manual_review' then 'Manual review recommended' end as academic,
+             (select u.full_name from student_assignments x join user_profiles u on u.id = x.user_id where x.student_id = s.id and x.is_active and x.assignment_type = 'counsellor' limit 1) as counsellor,
+             st.name as stage, s.id as student_id
+        from v_students s join stages st on st.key = s.current_stage_key cross join lateral app.student_advisories(s.id) a
+       where s.status in ('active', 'on_hold') and a.requires_acknowledgement and a.acknowledged_at is null and ${studentConditions(tx, orgIds, f)}
+       order by array_position(array['critical','high','normal','informational'], a.priority), s.full_name limit ${LIMIT}`,
+  },
+  {
     key: 'passport-expiry',
     title: 'Passport expiry',
     description: 'Active students whose passport expires within 12 months or has expired (most severe first). Passport numbers and dates show only for roles with passport permission.',

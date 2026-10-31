@@ -18,6 +18,7 @@ import { countryName, formatPhone } from '@/lib/phone'
 import { EMAIL_STATUS, getContactHistory } from '@/server/services/passport'
 import { PassportStatusBadge, PassportTab } from './passport-tab'
 import { AcademicTab } from './academic-tab'
+import { AttentionPanel } from './attention'
 import { VerifyEmailButton } from './passport-forms'
 import { AdmissionForm, ArchiveForm, AssignmentForm, FollowupForm, MergeForm, NoteForm, StageChangeForm, VisaForm } from './panels'
 import { AddChecklistItemForm, CustodyForm, DocumentDetailsForm, PaymentForm, QuickTaskForm, ReverseForm, UploadForm, VerifyForm } from './tab-forms'
@@ -62,6 +63,8 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
         {s.status === 'merged' && <Alert tone="amber" title="Merged record">This record was merged into <Link href={`/students/${s.merged_into_id}`}>{s.merged_into_code ?? 'another record'}</Link>. It is kept for history only.</Alert>}
         {s.archived_at && <Alert tone="amber" title="Archived">{s.archive_reason}</Alert>}
       </div>
+
+      <div className="mt-4"><AttentionPanel ctx={ctx} profile={profile} /></div>
 
       <nav aria-label="Student sections" className="mt-4 mb-6 flex gap-1 overflow-x-auto border-b border-slate-200">
         {tabs.map((t) => (

@@ -1,5 +1,6 @@
+import { randomUUID } from 'node:crypto'
 import postgres from 'postgres'
-import { ACADEMIC_THRESHOLDS, BONAFIDE_RULES, BUSINESS_UNIVERSITIES, PASSPORT_VALIDITY_RULES, COUNTRIES, COURSES, DEFAULT_ROLES, DEPARTMENTS, NOTIFICATION_TEMPLATES, DOCUMENT_TYPES, FEE_CATEGORIES, LEAD_SOURCES, ORGANIZATIONS, WORKFLOWS } from './defaults'
+import { ADVISORY_NOTICES, BONAFIDE_RULES, BUSINESS_UNIVERSITIES, PASSPORT_VALIDITY_RULES, COUNTRIES, COURSES, DEFAULT_ROLES, DEPARTMENTS, NOTIFICATION_TEMPLATES, DOCUMENT_TYPES, FEE_CATEGORIES, LEAD_SOURCES, ORGANIZATIONS, WORKFLOWS } from './defaults'
 
 /**
  * Idempotently installs organizations, default roles, and reference data.
@@ -110,10 +111,19 @@ export async function provision(adminUrl: string, log: (m: string) => void = con
                  select ${r.name}, ${r.stage}, ${r.months}, ${r.enforcement}, ${r.notes}
                   where not exists (select 1 from passport_validity_rules where name = ${r.name})`
       }
-      for (const t of ACADEMIC_THRESHOLDS) {
-        await tx`insert into academic_thresholds (name, destination_country_id, record_kind, subject_key, min_percentage, source_note)
-                 select ${t.name}, ${await cid(t.destination)}, ${t.recordKind}, ${t.subject}, ${t.min}, ${t.note}
-                  where not exists (select 1 from academic_thresholds where name = ${t.name} and subject_key = ${t.subject})`
+      for (const n of ADVISORY_NOTICES) {
+        const country = await cid(n.country)
+        if ((await tx`select 1 from advisory_notices where destination_country_id = ${country} and category = 'academic_marks'
+                       and university_id is null and course_id is null and status <> 'superseded'`).length) continue
+        const id = randomUUID(); const group = randomUUID()
+        await tx`insert into advisory_notices (id, notice_group_id, category, display_type, priority, destination_country_id, title, message, notes)
+                 values (${id}, ${group}, 'academic_marks', ${n.displayType}, ${n.priority}, ${country}, ${n.title}, ${n.message}, ${n.notes})`
+        for (const [k, it] of n.items.entries()) {
+          await tx`insert into advisory_notice_items (notice_id, subject_key, subject_name, min_percentage, sort_order)
+                   values (${id}, ${it.subject_key}, ${it.subject_name}, ${it.min_percentage}, ${(k + 1) * 10})`
+        }
+        await tx`insert into advisory_notice_events (notice_group_id, notice_id, version, action, reason, current)
+                 values (${group}, ${id}, 1, 'created', 'Installed from the business brief', app.advisory_snapshot(${id}))`
       }
       for (const b of BONAFIDE_RULES) {
         if ((await tx`select 1 from verification_rules where name = ${b.name}`).length) continue

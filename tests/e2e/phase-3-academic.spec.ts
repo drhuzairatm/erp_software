@@ -38,7 +38,7 @@ test('academic tab: Plus Two with subjects, Bulgaria threshold flag, name differ
   await page.getByLabel('Subject 4 marks obtained').fill('64')
   await page.getByRole('button', { name: 'Add record' }).click()
   await expect(page.getByText(/Name checks and eligibility were updated/)).toBeVisible()
-  await expect(page.getByText('Below threshold')).toBeVisible()
+  await expect(page.getByText('Below requirement').first()).toBeVisible()
   await expect(page.getByText(/Surname missing — needs human review/)).toBeVisible()
 
   // staff require One and Same, choose the approved template, preview, record a manual request
@@ -62,7 +62,7 @@ test('academic tab: Plus Two with subjects, Bulgaria threshold flag, name differ
 test('administrator sees academic and name rules; MD sees the Bonafide draft and adds a destination country option', async ({ page }) => {
   await login(page, 'admin@demo.test')
   await page.getByRole('link', { name: 'Academic & name rules' }).click()
-  await expect(page.getByRole('cell', { name: 'Bulgaria – Plus Two subject minimum 60%' }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'advisory requirement notices' })).toBeVisible()
   await expect(page.getByText('One and Same templates')).toBeVisible()
   await login(page, 'md@demo.test')
   await page.goto('/admin/verification-rules')

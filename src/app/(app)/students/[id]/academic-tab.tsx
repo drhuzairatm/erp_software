@@ -6,9 +6,6 @@ import type { Ctx } from '@/server/services/base'
 import { getLookups } from '@/server/services/lookups'
 import { EditRecord, NameCheckReview, OasActions, RecordForm } from './academic-forms'
 
-const RESULT: Record<string, { label: string; tone: 'green' | 'red' | 'amber' | 'slate' }> = {
-  ok: { label: 'Meets', tone: 'green' }, below: { label: 'Below threshold', tone: 'red' }, missing: { label: 'Not recorded', tone: 'amber' }, not_comparable: { label: 'Check manually', tone: 'amber' },
-}
 
 export async function AcademicTab({ ctx, studentId, canEdit }: { ctx: Ctx; studentId: string; canEdit: boolean }) {
   const [a, lookups] = await Promise.all([getAcademic(ctx, studentId), getLookups(ctx)])
@@ -17,7 +14,6 @@ export async function AcademicTab({ ctx, studentId, canEdit }: { ctx: Ctx; stude
   // PG medical applicants: MBBS-based fields first; Plus Two fields are not offered by default
   const kinds = a.profile === 'pg_medical' ? ['mbbs', 'internship', 'medical_registration', 'plus_two', 'class_10', 'other'] : ['plus_two', 'class_10', 'bachelor', 'other']
   const edit = canEdit && a.perms.edit
-  const below = a.eligibility.filter((e) => e.result === 'below')
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
       <div className="space-y-6 xl:col-span-2">
@@ -58,17 +54,9 @@ export async function AcademicTab({ ctx, studentId, canEdit }: { ctx: Ctx; stude
         {edit && <Card title="Add academic record"><RecordForm studentId={studentId} countries={countries} kinds={kinds} /></Card>}
       </div>
       <div className="space-y-6">
-        <Card title={<span className="flex items-center gap-2">Eligibility {below.length > 0 && <Badge tone="red">{below.length} below</Badge>}</span>}>
-          {a.eligibility.length === 0 ? <p className="text-sm text-slate-500">No thresholds apply to this student&apos;s destination, university, course and intake.</p> : (
-            <ul className="space-y-2 text-sm">{a.eligibility.map((e) => (
-              <li key={e.threshold_id} className="flex items-start justify-between gap-2">
-                <span>{e.subject_key === 'overall' ? 'Overall' : SUBJECT_KEYS[e.subject_key as keyof typeof SUBJECT_KEYS]} ≥ {Number(e.min_percentage)}%
-                  <span className="block text-xs text-slate-500">{e.name}{e.actual && ` · recorded ${e.actual}%`}</span></span>
-                <Badge tone={RESULT[e.result].tone}>{RESULT[e.result].label}</Badge>
-              </li>))}
-            </ul>
-          )}
-          <p className="hint mt-2">Flags for staff; they never reject an application automatically.</p>
+        <Card title="Country academic requirements">
+          <p className="text-sm text-slate-600">Requirements configured for the student&apos;s destination are shown at the top of the profile, compared with the marks recorded here.
+            They are advisory: staff acknowledge them, and they never block or reject the application.</p>
         </Card>
         <Card title="Name checks">
           {!a.holderName ? <p className="text-sm text-slate-600">Record the passport holder name (Passport tab) to compare it with the certificates.</p>

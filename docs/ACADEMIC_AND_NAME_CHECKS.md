@@ -27,7 +27,9 @@ Who can do what:
 - Staff who can edit the student can add or change records. Everyone who can see the student can read them.
 - Another company cannot see them (enforced in the database).
 
-## Eligibility thresholds
+## Eligibility thresholds (replaced Nov 2026)
+
+> Superseded: academic mark requirements are now **advisory country-wise requirement notices** — see docs/ADVISORY_REQUIREMENTS_AND_ALERTS.md. The text below describes the original Phase 3 behaviour.
 
 **Admin → Academic & name rules → Eligibility thresholds.**
 - **Scope:** destination, university, course/programme, intake and grading system.

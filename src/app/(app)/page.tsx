@@ -8,6 +8,7 @@ import { getDashboard } from '@/server/services/dashboard'
 import { getLookups, type Lookups } from '@/server/services/lookups'
 import { taskAssignees } from '@/server/services/tasks'
 import { getScope } from '@/server/scope'
+import { PriorityAttention } from '@/components/dashboard/priority-attention'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
@@ -38,6 +39,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <PageHeader title={title} description="All figures are calculated live from the records you are permitted to see." />
       {sp.password === 'changed' && <div className="mb-4"><Alert tone="green">Your password has been changed.</Alert></div>}
       {scope.isAll && !consolidatedAllowed && <div className="mb-4"><Alert tone="amber">You do not have consolidated dashboard access; showing your first company only.</Alert></div>}
+
+      <PriorityAttention ctx={ctx} orgIds={orgIds} />
 
       <DashboardFilters sp={sp} lookups={lookups} staff={staff} />
 

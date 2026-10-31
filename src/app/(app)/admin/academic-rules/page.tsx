@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Alert, Badge, Card, EmptyState, PageHeader } from '@/components/ui'
 import { fmtDateTime } from '@/components/format'
 import { requireUser } from '@/server/auth/session'
-import { MISMATCH_LABELS, RECORD_KINDS, SUBJECT_KEYS, academicConfig, canApproveTemplates, canManageAcademicRules } from '@/server/services/academic'
+import { MISMATCH_LABELS, RECORD_KINDS, academicConfig, canApproveTemplates, canManageAcademicRules } from '@/server/services/academic'
 import { getLookups } from '@/server/services/lookups'
-import { AcademicCheckSelect, AddOasRuleForm, AddTemplateForm, AddThresholdForm, TemplateButtons, Toggle } from './forms'
+import { AcademicCheckSelect, AddOasRuleForm, AddTemplateForm, TemplateButtons, Toggle } from './forms'
 
 export const metadata: Metadata = { title: 'Academic & name rules' }
 
@@ -15,32 +16,15 @@ export default async function AcademicRulesPage() {
   const [c, l] = await Promise.all([academicConfig(ctx), getLookups(ctx)])
   const countries = l.countries.filter((x) => x.is_destination).map((x) => ({ id: x.id, name: x.name }))
   const universities = l.universities.map((x) => ({ id: x.id, name: x.name })); const courses = l.courses.map((x) => ({ id: x.id, name: x.name }))
-  const intakes = l.intakes.map((x) => ({ id: x.id, name: `${x.name} (${l.universities.find((u) => u.id === x.university_id)?.name ?? ''})` }))
   return (
     <>
-      <PageHeader title="Academic & name rules" description="Eligibility thresholds, academic checks per stage, name-mismatch (One and Same) rules and templates." />
+      <PageHeader title="Academic & name rules" description="Academic reminders per stage, name-mismatch (One and Same) rules and templates." />
       <div className="mb-4"><Alert tone="blue">These are your business rules, not legal advice. Thresholds and name checks only flag cases for staff; nothing is rejected automatically.</Alert></div>
       <div className="space-y-6">
-        <Card title="Eligibility thresholds" padded={false}>
-          {c.thresholds.length === 0 ? <EmptyState title="No thresholds" /> : (
-            <div className="table-wrap"><table>
-              <thead><tr><th>Name</th><th>Subject</th><th className="text-right">Min %</th><th>Applies to</th><th></th></tr></thead>
-              <tbody>{c.thresholds.map((t) => (
-                <tr key={t.id} className={t.is_active ? '' : 'opacity-50'}>
-                  <td>{t.name}{t.source_note && <div className="text-xs text-slate-500">{t.source_note}</div>}</td>
-                  <td>{t.subject_key === 'overall' ? 'Overall' : SUBJECT_KEYS[t.subject_key as keyof typeof SUBJECT_KEYS]} <span className="text-xs text-slate-500">({RECORD_KINDS[t.record_kind as keyof typeof RECORD_KINDS]})</span></td>
-                  <td className="text-right tabular-nums">{Number(t.min_percentage)}</td>
-                  <td className="text-xs">{[t.destination, t.university, t.course, t.intake, t.grading_system].filter(Boolean).join(' · ') || 'All students'}</td>
-                  <td>{manage && <Toggle kind="threshold" id={t.id} active={t.is_active} />}</td>
-                </tr>))}
-              </tbody>
-            </table></div>
-          )}
-          {manage && <div className="border-t border-slate-100 p-4"><AddThresholdForm countries={countries} universities={universities} courses={courses} intakes={intakes} /></div>}
-        </Card>
+        <Alert tone="blue">Country-wise academic mark requirements are now <Link href="/admin/requirements">advisory requirement notices</Link>: shown to staff, acknowledged and compared with marks, never blocking.</Alert>
         <Card title="Academic check by stage">
-          <p className="mb-3 text-sm text-slate-600">When a student moves forward to (or past) a stage: check that Plus Two (or MBBS for postgraduate medical courses) is recorded and thresholds are met.
-            Draft profiles are never blocked earlier.</p>
+          <p className="mb-3 text-sm text-slate-600">When a student moves forward to (or past) a stage, staff are reminded (warning to acknowledge) if Plus Two (or MBBS for
+            postgraduate medical courses) is not recorded or a country requirement notice is pending. These reminders never block.</p>
           <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">{c.stages.map((s) => (
             <li key={s.key} className="flex items-center justify-between gap-2 text-sm">{s.name}
               {manage ? <AcademicCheckSelect stageKey={s.key} value={s.academic_check} /> : <Badge>{s.academic_check}</Badge>}</li>))}
