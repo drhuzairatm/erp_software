@@ -15,6 +15,17 @@ Targets for the pilot (adjust as needed): **RPO** ≤ 24 h (≤ minutes with PIT
 
 ## Database
 
+### Before every migration or release
+1. `npm run db:backup` (needs PostgreSQL 17 client tools; writes `backups/*.dump`, git-ignored).
+   On the development Mac these tools are not installed yet, so local backups are not possible until
+   `pg_dump` is installed (e.g. via Homebrew `postgresql@17`).
+2. Apply migrations. Every migration from `0017` has an undo script in `db/rollbacks/`; the migration tool
+   refuses new migrations without one.
+3. If something goes wrong: `npm run db:migrate -- --rollback 0018` undoes 0018 and anything newer
+   (newest first). For non-local databases add `--confirm-rollback`; never run it in production without
+   a fresh backup. Rollback scripts only remove what the migration added; they never delete pre-existing
+   business data, and refuse/skip where data now depends on the new structures.
+
 Supabase Pro includes daily backups (7 days); the PITR add-on gives second-level restore. In addition,
 keep your own weekly encrypted dump (run with the owner URL from a trusted machine):
 

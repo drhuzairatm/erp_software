@@ -12,3 +12,4 @@ test-results/
 coverage/
 .DS_Store
 public/pdfjs/
+backups/

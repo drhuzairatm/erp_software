@@ -123,7 +123,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
 export const COUNTRIES: [string, string, boolean, boolean][] = [
   ['RU', 'Russia', true, false], ['GE', 'Georgia', true, false], ['KZ', 'Kazakhstan', true, false], ['UZ', 'Uzbekistan', true, false],
   ['KG', 'Kyrgyzstan', true, false], ['PH', 'Philippines', true, false], ['DE', 'Germany', true, false], ['GB', 'United Kingdom', true, false],
-  ['IE', 'Ireland', true, false], ['BG', 'Bulgaria', true, false], ['EG', 'Egypt', true, false],
+  ['IE', 'Ireland', true, false], ['BG', 'Bulgaria', true, false], ['EG', 'Egypt', true, false], ['TJ', 'Tajikistan', true, false],
   ['IN', 'India', false, true], ['AE', 'United Arab Emirates', true, true], ['QA', 'Qatar', false, true], ['SA', 'Saudi Arabia', false, true],
   ['KW', 'Kuwait', false, true], ['OM', 'Oman', false, true], ['BH', 'Bahrain', false, true],
 ]

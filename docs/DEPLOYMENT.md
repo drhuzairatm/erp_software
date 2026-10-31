@@ -75,7 +75,9 @@ staff from **Staff** in the app.
 1. `npm run check` locally (typecheck, lint, unit/integration tests, build) and `npm run test:e2e`.
 2. Push to a branch → Vercel preview deploy (against staging) → smoke test.
 3. Apply new migrations to staging (`npm run db:migrate` with staging admin URL), test, then production.
-   Migrations are forward-only; never edit an applied migration (the runner refuses).
+   Never edit an applied migration (the runner refuses). From 0017 every migration ships with an undo
+   script in `db/rollbacks/` (`npm run db:migrate -- --rollback NNNN`). Take `npm run db:backup` first.
+   Code changes are tracked in git: deploy a tagged commit so a release can be rolled back.
 4. Merge to main → production deploy. Check `/api/health` returns `{"status":"ok"}`.
 
 ## 6. Monitoring

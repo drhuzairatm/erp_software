@@ -61,7 +61,8 @@ Password for all: the value of `SEED_DEMO_PASSWORD` in your `.env`. Locally `MFA
 | `npm run dev` | Development server |
 | `npm run build` / `npm start` | Production build / run |
 | `npm run db:start` | Local PostgreSQL (development only) |
-| `npm run db:migrate` | Apply new migrations (uses `DATABASE_ADMIN_URL`) |
+| `npm run db:migrate` | Apply new migrations (uses `DATABASE_ADMIN_URL`); `-- --rollback NNNN` undoes recent ones |
+| `npm run db:backup` | Logical database backup (needs PostgreSQL 17 client tools) |
 | `npm run db:provision` | Install companies, default roles and reference data (idempotent) |
 | `npm run db:seed` | Load fictional demo data (refuses production) |
 | `npm run db:reset` | Drop and rebuild the **local** database with demo data |
