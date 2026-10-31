@@ -16,6 +16,7 @@ export interface StudentFormProps {
   lookups: {
     countries: (Opt & { is_destination: boolean; is_education_origin: boolean })[]; courses: Opt[]; universities: (Opt & { country_id: string })[]
     campuses: (Opt & { university_id: string })[]
+    intakes?: (Opt & { university_id: string })[]
     leadSources: (Opt & { org_id: string })[]; legalEntities: Opt[]
   }
   counsellors?: (Opt & { org_id: string })[]
@@ -36,6 +37,7 @@ export function StudentForm(p: StudentFormProps) {
   // Previous-education countries first, then all others
   const originsFirst = [...p.lookups.countries].sort((a, b) => Number(b.is_education_origin) - Number(a.is_education_origin) || a.name.localeCompare(b.name))
   const campuses = p.lookups.campuses.filter((c) => c.university_id === university)
+  const intakes = (p.lookups.intakes ?? []).filter((c) => c.university_id === university)
   const v = (k: string) => (init[k] == null ? '' : String(init[k]))
   const unis = p.lookups.universities.filter((u) => !country || u.country_id === country)
 
@@ -244,6 +246,16 @@ export function StudentForm(p: StudentFormProps) {
                       {campuses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                     <FieldError state={s} name="preferredCampusId" />
+                  </div>
+                )}
+                {intakes.length > 0 && (
+                  <div>
+                    <label className="label" htmlFor="intakeId">Intake</label>
+                    <select className="input" id="intakeId" name="intakeId" defaultValue={v('intakeId')} key={'i' + university}>
+                      <option value="">Not decided</option>
+                      {intakes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <FieldError state={s} name="intakeId" />
                   </div>
                 )}
               </div>

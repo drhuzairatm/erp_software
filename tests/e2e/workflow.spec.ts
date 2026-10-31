@@ -14,6 +14,8 @@ test('register a student, change stage, upload and review a document, add a task
   await page.getByLabel('Primary phone', { exact: true }).fill(`+91 90000 9${unique.slice(-4)}`)
   await page.getByLabel('Secondary phone', { exact: true }).fill(`+91 90021 9${unique.slice(-4)}`)
   await page.locator('#email').fill(`e2e.${unique}@example.test`)
+  await page.getByLabel('Passport number').fill(`WF${unique}`)
+  await page.getByLabel('Expiry date').fill('2033-06-30') // 12+ months validity is required from University Application
   await page.getByLabel('Destination country').selectOption({ label: 'Russia' })
   await page.getByLabel('Course').selectOption({ label: 'MBBS' })
   await page.getByRole('button', { name: 'Register student' }).click()

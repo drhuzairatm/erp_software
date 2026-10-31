@@ -29,6 +29,18 @@
 - Passport alerts are delivered as tasks; the staff Notification Centre (with read/unread and escalation messages) is a later phase. Expiry tiers (12/6/3 months) are fixed as specified; minimum-validity rules are configurable but "pathway" is represented by course.
 - Email verification needs a working email provider in live mode; in test mode links can only be opened from the outbox.
 
+- Name checks compare the passport holder name with certificate names recorded in the Academic tab (typed by staff; OCR is not used). They need the holder name on the Passport tab.
+- One and Same requests by message use the notification rules (off by default, consent required); otherwise record a manual request. No real One and Same wording has been supplied yet.
+- Bonafide rules cannot yet be conditioned on nationality (the Qatar-school rule is scoped by previous education country, destination and university). The generic AND/OR rule engine is Phase 4.
+
+## Decisions recorded (Nov 2026)
+
+- Portal sign-in: students need a **password** login (Phase 6 — to confirm then whether one-time codes stay as an alternative).
+- Leads come from **both** this ERP and the Leadist CRM (Phase 9: own lead module plus an import/integration; Leadist itself is not modified).
+- Super admins (MD; System Administrator) add countries, courses, universities and attestation routes in the app.
+- Passport validity of **12 months or more is mandatory** (installed as a blocking rule from University Application).
+- Secondary phone and email are required from **University Application** (confirmed).
+
 ## Decisions still needed from the business
 
 1. Legal/accounting relationship between the brands: which legal entity contracts with the student and

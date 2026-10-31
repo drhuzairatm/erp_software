@@ -15,6 +15,7 @@ export const EVENTS: { key: string; label: string }[] = [
   { key: 'visa_outcome', label: 'Visa outcome updated' },
   { key: 'attestation_stage_completed', label: 'Attestation stage completed' },
   { key: 'attestation_completed', label: 'Attestation completed' },
+  { key: 'one_and_same_requested', label: 'One and Same document requested' },
 ]
 
 export function channelStatus(orgCodes: string[]) {

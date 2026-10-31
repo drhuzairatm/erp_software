@@ -1,5 +1,5 @@
 import postgres from 'postgres'
-import { COUNTRIES, COURSES, DEFAULT_ROLES, DEPARTMENTS, NOTIFICATION_TEMPLATES, DOCUMENT_TYPES, FEE_CATEGORIES, LEAD_SOURCES, ORGANIZATIONS, WORKFLOWS } from './defaults'
+import { ACADEMIC_THRESHOLDS, BONAFIDE_RULES, BUSINESS_UNIVERSITIES, PASSPORT_VALIDITY_RULES, COUNTRIES, COURSES, DEFAULT_ROLES, DEPARTMENTS, NOTIFICATION_TEMPLATES, DOCUMENT_TYPES, FEE_CATEGORIES, LEAD_SOURCES, ORGANIZATIONS, WORKFLOWS } from './defaults'
 
 /**
  * Idempotently installs organizations, default roles, and reference data.
@@ -73,8 +73,8 @@ export async function provision(adminUrl: string, log: (m: string) => void = con
         await tx`insert into countries (code, name, is_destination, is_education_origin) values (${code}, ${name}, ${destination}, ${origin})
                  on conflict (code) do nothing`
       }
-      for (const [code, name, sort] of COURSES) {
-        await tx`insert into courses (code, name, sort_order) values (${code}, ${name}, ${sort}) on conflict (code) do nothing`
+      for (const [code, name, sort, profile] of COURSES) {
+        await tx`insert into courses (code, name, sort_order, academic_profile) values (${code}, ${name}, ${sort}, ${profile}) on conflict (code) do nothing`
       }
       for (const [key, name, category, hasExpiry, sort] of DOCUMENT_TYPES) {
         await tx`insert into document_types (key, name, category, has_expiry, sort_order)
@@ -97,6 +97,33 @@ export async function provision(adminUrl: string, log: (m: string) => void = con
         for (const d of w.documents) {
           await tx`insert into document_requirements (workflow_id, document_type_id, is_required)
                    select ${wid}, id, true from document_types where key = ${d}`
+        }
+      }
+      // ---- business rules supplied by the MD (installed once; managed in the app afterwards)
+      const cid = async (code: string) => (await tx<{ id: string }[]>`select id from countries where code = ${code}`)[0]?.id
+      for (const [cc, name, city] of BUSINESS_UNIVERSITIES) {
+        await tx`insert into universities (country_id, name, city) select ${await cid(cc)}, ${name}, ${city}
+                 where not exists (select 1 from universities where name = ${name})`
+      }
+      for (const r of PASSPORT_VALIDITY_RULES) {
+        await tx`insert into passport_validity_rules (name, stage_key, min_months, enforcement, notes)
+                 select ${r.name}, ${r.stage}, ${r.months}, ${r.enforcement}, ${r.notes}
+                  where not exists (select 1 from passport_validity_rules where name = ${r.name})`
+      }
+      for (const t of ACADEMIC_THRESHOLDS) {
+        await tx`insert into academic_thresholds (name, destination_country_id, record_kind, subject_key, min_percentage, source_note)
+                 select ${t.name}, ${await cid(t.destination)}, ${t.recordKind}, ${t.subject}, ${t.min}, ${t.note}
+                  where not exists (select 1 from academic_thresholds where name = ${t.name} and subject_key = ${t.subject})`
+      }
+      for (const b of BONAFIDE_RULES) {
+        if ((await tx`select 1 from verification_rules where name = ${b.name}`).length) continue
+        const [r] = await tx<{ id: string }[]>`
+          insert into verification_rules (name, description, document_type_id, previous_education_country_id, destination_country_id, university_id)
+          values (${b.name}, ${b.description}, (select id from document_types where key = 'bonafide_certificate'), ${await cid(b.previousEducation)},
+                  ${await cid(b.destination)}, (select id from universities where name = ${b.university} limit 1)) returning id`
+        for (const [k, [kind, text, mandatory, keywords]] of b.requirements.entries()) {
+          await tx`insert into verification_requirements (rule_id, sort_order, kind, text, keywords, is_mandatory)
+                   values (${r.id}, ${(k + 1) * 10}, ${kind}, ${text}, ${tx.array(keywords)}::text[], ${mandatory})`
         }
       }
     })

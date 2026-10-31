@@ -8,6 +8,7 @@ import postgres from 'postgres'
 import { hashPassword } from '../../src/server/auth/password'
 import { getStorage, newStorageKey, sha256 } from '../../src/server/storage'
 import { demoAttestationRoutes, demoStartAttestations } from './demo-attestation'
+import { demoAcademicConfig, demoAcademicRecords } from './demo-academic'
 
 type Sql = postgres.Sql
 
@@ -233,6 +234,9 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
     }
 
     // --- Stage progression via the real workflow function --------------------
+    // The 12-month passport rule applies from University Application: give demo students a valid passport before
+    // that stage; passports meant to show expiry alerts are shortened again afterwards (a later edit, as in real life).
+    const shortenAfter: { id: string; expiry: string }[] = []
     for (const s of created) {
       const stages = (await sql<{ stage_key: string }[]>`
         select ws.stage_key from students st join workflow_stages ws on ws.workflow_id = st.workflow_id
@@ -245,11 +249,19 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
         if (stage === 'travel_preparation' || stage === 'travel_completed') {
           await as(sql, U('visa@demo.test'), (tx) => tx`select app.update_visa_details(${s.id}, ${daysFromNow(-20)}, 'approved', 'VISA-DEMO-' || ${s.code})`)
         }
+        if (stage === 'university_application') {
+          const [pp] = await sql<{ passport_expiry: string | null }[]>`select passport_expiry::text from students where id = ${s.id}`
+          if (pp.passport_expiry && pp.passport_expiry < daysFromNow(400)) shortenAfter.push({ id: s.id, expiry: pp.passport_expiry })
+          await sql`update students set passport_number = coalesce(passport_number, ${'DM' + s.code.replace(/\D/g, '').slice(-7)}),
+                      passport_country_id = coalesce(passport_country_id, ${countries.IN}), passport_expiry = ${daysFromNow(1800)}
+                     where id = ${s.id} and (passport_expiry is null or passport_expiry < ${daysFromNow(400)})`
+        }
         if (stage === 'visa_processing') {
           await as(sql, U(managers.EDX), (tx) => tx`select app.update_admission_details(${s.id}, ${'APP-DEMO-' + s.code}, ${daysFromNow(-30)})`)
         }
         await as(sql, U(actor), (tx) => tx`select app.change_student_stage(${s.id}, ${stage}, null, ${'Continue with ' + stage.replace(/_/g, ' ')}, ${daysFromNow(Math.floor(rand() * 14) - 5)}, '[]'::jsonb)`)
       }
+      for (const x of shortenAfter.filter((y) => y.id === s.id)) await sql`update students set passport_expiry = ${x.expiry} where id = ${x.id}`
       if (target === 'hold') {
         await as(sql, U(managers[s.plan.org]), (tx) => tx`select app.change_student_stage(${s.id}, 'on_hold', 'Student requested a pause for family reasons (demo)', 'Check back with student', ${daysFromNow(7)}, '[]'::jsonb)`)
       }
@@ -367,6 +379,14 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
     // Start attestation for some approved documents of Bulgaria/Egypt students; advance a few stages
     const attCount = await demoStartAttestations(sql, created.filter((c) => ['BG', 'EG'].includes(c.plan.country)).map((c) => c.id),
       (i) => U(docsStaff[i % 2]))
+
+    // --- Academic records, name checks, One and Same (demo) ---------------------
+    await demoAcademicConfig(sql, U('md@demo.test'))
+    const acadCount = await demoAcademicRecords(sql, created.filter((c) => c.plan.target !== 'cancelled').map((c) => ({ id: c.id, country: c.plan.country })), countries,
+      async (id) => (await sql<{ user_id: string }[]>`
+      select coalesce((select user_id from student_assignments where student_id = ${id} and is_active and assignment_type = 'counsellor' limit 1),
+                      (select m.user_id from students s join organization_memberships m on m.org_id = s.originating_org_id and m.is_active
+                         join roles r on r.id = m.role_id and r.key = 'manager' where s.id = ${id} limit 1)) as user_id`)[0]?.user_id ?? null)
 
     // --- Tasks --------------------------------------------------------------
     const delayReasons = ['student', 'university', 'embassy', 'provider', 'finance', 'other_external']
@@ -494,7 +514,7 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
                where r.audience = 'student' and r.channel = 'whatsapp' and r.event_key = 'stage_changed'
               on conflict do nothing`
 
-    log(`Demo data created: ${DEMO_USERS.length} users, ${created.length + 1} students, ${fileCount} placeholder files, ${taskCount} tasks, ${payCount} ledger entries, ${attCount} attestations.`)
+    log(`Demo data created: ${DEMO_USERS.length} users, ${created.length + 1} students, ${fileCount} placeholder files, ${taskCount} tasks, ${payCount} ledger entries, ${attCount} attestations, ${acadCount} academic records.`)
   } finally {
     await sql.end()
   }

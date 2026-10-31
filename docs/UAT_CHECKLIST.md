@@ -169,6 +169,19 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 - [ ] The CEO sees the passport status but not the passport number or dates.
 - [ ] Dashboard "Passports needing renewal" and Reports → Passport expiry match each other.
 
+## G4. Academic records, name checks, One and Same (Phase 3)
+
+- [ ] Academic tab: add a Plus Two with marks per subject. The percentage is calculated, and a CGPA record shows no percentage.
+- [ ] A Bulgaria student with Chemistry below 60% shows "Below threshold"; moving to University Application shows the warning to acknowledge.
+- [ ] A Postgraduate Medical student is offered MBBS, internship and registration first.
+- [ ] Passport tab: record the holder name. A certificate with the surname missing shows "Surname missing — needs human review".
+- [ ] "Same person – no document needed" needs a note; "Require One and Same" adds a checklist item.
+- [ ] As administrator: draft a One and Same template. As a manager: approve it. The approved template can no longer be edited.
+- [ ] Choose the template, Generate preview (names filled in), record a manual request: the status is Pending. Upload, verify and approve the document: the status follows Received → Verified → Approved.
+- [ ] A mandatory rule opens the case automatically, with tasks for the documentation staff and a manager.
+- [ ] A passport valid for less than 12 months cannot move to University Application.
+- [ ] As MD: approve the Bonafide (Qatar school → Varna) draft under Verification rules. Adding a country offers "Used as"; adding a course offers "Academic details".
+
 ## H. Usability
 | # | Test | Expected |
 |---|---|---|

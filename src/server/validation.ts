@@ -69,6 +69,7 @@ const studentObject = z.object({
     passportCountryId: optUuid,
     preferredCampusId: optUuid,
     visaApplicationCountryId: optUuid,
+    intakeId: optUuid,
     parentName: text(120).optional(),
     parentPhone: z.string().regex(PHONE_RE, 'Enter a valid phone number.').optional(),
     parentEmail: z.email('Enter a valid email address.').max(200).optional(),

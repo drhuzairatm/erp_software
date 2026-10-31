@@ -102,7 +102,7 @@ export async function getStudent(ctx: Ctx, id: string) {
              ls.name as lead_source_name, w.name as workflow_name, ce.name as contracting_entity_name, pe.name as payment_recipient_name,
              cu.full_name as created_by_name, uu.full_name as updated_by_name, m.student_code as merged_into_code,
              pec.name as previous_education_country_name, sc.name as school_country_name, pc.name as passport_country_name,
-             camp.name as campus_name, vac.name as visa_application_country_name, rc.name as residence_country_name
+             camp.name as campus_name, vac.name as visa_application_country_name, rc.name as residence_country_name, ink.name as intake_name
         from v_students s
         join stages st on st.key = s.current_stage_key
         join organizations o on o.id = s.originating_org_id
@@ -123,6 +123,7 @@ export async function getStudent(ctx: Ctx, id: string) {
         left join university_campuses camp on camp.id = s.preferred_campus_id
         left join countries vac on vac.id = s.visa_application_country_id
         left join countries rc on rc.id = s.residence_country_id
+        left join university_intakes ink on ink.id = s.intake_id
        where s.id = ${id}`
     if (!s) return null
     const [access, assignments, workflowStages, history] = await Promise.all([
@@ -218,6 +219,7 @@ export interface StudentRecord {
   phone_country: string | null; phone2: string | null; phone2_country: string | null; phone2_masked: string | null
   phone3: string | null; phone3_country: string | null; phone3_label: string | null
   residence_country_id: string | null; residence_country_name: string | null
+  intake_id: string | null; intake_name: string | null
   email_status: 'entered' | 'pending' | 'verified' | 'expired' | 'failed'; email_verified_at: Date | null; passport_status: string | null
   previous_education_country_name: string | null; school_country_name: string | null; passport_country_name: string | null; campus_name: string | null
 }
@@ -326,6 +328,7 @@ function studentColumns(v: StudentInput, id?: string) {
     passport_expiry: v.passportExpiry ?? null,
     passport_country_id: v.passportCountryId ?? null,
     visa_application_country_id: v.visaApplicationCountryId ?? null,
+    intake_id: v.intakeId ?? null,
     parent_name: v.parentName ?? null,
     parent_phone: v.parentPhone ?? null,
     parent_email: v.parentEmail?.toLowerCase() ?? null,
@@ -338,6 +341,10 @@ async function validateRefs(tx: Tx, v: StudentInput) {
   if (v.preferredUniversityId && v.destinationCountryId) {
     const [u] = await tx`select 1 from universities where id = ${v.preferredUniversityId} and country_id = ${v.destinationCountryId}`
     if (!u) throw invalid('The selected university is not in the selected country.', { preferredUniversityId: ['Choose a university in the destination country.'] })
+  }
+  if (v.intakeId) {
+    const [i] = v.preferredUniversityId ? await tx`select 1 from university_intakes where id = ${v.intakeId} and university_id = ${v.preferredUniversityId}` : []
+    if (!i) throw invalid('The selected intake does not belong to the selected university.', { intakeId: ['Choose an intake of the selected university.'] })
   }
   if (v.preferredCampusId) {
     const [c] = v.preferredUniversityId ? await tx`select 1 from university_campuses where id = ${v.preferredCampusId} and university_id = ${v.preferredUniversityId}` : []
@@ -352,7 +359,7 @@ async function validateRefs(tx: Tx, v: StudentInput) {
 const FIELD_LABELS: Record<string, string> = {
   full_name: 'name', phone: 'primary phone', phone2: 'secondary phone', phone3: 'third phone', phone_country: 'primary phone country',
   phone2_country: 'secondary phone country', phone3_country: 'third phone country', phone3_label: 'third phone contact type',
-  residence_country_id: 'country of residence', email: 'email', preferred_language: 'language', date_of_birth: 'date of birth',
+  residence_country_id: 'country of residence', intake_id: 'intake', email: 'email', preferred_language: 'language', date_of_birth: 'date of birth',
   destination_country_id: 'country', course_id: 'course', preferred_university_id: 'university', processing_org_id: 'processing team',
   lead_source_id: 'lead source', registration_date: 'registration date', next_action: 'next action', next_action_due: 'next action due date',
   contracting_entity_id: 'contracting entity', payment_recipient_entity_id: 'payment recipient',

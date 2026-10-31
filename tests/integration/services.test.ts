@@ -139,7 +139,8 @@ describe('admission workflow', () => {
 
   it('requires acknowledging warnings, records history with previous/new stage, user and reason', async () => {
     const counsellor = await ctxFor('edx.counsellor@demo.test')
-    const r = await students.createStudent(counsellor, newStudent())
+    // passport valid for more than 12 months (business rule from University Application)
+    const r = await students.createStudent(counsellor, newStudent({ passportNumber: `PS${Date.now().toString().slice(-6)}`, passportExpiry: '2032-01-01' }))
     if (!r.ok) throw new Error()
     expect(await students.changeStage(counsellor, r.id, { toStage: 'registration', nextAction: 'Collect documents', nextActionDue: '2030-01-10' })).toEqual({ ok: true })
     const mgr = await ctxFor('edx.manager@demo.test')

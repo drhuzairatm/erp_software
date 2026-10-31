@@ -12,13 +12,15 @@ const PendingContext = createContext<boolean | null>(null)
  * A form bound to a server action. Shows a success/error message, passes field
  * errors to children, and resets on success when `resetOnSuccess` is set.
  */
-export function ActionForm({ action, children, className = 'space-y-4', resetOnSuccess, successMessage, id }: {
+export function ActionForm({ action, children, className = 'space-y-4', resetOnSuccess, successMessage, id, onSuccess }: {
   action: Action
   children: ReactNode | ((state: ActionResult) => ReactNode)
   className?: string
   resetOnSuccess?: boolean
   successMessage?: string
   id?: string
+  /** Called once after each successful submission (e.g. to close an edit panel). */
+  onSuccess?: () => void
 }) {
   const [state, formAction, actionPending] = useActionState(action, initialResult)
   const [transitionPending, startTransition] = useTransition()
@@ -32,8 +34,11 @@ export function ActionForm({ action, children, className = 'space-y-4', resetOnS
     const fd = new FormData(e.currentTarget, submitter)
     startTransition(() => formAction(fd))
   }
+  const onSuccessRef = useRef(onSuccess)
+  useEffect(() => { onSuccessRef.current = onSuccess })
   useEffect(() => {
     if (state.ok && resetOnSuccess) ref.current?.reset()
+    if (state.ok && state !== initialResult) onSuccessRef.current?.()
   }, [state, resetOnSuccess])
   return (
     <PendingContext.Provider value={actionPending || transitionPending}>

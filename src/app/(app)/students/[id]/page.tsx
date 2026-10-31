@@ -17,6 +17,7 @@ import { MessageTable } from '@/app/(app)/notifications/message-table'
 import { countryName, formatPhone } from '@/lib/phone'
 import { EMAIL_STATUS, getContactHistory } from '@/server/services/passport'
 import { PassportStatusBadge, PassportTab } from './passport-tab'
+import { AcademicTab } from './academic-tab'
 import { VerifyEmailButton } from './passport-forms'
 import { AdmissionForm, ArchiveForm, AssignmentForm, FollowupForm, MergeForm, NoteForm, StageChangeForm, VisaForm } from './panels'
 import { AddChecklistItemForm, CustodyForm, DocumentDetailsForm, PaymentForm, QuickTaskForm, ReverseForm, UploadForm, VerifyForm } from './tab-forms'
@@ -26,6 +27,7 @@ export const metadata: Metadata = { title: 'Student profile' }
 const TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'documents', label: 'Documents', perm: 'documentsRead' },
+  { key: 'academic', label: 'Academic' },
   { key: 'passport', label: 'Passport', perm: 'passport' },
   { key: 'tasks', label: 'Tasks' },
   { key: 'payments', label: 'Payments', perm: 'paymentsRead' },
@@ -72,6 +74,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
 
       {tab === 'overview' && <Overview ctx={ctx} profile={profile} />}
       {tab === 'documents' && <Documents ctx={ctx} profile={profile} />}
+      {tab === 'academic' && <AcademicTab ctx={ctx} studentId={id} canEdit={!s.archived_at && s.status !== 'merged'} />}
       {tab === 'passport' && <PassportTab ctx={ctx} studentId={id} canEdit={p.passport && !s.archived_at && s.status !== 'merged'} />}
       {tab === 'tasks' && <Tasks ctx={ctx} profile={profile} />}
       {tab === 'payments' && <Payments ctx={ctx} profile={profile} />}
@@ -145,6 +148,7 @@ async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
             ['Parent / guardian', s.parent_name ? <>{s.parent_name}{s.contact_visible && (s.parent_phone || s.parent_email) && <span className="block text-xs text-slate-500">{[s.parent_phone, s.parent_email].filter(Boolean).join(' · ')}</span>}</> : null],
             ['Destination', s.country_name], ['Course', s.course_name], ['Visa application country', s.visa_application_country_name],
             ['Preferred university', s.university_name ? <>{s.university_name}{s.campus_name ? ` · ${s.campus_name}` : ''}</> : null],
+            ['Intake', s.intake_name],
             ['Lead source', s.lead_source_name], ['Registration date', fmtDate(s.registration_date)],
             ['Workflow', s.workflow_name],
             ['Contracting entity', s.contracting_entity_name ?? 'Not yet decided'], ['Payment recipient', s.payment_recipient_name ?? 'Not yet decided'],

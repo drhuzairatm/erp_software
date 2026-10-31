@@ -20,6 +20,7 @@ export function messageVars(ctx: Record<string, unknown>, params: Record<string,
     visa_outcome: VISA[String(params.visa_outcome)] ?? params.visa_outcome ?? '',
     code: params.code ?? '',
     link: params.link ?? '',
+    preview: params.preview ?? '',
   }
 }
 

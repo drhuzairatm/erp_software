@@ -24,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (can(ctx, 'users.manage')) items.push({ href: '/admin/users', label: 'Staff' })
   if (can(ctx, 'roles.manage')) items.push({ href: '/admin/roles', label: 'Roles & permissions' })
   if (canAny(ctx, ['settings.manage', 'reference.manage', 'workflow.manage', 'departments.manage'])) items.push({ href: '/admin/settings', label: 'Company settings' })
+  if (canAny(ctx, ['academic.rules.manage', 'one_and_same.templates.approve'])) items.push({ href: '/admin/academic-rules', label: 'Academic & name rules' })
   if (canAny(ctx, ['passport.rules.manage'])) items.push({ href: '/admin/passport-rules', label: 'Passport & contact rules' })
   if (canAny(ctx, ['attestation.routes.manage', 'attestation.routes.approve'])) items.push({ href: '/admin/attestation-routes', label: 'Attestation routes' })
   if (canAny(ctx, ['verification.rules.manage', 'verification.rules.approve'])) items.push({ href: '/admin/verification-rules', label: 'Verification rules' })

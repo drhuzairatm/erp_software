@@ -8,7 +8,7 @@ export async function getLookups(ctx: Ctx) {
 }
 
 export async function loadLookups(tx: Tx) {
-  const [countries, courses, universities, stages, organizations, leadSources, legalEntities, documentTypes, campuses] = await Promise.all([
+  const [countries, courses, universities, stages, organizations, leadSources, legalEntities, documentTypes, campuses, intakes] = await Promise.all([
     tx<(Option & { is_destination: boolean; is_education_origin: boolean })[]>`select id, name, is_destination, is_education_origin from countries where is_active order by name`,
     tx<Option[]>`select id, name from courses where is_active order by sort_order, name`,
     tx<(Option & { country_id: string })[]>`select id, name, country_id from universities where is_active order by name`,
@@ -18,8 +18,10 @@ export async function loadLookups(tx: Tx) {
     tx<Option[]>`select id, name from legal_entities where is_active order by name`,
     tx<(Option & { key: string; category: string; has_expiry: boolean })[]>`select id, name, key, category, has_expiry from document_types where is_active order by sort_order`,
     tx<(Option & { university_id: string })[]>`select id, name, university_id from university_campuses where is_active order by name`,
+    tx<(Option & { university_id: string; course_id: string | null })[]>`
+      select id, name, university_id, course_id from university_intakes where is_active order by starts_on nulls last, name`,
   ])
-  return { countries, courses, universities, stages, organizations, leadSources, legalEntities, documentTypes, campuses }
+  return { countries, courses, universities, stages, organizations, leadSources, legalEntities, documentTypes, campuses, intakes }
 }
 
 export type Lookups = Awaited<ReturnType<typeof loadLookups>>

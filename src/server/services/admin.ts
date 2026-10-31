@@ -190,10 +190,11 @@ export async function addReference(ctx: Ctx, kind: RefKind, v: Record<string, st
     switch (kind) {
       case 'country':
         if (!/^[A-Z]{2}$/.test(v.code ?? '')) throw invalid('Country code must be 2 capital letters (e.g. RU).')
-        return tx`insert into countries (code, name) values (${v.code!}, ${name})`
+        return tx`insert into countries (code, name, is_destination, is_education_origin)
+                  values (${v.code!}, ${name}, ${v.use !== 'origin'}, ${v.use === 'origin' || v.use === 'both'})`
       case 'course': {
         const code = (v.code ?? name).toUpperCase().replace(/[^A-Z0-9]+/g, '_').slice(0, 30)
-        return tx`insert into courses (code, name) values (${code}, ${name})`
+        return tx`insert into courses (code, name, academic_profile) values (${code}, ${name}, ${v.profile === 'pg_medical' ? 'pg_medical' : 'school'})`
       }
       case 'university':
         if (!v.countryId) throw invalid('Choose the country.')

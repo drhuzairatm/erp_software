@@ -40,6 +40,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'Company Manager',
     description: 'Manages records and staff work within the company.',
     permissions: [
+      'one_and_same.templates.approve',
       'attestation.exception',
       'attestation.process',
       'notifications.consent',
@@ -112,6 +113,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'System Administrator',
     description: 'Manages users, roles and configuration. No access to student records by default.',
     permissions: [
+      'academic.rules.manage',
       'passport.rules.manage',
       'attestation.routes.manage',
       'notifications.manage',
@@ -134,11 +136,15 @@ export const COUNTRIES: [string, string, boolean, boolean][] = [
 ]
 
 export const COURSES = [
-  ['MBBS', 'MBBS', 10], ['NURSING', 'Nursing', 20], ['PG_MEDICAL', 'Postgraduate Medical', 30],
+  ['MBBS', 'MBBS', 10, 'school'], ['NURSING', 'Nursing', 20, 'school'], ['PG_MEDICAL', 'Postgraduate Medical', 30, 'pg_medical'],
 ] as const
 
 export const DOCUMENT_TYPES = [
   ['passport', 'Passport', 'identity', true, 10],
+  ['one_and_same', 'One and Same Certificate / Affidavit', 'identity', false, 15],
+  ['mbbs_degree', 'MBBS Degree Certificate', 'academic', false, 32],
+  ['internship_certificate', 'Internship Completion Certificate', 'academic', false, 33],
+  ['medical_registration', 'Medical Council Registration', 'academic', true, 34],
   ['tenth_certificate', '10th Certificate', 'academic', false, 20],
   ['plus_two_certificate', 'Plus Two Certificate', 'academic', false, 30],
   ['bonafide_certificate', 'Bonafide Certificate', 'academic', false, 35],
@@ -231,7 +237,36 @@ export const NOTIFICATION_TEMPLATES: { event: string; name: string; email: { sub
   { event: 'attestation_completed', name: 'Attestation completed',
     email: { subject: 'Attestation completed: {{document}}', body: 'Dear {{student_name}},\n\nThe attestation of your {{document}} is complete.\n\nRegards,\n{{company}}' },
     whatsapp: { body: 'Dear {{student_name}}, the attestation of your {{document}} is complete.', params: ['student_name', 'document'] } },
+  { event: 'one_and_same_requested', name: 'One and Same request',
+    email: { subject: 'Document needed: One and Same ({{document}})', body: 'Dear {{student_name}},\n\nThe name on your {{document}} differs from the name in your passport. Please arrange a One and Same certificate/affidavit with the following wording and send it to us:\n\n{{preview}}\n\nRegards,\n{{company}}' },
+    whatsapp: { body: 'Dear {{student_name}}, the name on your {{document}} differs from your passport. We have emailed the One and Same wording to you; please contact your counsellor.', params: ['student_name', 'document'] } },
   { event: 'visa_outcome', name: 'Visa update',
     email: { subject: 'Visa update', body: 'Dear {{student_name}},\n\nThere is an update on your visa: {{visa_outcome}}. Your visa coordinator will contact you.\n\nRegards,\n{{company}}' },
     whatsapp: { body: 'Dear {{student_name}}, there is an update on your visa: {{visa_outcome}}.', params: ['student_name', 'visa_outcome'] } },
+]
+
+/**
+ * Business rules supplied by the MD (Oct 2026). Installed once (matched by name); edit or switch off in the app.
+ * These are the company's procedures, not legal advice.
+ */
+export const BUSINESS_UNIVERSITIES: [country: string, name: string, city: string][] = [
+  ['BG', 'Medical University – Varna', 'Varna'],
+  ['BG', 'Medical University – Pleven', 'Pleven'],
+]
+export const PASSPORT_VALIDITY_RULES = [
+  { name: 'Passport valid for at least 12 months (all destinations)', stage: 'university_application', months: 12, enforcement: 'block',
+    notes: 'MD instruction Oct 2026: 1 year+ passport validity is mandatory.' },
+]
+export const ACADEMIC_THRESHOLDS = (['chemistry', 'biology', 'physics', 'english'] as const).map((subject) => ({
+  name: 'Bulgaria – Plus Two subject minimum 60%', destination: 'BG', recordKind: 'plus_two', subject, min: 60,
+  note: 'Current business rule from the brief (Oct 2026); flags results below the threshold.',
+}))
+export const BONAFIDE_RULES = [
+  { name: 'Bonafide – Indian student at a Qatar school → Medical University – Varna (Bulgaria)', previousEducation: 'QA', destination: 'BG',
+    university: 'Medical University – Varna',
+    description: 'Wording supplied by the MD (Oct 2026) for an Indian national at a school in Qatar applying to Varna. Created as a DRAFT: the MD approves it under Admin → Verification rules.',
+    requirements: [
+      ['statement', 'States that she/he is eligible to apply and continue her/his studies at various institutions and universities in India, Qatar as well as abroad.', true, []],
+      ['keywords', 'Key words of the eligibility statement', true, ['eligible', 'continue', 'studies', 'institutions', 'universities', 'India', 'Qatar', 'abroad']],
+    ] as [string, string, boolean, string[]][] },
 ]
