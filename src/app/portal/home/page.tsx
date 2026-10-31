@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { fmtDate } from '@/components/format'
+import { BrandMark } from '@/components/brand-mark'
+import { RadialProgress } from '@/components/charts'
+import { Icon } from '@/components/icons'
+import { brandOf } from '@/lib/brands'
 import { portalChoices, portalOverview, portalSession } from '@/server/portal'
 import { logoutAction } from '../actions'
 import { ChooseButton, PortalUpload } from '../forms'
@@ -8,7 +12,7 @@ import { ChooseButton, PortalUpload } from '../forms'
 export const metadata: Metadata = { title: 'My application' }
 
 const DOC_STATE: Record<string, [string, string]> = {
-  missing: ['Please upload', 'bg-slate-100 text-slate-700'],
+  missing: ['Please upload', 'bg-amber-100 text-amber-900'],
   checking: ['Received – being checked', 'bg-blue-50 text-blue-800'],
   changes_required: ['Please upload a corrected copy', 'bg-amber-50 text-amber-900'],
   rejected: ['Not accepted – please upload again', 'bg-red-50 text-red-800'],
@@ -35,78 +39,120 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
   const o = await portalOverview(session.tokenHash)
   if (!o) redirect('/portal')
   const s = o.student
-  const toUpload = o.documents.filter((d) => d.can_upload && d.required).length
+  const brand = brandOf(o.company.code)
+  const toUpload = o.documents.filter((d) => d.can_upload && d.required)
+  const checking = o.documents.filter((d) => d.state === 'checking')
+  const approved = o.documents.filter((d) => d.state === 'approved')
+  const other = o.documents.filter((d) => !toUpload.includes(d) && !checking.includes(d) && !approved.includes(d))
+  const required = o.documents.filter((d) => d.required)
+  const doneStages = o.stages.filter((x) => x.state === 'done').length
+  const progress = o.stages.length ? Math.round(((doneStages + (s.status === 'completed' ? 0 : 0.5)) / o.stages.length) * 100) : 0
+  const docItem = (d: (typeof o.documents)[number]) => {
+    const [label, cls] = DOC_STATE[d.state] ?? [d.state, 'bg-slate-100 text-slate-700']
+    return (
+      <li key={d.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <span className="flex items-center gap-2 text-sm font-semibold text-slate-900"><Icon name="doc" className="h-4 w-4 text-slate-400" />{d.name}
+            {!d.required && <span className="font-normal text-slate-500">(if applicable)</span>}</span>
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{label}</span>
+        </div>
+        {d.reason && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">Reason: {d.reason}</p>}
+        {d.attestation && (
+          <p className="mt-2 text-sm text-slate-700">{d.attestation.state === 'completed' ? '✓ Attestation / apostille completed'
+            : `Attestation / apostille in progress: step ${Math.min(d.attestation.done + 1, d.attestation.total)} of ${d.attestation.total}`}</p>
+        )}
+        {d.can_upload && <PortalUpload documentId={d.id} />}
+      </li>
+    )
+  }
   return (
-    <>
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
-          <div><p className="text-xs font-semibold uppercase tracking-wider text-brand-700">{o.company.name}</p><p className="text-sm font-medium">Student portal</p></div>
-          <form action={logoutAction}><button className="btn-secondary btn-sm" type="submit">Sign out</button></form>
+    <div data-brand={brand} className="min-h-screen bg-[#f3f6fb] pb-16">
+      <header className="bg-hero text-white">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4">
+          <div><BrandMark brand={brand} /><p className="mt-0.5 text-xs text-cyan-brand">Student portal</p></div>
+          <form action={logoutAction}><button className="btn border border-white/25 bg-white/10 text-white hover:bg-white/20 btn-sm" type="submit">Sign out</button></form>
+        </div>
+        <div className="mx-auto max-w-3xl px-4 pb-20 pt-2">
+          <p className="text-sm text-slate-300">Hello,</p>
+          <h1 className="text-2xl font-bold tracking-tight">{s.name}</h1>
+          <p className="mt-1 font-mono text-xs text-slate-300">Student ID {s.code}</p>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl space-y-5 px-4 py-6">
-        {uploaded && <p role="status" className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">Thank you – we received your document and will check it. You will see the result here.</p>}
-        <section className="card p-5">
-          <p className="text-sm text-slate-600">Hello,</p>
-          <h1 className="text-xl font-semibold">{s.name}</h1>
-          <p className="mt-1 font-mono text-xs text-slate-500">Student ID {s.code}</p>
-          <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <div><dt className="text-slate-500">Programme</dt><dd>{[s.course, s.destination].filter(Boolean).join(' in ') || '—'}{s.university && <span className="block">{s.university}</span>}</dd></div>
-            <div><dt className="text-slate-500">Your counsellor</dt><dd>{s.counsellor ?? '—'}</dd></div>
+
+      <main className="mx-auto -mt-16 max-w-3xl space-y-5 px-4">
+        {uploaded && <p role="status" className="flex gap-2 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900 shadow-sm"><Icon name="check" className="h-5 w-5 text-green-600" />Thank you – we received your document and will check it. You will see the result here.</p>}
+        <section className="card p-5" aria-labelledby="progress-h">
+          <div className="flex items-center gap-5">
+            <RadialProgress value={progress} label="Overall progress" size={104} color="#24E0B8" />
+            <div className="min-w-0 flex-1">
+              <h2 id="progress-h" className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current stage</h2>
+              <p className="mt-0.5 text-lg font-bold text-slate-900">{s.stage}</p>
+              {s.status === 'on_hold' && <span className="mt-1 inline-block rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-900">On hold – your counsellor will contact you</span>}
+              <p className="mt-1 text-sm text-slate-600">{[s.course, s.destination].filter(Boolean).join(' in ') || 'Programme to be confirmed'}{s.university && ` · ${s.university}`}</p>
+            </div>
+          </div>
+          {s.next_action && (
+            <div className="mt-4 flex gap-3 rounded-2xl bg-gradient-to-r from-brand-50 to-cyan-50 px-4 py-3 text-sm text-slate-800">
+              <Icon name="flag" className="h-5 w-5 text-brand-600" />
+              <p><strong>Next step:</strong> {s.next_action}{s.next_action_due && <span className="text-slate-600"> · by {fmtDate(s.next_action_due)}</span>}</p>
+            </div>
+          )}
+          <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-amber-50 py-2.5"><dt className="text-[11px] font-medium text-amber-900">Needed from you</dt><dd className="text-xl font-bold text-amber-900">{toUpload.length}</dd></div>
+            <div className="rounded-xl bg-blue-50 py-2.5"><dt className="text-[11px] font-medium text-blue-900">Being checked</dt><dd className="text-xl font-bold text-blue-900">{checking.length}</dd></div>
+            <div className="rounded-xl bg-green-50 py-2.5"><dt className="text-[11px] font-medium text-green-900">Approved</dt><dd className="text-xl font-bold text-green-900">{approved.filter((d) => d.required).length}/{required.length}</dd></div>
           </dl>
         </section>
 
-        <section className="card p-5" aria-labelledby="progress-h">
-          <h2 id="progress-h" className="font-semibold">Application progress</h2>
-          <p className="mt-1 text-sm">Current stage: <strong>{s.stage}</strong>
-            {s.status === 'on_hold' && <span className="ml-2 rounded bg-amber-50 px-2 py-0.5 text-xs text-amber-900">On hold – your counsellor will contact you</span>}</p>
-          {s.next_action && (
-            <p className="mt-2 rounded-md bg-brand-50 px-3 py-2 text-sm text-brand-800">Next step: {s.next_action}{s.next_action_due && ` (by ${fmtDate(s.next_action_due)})`}</p>
-          )}
-          <ol className="mt-4 space-y-2">
+        <section className="card p-5" aria-labelledby="track-h">
+          <h2 id="track-h" className="text-base font-semibold">Application progress</h2>
+          <ol className="mt-4">
             {o.stages.map((st, i) => (
-              <li key={i} className="flex items-center gap-3 text-sm">
-                <span aria-hidden className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${st.state === 'done' ? 'bg-green-600 text-white' : st.state === 'current' ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
+              <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
+                {i < o.stages.length - 1 && <span aria-hidden className={`absolute left-[13px] top-7 h-[calc(100%-20px)] w-0.5 ${st.state === 'done' ? 'bg-teal-brand' : 'bg-slate-200'}`} />}
+                <span aria-hidden className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  st.state === 'done' ? 'bg-teal-brand text-navy-950' : st.state === 'current' ? 'bg-brand-600 text-white ring-4 ring-brand-100' : 'border-2 border-slate-200 bg-white text-slate-400'}`}>
                   {st.state === 'done' ? '✓' : i + 1}</span>
-                <span className={st.state === 'upcoming' ? 'text-slate-500' : st.state === 'current' ? 'font-semibold' : ''}>{st.name}</span>
+                <span className={`pt-1 text-sm ${st.state === 'upcoming' ? 'text-slate-500' : st.state === 'current' ? 'font-bold text-slate-900' : 'text-slate-700'}`}>
+                  {st.name}{st.state === 'current' && <span className="ml-2 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-800">You are here</span>}</span>
                 <span className="sr-only">{st.state === 'done' ? '(completed)' : st.state === 'current' ? '(current stage)' : '(upcoming)'}</span>
               </li>
             ))}
           </ol>
         </section>
 
-        <section className="card p-5" aria-labelledby="docs-h">
-          <h2 id="docs-h" className="font-semibold">Your documents</h2>
-          <p className="mt-1 text-sm text-slate-600">{toUpload ? `${toUpload} required document${toUpload === 1 ? '' : 's'} still needed from you.` : 'Nothing is needed from you right now.'}
-            {' '}PDF or photo (JPEG/PNG), up to 10 MB. Please make sure every page is clear and readable.</p>
-          <ul className="mt-4 divide-y divide-slate-100">
-            {o.documents.map((d) => {
-              const [label, cls] = DOC_STATE[d.state] ?? [d.state, 'bg-slate-100 text-slate-700']
-              return (
-                <li key={d.id} className="py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-sm font-medium">{d.name}{!d.required && <span className="font-normal text-slate-500"> (if applicable)</span>}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${cls}`}>{label}</span>
-                  </div>
-                  {d.reason && <p className="mt-1 text-sm text-amber-900">Reason: {d.reason}</p>}
-                  {d.attestation && (
-                    <p className="mt-1 text-sm text-slate-700">{d.attestation.state === 'completed' ? 'Attestation / apostille completed'
-                      : `Attestation / apostille in progress: step ${Math.min(d.attestation.done + 1, d.attestation.total)} of ${d.attestation.total}`}</p>
-                  )}
-                  {d.can_upload && <PortalUpload documentId={d.id} />}
-                </li>
-              )
-            })}
+        <section className="card border-l-4 border-l-blue-500 p-5 text-sm" aria-labelledby="ins-h">
+          <h2 id="ins-h" className="flex items-center gap-2 font-semibold"><Icon name="book" className="h-5 w-5 text-blue-600" />Important instructions</h2>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-slate-700">
+            <li>Upload clear scans of every page — for cards and certificates, include both the front and the back.</li>
+            <li>PDF or photo (JPEG/PNG), up to 10 MB. Make sure all text is readable.</li>
+            <li>Please do not send original documents until we confirm that your scans are approved. Your counsellor will then tell you how to send them.</li>
           </ul>
         </section>
 
+        <section aria-labelledby="docs-h" className="space-y-3">
+          <h2 id="docs-h" className="px-1 text-base font-semibold">Your documents</h2>
+          {toUpload.length > 0 && <><h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-amber-800">Needed from you</h3><ul className="space-y-3">{toUpload.map(docItem)}</ul></>}
+          {other.length > 0 && <ul className="space-y-3">{other.map(docItem)}</ul>}
+          {checking.length > 0 && <><h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-blue-800">Being checked</h3><ul className="space-y-3">{checking.map(docItem)}</ul></>}
+          {approved.length > 0 && <><h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-green-800">Approved</h3><ul className="space-y-3">{approved.map(docItem)}</ul></>}
+          {o.documents.length === 0 && <p className="card p-5 text-sm text-slate-600">Nothing is needed from you right now.</p>}
+        </section>
+
         <section className="card p-5 text-sm">
-          <h2 className="font-semibold">Questions?</h2>
-          <p className="mt-1 text-slate-600">Contact your counsellor{s.counsellor ? ` ${s.counsellor}` : ''} at {o.company.name}
-            {o.company.support_phone && <> · <a href={`tel:${o.company.support_phone.replace(/\s/g, '')}`}>{o.company.support_phone}</a></>}
-            {o.company.support_email && <> · <a href={`mailto:${o.company.support_email}`}>{o.company.support_email}</a></>}.</p>
+          <h2 className="flex items-center gap-2 font-semibold"><Icon name="wallet" className="h-5 w-5 text-slate-500" />Payments</h2>
+          <p className="mt-1 text-slate-600">Payment details are shared by your counsellor. Please contact them for fee information.</p>
+        </section>
+
+        <section className="card p-5 text-sm">
+          <h2 className="flex items-center gap-2 font-semibold"><Icon name="phone" className="h-5 w-5 text-slate-500" />Questions?</h2>
+          <p className="mt-1 text-slate-600">Contact your counsellor{s.counsellor ? ` ${s.counsellor}` : ''} at {o.company.name}.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {o.company.support_phone && <a className="btn-secondary btn-sm" href={`tel:${o.company.support_phone.replace(/\s/g, '')}`}><Icon name="phone" className="h-4 w-4" />{o.company.support_phone}</a>}
+            {o.company.support_email && <a className="btn-secondary btn-sm" href={`mailto:${o.company.support_email}`}><Icon name="mail" className="h-4 w-4" />{o.company.support_email}</a>}
+          </div>
         </section>
       </main>
-    </>
+    </div>
   )
 }

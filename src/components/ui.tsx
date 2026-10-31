@@ -5,11 +5,11 @@ import type { ReactNode } from 'react'
 export function PageHeader({ title, description, actions, back }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; back?: { href: string; label: string } }) {
   return (
     <div className="mb-6">
-      {back && <Link href={back.href} className="text-sm text-slate-600">← {back.label}</Link>}
+      {back && <Link href={back.href} className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 no-underline hover:text-brand-700 hover:no-underline">← {back.label}</Link>}
       <div className="mt-1 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">{title}</h1>
+          {description && <div className="mt-1 text-sm text-slate-600">{description}</div>}
         </div>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
@@ -21,12 +21,12 @@ export function Card({ title, actions, children, className = '', padded = true }
   return (
     <section className={`card ${className}`}>
       {(title || actions) && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
-          {title && <h2 className="text-base font-semibold">{title}</h2>}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-3.5">
+          {title && <h2 className="text-[15px] font-semibold text-slate-900">{title}</h2>}
           {actions}
         </div>
       )}
-      <div className={padded ? 'p-4' : ''}>{children}</div>
+      <div className={padded ? 'p-5' : ''}>{children}</div>
     </section>
   )
 }
@@ -91,7 +91,10 @@ export function Alert({ tone = 'blue', title, children }: { tone?: 'blue' | 'gre
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="px-4 py-10 text-center">
+    <div className="px-4 py-12 text-center">
+      <div aria-hidden className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M4 7h16M4 12h10M4 17h7" strokeLinecap="round" /></svg>
+      </div>
       <p className="font-medium text-slate-700">{title}</p>
       {children && <div className="mt-1 text-sm text-slate-500">{children}</div>}
     </div>
@@ -139,15 +142,31 @@ export function Pagination({ page, total, pageSize, params }: { page: number; to
   )
 }
 
-export function StatCard({ label, value, href, tone = 'slate', sub }: { label: string; value: ReactNode; href?: string; tone?: Tone; sub?: ReactNode }) {
-  const accent = { slate: 'border-l-slate-300', blue: 'border-l-blue-500', green: 'border-l-green-500', amber: 'border-l-amber-500', red: 'border-l-red-500', purple: 'border-l-purple-500', orange: 'border-l-orange-500' }[tone]
+const STAT_TONES: Record<string, { bar: string; icon: string; ring: string }> = {
+  slate: { bar: 'from-slate-300 to-slate-400', icon: 'bg-slate-100 text-slate-600', ring: 'hover:ring-slate-200' },
+  blue: { bar: 'from-blue-400 to-blue-600', icon: 'bg-blue-50 text-blue-600', ring: 'hover:ring-blue-200' },
+  green: { bar: 'from-emerald-400 to-green-600', icon: 'bg-green-50 text-green-600', ring: 'hover:ring-green-200' },
+  amber: { bar: 'from-amber-300 to-amber-500', icon: 'bg-amber-50 text-amber-600', ring: 'hover:ring-amber-200' },
+  red: { bar: 'from-rose-400 to-red-600', icon: 'bg-red-50 text-red-600', ring: 'hover:ring-red-200' },
+  purple: { bar: 'from-violet-400 to-purple-600', icon: 'bg-purple-50 text-purple-600', ring: 'hover:ring-purple-200' },
+  orange: { bar: 'from-orange-300 to-orange-500', icon: 'bg-orange-50 text-orange-600', ring: 'hover:ring-orange-200' },
+}
+export function StatCard({ label, value, href, tone = 'slate', sub, icon, chart }: { label: string; value: ReactNode; href?: string; tone?: Tone; sub?: ReactNode; icon?: ReactNode; chart?: ReactNode }) {
+  const t = STAT_TONES[tone]
   const body = (
     <>
-      <p className="text-sm text-slate-600">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}
+      <span aria-hidden className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${t.bar}`} />
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[13px] font-medium leading-snug text-slate-600">{label}</p>
+        {icon && <span aria-hidden className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${t.icon}`}>{icon}</span>}
+      </div>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <p className="text-[26px] font-bold leading-none tabular-nums tracking-tight text-slate-900">{value}</p>
+        {chart}
+      </div>
+      {sub && <p className="mt-1.5 text-xs text-slate-500">{sub}</p>}
     </>
   )
-  const cls = `card block border-l-4 ${accent} px-4 py-3`
-  return href ? <Link href={href} className={`${cls} no-underline hover:bg-slate-50 hover:no-underline`}>{body}</Link> : <div className={cls}>{body}</div>
+  const cls = `card relative block overflow-hidden px-4 pb-3.5 pt-4 transition ring-1 ring-transparent ${t.ring}`
+  return href ? <Link href={href} className={`${cls} no-underline hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)] hover:no-underline`}>{body}</Link> : <div className={cls}>{body}</div>
 }

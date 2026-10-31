@@ -73,6 +73,7 @@ test('administrator configures a passport validity rule; dashboard shows passpor
   await expect(page.getByRole('cell', { name })).toBeVisible()
   await admin`update passport_validity_rules set is_active = false where name = ${name}`
   await login(page, 'md@demo.test')
+  await page.goto('/?view=operations')
   await expect(page.getByText('Passports needing renewal')).toBeVisible()
   await page.goto('/reports/passport-expiry')
   await expect(page.getByRole('heading', { name: 'Passport expiry' })).toBeVisible()

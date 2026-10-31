@@ -88,16 +88,22 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                 {data.rows.map((s) => (
                   <tr key={s.id}>
                     <td>
-                      <Link href={`/students/${s.id}`} className="font-medium">{s.full_name}</Link>
-                      <div className="flex flex-wrap items-center gap-1 text-xs text-slate-500">
-                        <span className="font-mono">{s.student_code}</span>
-                        {s.is_demo && <DemoBadge />}
-                        {s.archived_at && <Badge>Archived</Badge>}
+                      <div className="flex items-center gap-3">
+                        <span aria-hidden className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-white ${s.org_code === 'GRD' ? 'bg-gradient-to-br from-cyan-500 to-teal-500' : 'bg-gradient-to-br from-blue-500 to-indigo-600'}`}>
+                          {s.full_name.replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}</span>
+                        <div className="min-w-0">
+                          <Link href={`/students/${s.id}`} className="font-semibold">{s.full_name}</Link>
+                          <div className="flex flex-wrap items-center gap-1 text-xs text-slate-500">
+                            <span className="font-mono">{s.student_code}</span>
+                            {s.is_demo && <DemoBadge />}
+                            {s.archived_at && <Badge>Archived</Badge>}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td><Badge tone={s.org_code === 'GRD' ? 'purple' : 'blue'}>{s.org_name}</Badge></td>
                     <td>{s.country_name ?? '—'}<div className="text-xs text-slate-500">{s.course_name ?? ''}{s.university_name ? ` · ${s.university_name}` : ''}</div></td>
-                    <td><div>{s.stage_name}</div>{s.status !== 'active' && <StatusBadge status={s.status} />}</td>
+                    <td><span className="inline-flex whitespace-nowrap rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-800">{s.stage_name}</span>{s.status !== 'active' && <div className="mt-1"><StatusBadge status={s.status} /></div>}</td>
                     <td>{s.counsellor_name ?? <span className="text-slate-400">—</span>}</td>
                     <td>
                       <div className="max-w-56 truncate">{s.next_action ?? '—'}</div>

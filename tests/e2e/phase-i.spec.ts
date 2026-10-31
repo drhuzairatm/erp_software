@@ -30,7 +30,7 @@ test('student signs in with a code, sees progress, uploads a requested document'
   await expect(page.getByText('GRADUATER').first()).toBeVisible()
   await expect(page.getByText(/Student ID GRD-/)).toBeVisible()
   const item = page.locator('li', { has: page.getByText('Please upload', { exact: true }) }).first()
-  const docName = (await item.locator('span.font-medium').innerText()).trim()
+  const docName = (await item.locator('span.font-semibold').first().innerText()).trim()
   await item.locator('input[type=file]').setInputFiles({ name: 'scan.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n% fictional portal upload\n') })
   await item.getByRole('button', { name: 'Upload' }).click()
   await expect(page.getByText('Thank you – we received your document')).toBeVisible()

@@ -8,8 +8,13 @@ test.afterAll(async () => { await admin.end() })
 test('CEO sees operations and payment counts, never amounts or the ledger', async ({ page }) => {
   await login(page, 'ceo@demo.test')
   await page.getByLabel('Company').selectOption({ label: 'All my companies' })
-  await expect(page.getByRole('heading', { name: 'Consolidated dashboard' })).toBeVisible()
-  await expect(page.getByText('Students with fees outstanding')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Consolidated dashboard' })).toBeAttached()
+  // management analytics: counts only, no amounts
+  await expect(page.getByText('Revenue and payment amounts are shown to the MD and Accounts only.')).toBeVisible()
+  expect(await page.locator('main').innerText()).not.toMatch(/₹/)
+  // operations view: payment counts only
+  await page.goto('/?view=operations')
+  await expect(page.getByText('Students with fees outstanding', { exact: true })).toBeVisible()
   const main = await page.locator('main').innerText()
   expect(main).not.toMatch(/₹/)
   await expect(page.getByRole('link', { name: 'Payment ledger' })).toHaveCount(0)
@@ -25,6 +30,8 @@ test('CEO sees operations and payment counts, never amounts or the ledger', asyn
 test('MD sees financial amounts', async ({ page }) => {
   await login(page, 'md@demo.test')
   await page.getByLabel('Company').selectOption({ label: 'All my companies' })
+  await expect(page.getByText(/Outstanding \(INR\)/)).toBeVisible() // management analytics
+  await page.goto('/?view=operations')
   await expect(page.getByText(/Outstanding service fees/)).toBeVisible()
   await expect(page.getByRole('link', { name: 'Payment ledger' })).toBeVisible()
 })
