@@ -40,12 +40,12 @@ export function ActionForm({ action, children, className = 'space-y-4', resetOnS
     <form ref={ref} action={formAction} onSubmit={onSubmit} className={className} id={id} noValidate>
       {state.message && (
         <div role={state.ok ? 'status' : 'alert'}
-          className={`rounded-md border px-3 py-2 text-sm ${state.ok ? 'border-green-200 bg-green-50 text-green-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
+          className={`col-span-full rounded-md border px-3 py-2 text-sm ${state.ok ? 'border-green-200 bg-green-50 text-green-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
           {state.message}
         </div>
       )}
       {!state.message && state.ok && successMessage && (
-        <div role="status" className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">{successMessage}</div>
+        <div role="status" className="col-span-full rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">{successMessage}</div>
       )}
       {typeof children === 'function' ? children(state) : children}
     </form>

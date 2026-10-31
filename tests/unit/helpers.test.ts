@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { checkPasswordStrength } from '@/server/auth/password'
+import { capitalise } from '@/server/db'
 import { resolveScope } from '@/server/scope'
 import { toCsv } from '@/server/services/reports'
 import { safeFilename, sniffMime } from '@/server/storage'
@@ -50,5 +51,12 @@ describe('CSV export escaping', () => {
   it('quotes and neutralises formulas', () => {
     const csv = toCsv([{ key: 'v', label: 'V' }], [{ v: 'a,b' }, { v: '+cmd' }, { v: '@SUM(1)' }, { v: 'he said "hi"' }, { v: null }])
     expect(csv).toBe('﻿V\r\n"a,b"\r\n\'+cmd\r\n\'@SUM(1)\r\n"he said ""hi"""\r\n\r\n')
+  })
+})
+
+describe('error messages', () => {
+  it('capitalise keeps spacing and adds a full stop', () => {
+    expect(capitalise('a reference number is required for this stage')).toBe('A reference number is required for this stage.')
+    expect(capitalise('  only drafts can be deleted. ')).toBe('Only drafts can be deleted.')
   })
 })

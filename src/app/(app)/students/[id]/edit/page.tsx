@@ -35,6 +35,7 @@ export default async function EditStudentPage({ params }: { params: Promise<{ id
           previousEducationCountryId: s.previous_education_country_id, schoolCountryId: s.school_country_id, institutionName: s.institution_name,
           passportNumber: s.passport_number, passportExpiry: s.passport_expiry, passportCountryId: s.passport_country_id,
           preferredCampusId: s.preferred_campus_id,
+          visaApplicationCountryId: s.visa_application_country_id,
           parentName: s.parent_name, parentPhone: s.parent_phone, parentEmail: s.parent_email,
         }} />
     </>

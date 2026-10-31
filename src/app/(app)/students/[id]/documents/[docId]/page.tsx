@@ -5,6 +5,7 @@ import { fmtDateTime, label } from '@/components/format'
 import { Card, EmptyState, PageHeader, StatusBadge } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { getDocumentReview } from '@/server/services/documents'
+import { AttestationPanel } from './attestation-panel'
 import { ReviewWorkspace } from './review-workspace'
 
 export const metadata: Metadata = { title: 'Document review' }
@@ -51,6 +52,8 @@ export default async function DocumentReviewPage({ params, searchParams }: { par
             verifiedBy={doc.verified_by} submittedBy={doc.submitted_by} unmet={r.unmet} />
         </>
       )}
+
+      <AttestationPanel ctx={ctx} studentId={id} docId={docId} destination={r.destination} />
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card title="Status history" padded={false}>

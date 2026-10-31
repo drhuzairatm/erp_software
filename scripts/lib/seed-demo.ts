@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto'
 import postgres from 'postgres'
 import { hashPassword } from '../../src/server/auth/password'
 import { getStorage, newStorageKey, sha256 } from '../../src/server/storage'
+import { demoAttestationRoutes, demoStartAttestations } from './demo-attestation'
 
 type Sql = postgres.Sql
 
@@ -129,6 +130,7 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
       ['GE', 'Tbilisi International Medical School (Demo)', 'Tbilisi'], ['GE', 'Black Sea Medical University (Demo)', 'Batumi'],
       ['KZ', 'Steppe National Medical University (Demo)', 'Almaty'], ['UZ', 'Silk Road Medical Institute (Demo)', 'Samarkand'],
       ['DE', 'Rhein Nursing College (Demo)', 'Cologne'], ['PH', 'Pacific Medical College (Demo)', 'Cebu'],
+      ['BG', 'Varna Medical University (Demo)', 'Varna'], ['BG', 'Pleven Medical University (Demo)', 'Pleven'], ['EG', 'Nile Medical Faculty (Demo)', 'Cairo'],
     ]
     const unis: Record<string, string[]> = {}
     for (const [cc, name, city] of uniDefs) {
@@ -164,7 +166,7 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
     // --- Students ------------------------------------------------------------
     type Plan = { org: 'EDX' | 'GRD'; country: string; course: string; target: number | 'hold' | 'cancelled' }
     const plans: Plan[] = []
-    const combos: [string, string][] = [['RU', 'MBBS'], ['GE', 'MBBS'], ['KZ', 'MBBS'], ['UZ', 'MBBS'], ['DE', 'NURSING'], ['PH', 'MBBS'], ['RU', 'PG_MEDICAL']]
+    const combos: [string, string][] = [['BG', 'MBBS'], ['GE', 'MBBS'], ['EG', 'MBBS'], ['UZ', 'MBBS'], ['BG', 'NURSING'], ['PH', 'MBBS'], ['RU', 'MBBS'], ['KZ', 'MBBS']]
     for (let i = 0; i < 36; i++) {
       const [country, course] = combos[i % combos.length]
       const target: Plan['target'] = i % 17 === 5 ? 'hold' : i % 19 === 7 ? 'cancelled' : i % 12
@@ -192,7 +194,7 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
                    preferred_language, destination_country_id, course_id, preferred_university_id, highest_qualification,
                    qualification_board, qualification_year, qualification_score, entrance_exam, entrance_score,
                    registration_date, next_action, next_action_due, contracting_entity_id, payment_recipient_entity_id, is_demo, created_by,
-                   previous_education_country_id, institution_name, passport_number, passport_expiry, passport_country_id)
+                   previous_education_country_id, institution_name, passport_number, passport_expiry, passport_country_id, visa_application_country_id)
                  values (${id}, ${orgs[p.org]}, ${p.org === 'GRD' ? orgs.EDX : null}, ${pick(sources[p.org])},
                    ${`${first} ${last}`}, ${phone}, ${`${first.toLowerCase()}.${i}@example.test`},
                    ${pick(['English', 'Malayalam', 'Hindi', 'Tamil', 'Arabic'])}, ${countries[p.country]}, ${courses[p.course]},
@@ -203,7 +205,7 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
                    ${p.org === 'EDX' ? entity1.id : entity2.id}, ${p.org === 'EDX' ? entity1.id : entity2.id}, true, ${U(counsellor)},
                    ${countries[eduCountry]}, ${'Demo ' + (eduCountry === 'IN' ? 'Higher Secondary School' : 'International School') + ' ' + (i % 5 + 1)},
                    ${i % 3 === 2 ? null : `DM${String(1000000 + i * 7919).slice(-7)}`}, ${i % 3 === 2 ? null : daysFromNow(i % 13 === 4 ? 45 : 1500 + i * 3)},
-                   ${i % 3 === 2 ? null : countries.IN})`
+                   ${i % 3 === 2 ? null : countries.IN}, ${['BG', 'EG'].includes(p.country) ? countries[eduCountry] : null})`
         await tx`insert into student_assignments (student_id, user_id, org_id, assignment_type, assigned_by)
                  values (${id}, ${U(counsellor)}, ${orgs[p.org]}, 'counsellor', ${U(counsellor)})`
         await tx`select app.add_event(${id}, ${orgs[p.org]}, 'student', 'registered', ${'Student registered'})`
@@ -353,6 +355,17 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
       }
     }
 
+    for (const c of created) {
+      await sql`update student_documents d set issuing_country_id = s.previous_education_country_id from students s
+                 where s.id = d.student_id and d.student_id = ${c.id} and s.previous_education_country_id is not null`
+    }
+
+    await demoAttestationRoutes(sql, U('md@demo.test'), countries)
+
+    // Start attestation for some approved documents of Bulgaria/Egypt students; advance a few stages
+    const attCount = await demoStartAttestations(sql, created.filter((c) => ['BG', 'EG'].includes(c.plan.country)).map((c) => c.id),
+      (i) => U(docsStaff[i % 2]))
+
     // --- Tasks --------------------------------------------------------------
     const delayReasons = ['student', 'university', 'embassy', 'provider', 'finance', 'other_external']
     let taskCount = 0
@@ -479,7 +492,7 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
                where r.audience = 'student' and r.channel = 'whatsapp' and r.event_key = 'stage_changed'
               on conflict do nothing`
 
-    log(`Demo data created: ${DEMO_USERS.length} users, ${created.length + 1} students, ${fileCount} placeholder files, ${taskCount} tasks, ${payCount} ledger entries.`)
+    log(`Demo data created: ${DEMO_USERS.length} users, ${created.length + 1} students, ${fileCount} placeholder files, ${taskCount} tasks, ${payCount} ledger entries, ${attCount} attestations.`)
   } finally {
     await sql.end()
   }

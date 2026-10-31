@@ -60,6 +60,7 @@ export const studentBaseSchema = z.object({
     passportExpiry: optDate,
     passportCountryId: optUuid,
     preferredCampusId: optUuid,
+    visaApplicationCountryId: optUuid,
     parentName: text(120).optional(),
     parentPhone: z.string().regex(PHONE_RE, 'Enter a valid phone number.').optional(),
     parentEmail: z.email('Enter a valid email address.').max(200).optional(),

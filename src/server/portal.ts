@@ -89,7 +89,8 @@ export interface PortalOverview {
     destination: string | null; course: string | null; university: string | null; counsellor: string | null }
   company: { code: string; name: string; support_phone: string | null; support_email: string | null }
   stages: { name: string; state: 'done' | 'current' | 'upcoming' }[]
-  documents: { id: string; name: string; required: boolean; state: string; reason: string | null; can_upload: boolean }[]
+  documents: { id: string; name: string; required: boolean; state: string; reason: string | null; can_upload: boolean
+    attestation: { state: 'processing' | 'completed'; done: number; total: number } | null }[]
 }
 
 export async function portalOverview(th: string): Promise<PortalOverview | null> {

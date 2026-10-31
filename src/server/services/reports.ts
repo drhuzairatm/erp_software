@@ -97,6 +97,31 @@ export const REPORTS: ReportDef[] = [
     },
   },
   {
+    key: 'attestation',
+    title: 'Attestation progress',
+    description: 'Documents currently in attestation/apostille: current stage, authority, responsible staff and days since the stage started.',
+    columns: () => [
+      { key: 'student_code', label: 'Student ID' }, { key: 'student_name', label: 'Student' }, { key: 'document', label: 'Document' },
+      { key: 'route', label: 'Route' }, { key: 'stage', label: 'Current stage' }, { key: 'authority', label: 'Authority' },
+      { key: 'responsible', label: 'Responsible' }, { key: 'reference_no', label: 'Reference' }, { key: 'days', label: 'Days in stage', type: 'number' },
+      { key: 'progress', label: 'Progress' },
+    ],
+    query: (tx, orgIds, f) => tx`
+      select s.student_code, s.full_name as student_name, t.name as document, a.route_name as route, st.name as stage, st.authority_name as authority,
+             u.full_name as responsible, st.reference_no,
+             (current_date - coalesce(st.started_at, prev.done_at, a.started_at)::date) as days,
+             (select count(*) filter (where x.status in ('completed', 'not_required', 'exception')) || '/' || count(*) from document_attestation_steps x where x.attestation_id = a.id) as progress,
+             s.id as student_id
+        from document_attestations a
+        join student_documents d on d.id = a.student_document_id join document_types t on t.id = d.document_type_id
+        join v_students s on s.id = d.student_id
+        cross join lateral (select * from document_attestation_steps x where x.attestation_id = a.id and x.status in ('pending', 'in_progress') order by x.sort_order limit 1) st
+        left join lateral (select max(completed_at) as done_at from document_attestation_steps y where y.attestation_id = a.id and y.sort_order < st.sort_order) prev on true
+        left join user_profiles u on u.id = st.assigned_to
+       where a.status = 'in_progress' and ${studentConditions(tx, orgIds, f)}
+       order by days desc limit ${LIMIT}`,
+  },
+  {
     key: 'overdue-tasks',
     title: 'Overdue tasks by staff member',
     description: 'Open tasks past their due date. Tasks waiting on an external party are shown separately from internal delays.',

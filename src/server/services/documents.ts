@@ -10,6 +10,7 @@ export interface ChecklistItem {
   third_party_ref: string | null; notes: string | null; current_file_id: string | null; current_version: number | null
   issuing_country_id: string | null; issuing_country: string | null; requirement_source: string
   verifier_name: string | null; approver_name: string | null; approved_at: Date | null; current_mime: string | null
+  attestation_state: string | null; attestation_done: number | null; attestation_total: number | null
   current_filename: string | null; uploaded_at: Date | null; uploader_name: string | null
 }
 
@@ -22,8 +23,10 @@ export async function getChecklist(ctx: Ctx, studentId: string) {
              d.expiry_date, d.rejection_reason, d.reviewed_at, ru.full_name as reviewer_name, d.original_location, d.location_note,
              d.third_party_ref, d.notes, d.current_file_id, f.version as current_version, f.original_filename as current_filename,
              f.uploaded_at, coalesce(uu.full_name, case when f.id is not null then 'Student (portal)' end) as uploader_name, d.issuing_country_id, ic.name as issuing_country, d.requirement_source,
-             vu.full_name as verifier_name, au.full_name as approver_name, d.approved_at, f.mime_type as current_mime
+             vu.full_name as verifier_name, au.full_name as approver_name, d.approved_at, f.mime_type as current_mime,
+             att.state as attestation_state, att.done as attestation_done, att.total as attestation_total
         from student_documents d
+        cross join lateral app.attestation_state(d.id) att
         left join countries ic on ic.id = d.issuing_country_id
         left join user_profiles vu on vu.id = d.verified_by
         left join user_profiles au on au.id = d.approved_by
@@ -122,6 +125,7 @@ export async function getDocumentReview(ctx: Ctx, documentId: string, fileId?: s
   return run(ctx, async (tx) => {
     const [doc] = await tx<(ChecklistItem & { student_id: string; student_code: string; student_name: string; verified_by: string | null; submitted_by: string | null; submitter_name: string | null; approved_file_id: string | null })[]>`
       select d.*, t.name as type_name, t.key as type_key, t.category, t.has_expiry, s.student_code, s.full_name as student_name,
+             (select name from countries where id = s.destination_country_id) as destination,
              vu.full_name as verifier_name, su.full_name as submitter_name, au.full_name as approver_name, f.version as current_version
         from student_documents d join document_types t on t.id = d.document_type_id
         join students s on s.id = d.student_id
@@ -165,7 +169,7 @@ export async function getDocumentReview(ctx: Ctx, documentId: string, fileId?: s
                app.can_on_student(${doc.student_id}, 'documents.download') as download`,
     ])
     const unmet = requirements.filter((r) => r.is_mandatory && r.latest_result !== 'present').length
-    return { doc, files, viewFile, requirements, unmet, verifications, reviews, annotations, perms: perms[0], me: ctx.userId }
+    return { doc, destination: (doc as unknown as { destination: string | null }).destination, files, viewFile, requirements, unmet, verifications, reviews, annotations, perms: perms[0], me: ctx.userId }
   })
 }
 

@@ -59,6 +59,10 @@ export async function getDashboard(ctx: Ctx, orgIds: string[], f: DashboardFilte
         from stages st left join v_students s on s.current_stage_key = st.key and ${sw}
        group by st.key, st.name, st.sort_order order by st.sort_order`
 
+    const [att] = await tx<{ ready: number; processing: number }[]>`
+      select count(*) filter (where x.state = 'ready')::int as ready, count(*) filter (where x.state = 'processing')::int as processing
+        from student_documents d join v_students s on s.id = d.student_id cross join lateral app.attestation_state(d.id) x
+       where ${sw} and d.status = 'approved' and s.status in ('active', 'on_hold')`
     const [docs] = await tx<{ missing: number; awaiting_review: number; pending_approval: number; rejected: number; expired: number }[]>`
       select count(*) filter (where d.status = 'missing' and d.is_required)::int as missing,
              count(*) filter (where d.status in ('uploaded', 'under_review', 'verified'))::int as awaiting_review,
@@ -103,7 +107,7 @@ export async function getDashboard(ctx: Ctx, orgIds: string[], f: DashboardFilte
           select * from app.payment_status_counts(${tx.array(statusOrgs)}::uuid[])`
       : []
     const workload = await workloadQuery(tx, orgIds, canWorkload ? (f.staff && UUID_RE.test(f.staff) ? f.staff : null) : ctx.userId, f)
-    return { cards, byStage, docs, tasks, waitingByParty, finance, canFinance, paymentCounts, workload, canWorkload }
+    return { cards, byStage, docs, attestation: att, tasks, waitingByParty, finance, canFinance, paymentCounts, workload, canWorkload }
   })
 }
 

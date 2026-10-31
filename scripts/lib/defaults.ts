@@ -40,6 +40,8 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'Company Manager',
     description: 'Manages records and staff work within the company.',
     permissions: [
+      'attestation.exception',
+      'attestation.process',
       'notifications.consent',
       'notifications.view',
       'documents.download',
@@ -72,6 +74,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'Documentation Staff',
     description: 'Reviews documents for assigned students; attestation, apostille and translation work.',
     permissions: [
+      'attestation.process',
       'documents.download',
       'students.passport.view',
       ...DASH, ...OWN_TASKS,
@@ -109,6 +112,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'System Administrator',
     description: 'Manages users, roles and configuration. No access to student records by default.',
     permissions: [
+      'attestation.routes.manage',
       'notifications.manage',
       'verification.rules.manage',
       'universities.manage','users.manage', 'roles.manage', 'settings.manage', 'reference.manage', 'workflow.manage', 'departments.manage', 'audit.read'],
@@ -148,6 +152,9 @@ export const DOCUMENT_TYPES = [
   ['visa_application', 'Visa Application Form', 'visa', false, 120],
   ['medical_certificate', 'Medical / HIV Certificate', 'visa', true, 130],
   ['bank_statement', 'Bank Statement / Sponsor Letter', 'financial', true, 140],
+  ['birth_affidavit', 'Birth Affidavit', 'identity', false, 45],
+  ['sponsor_affidavit', 'Sponsor Affidavit', 'financial', false, 145],
+  ['police_clearance', 'Police Clearance Certificate (PCC)', 'visa', true, 135],
   ['language_certificate', 'Language Certificate', 'academic', true, 150],
   ['other', 'Other Supporting Document', 'other', false, 900],
 ] as const
@@ -217,6 +224,12 @@ export const NOTIFICATION_TEMPLATES: { event: string; name: string; email: { sub
   { event: 'document_approved', name: 'Document approved',
     email: { subject: 'Document approved: {{document}}', body: 'Dear {{student_name}},\n\nYour {{document}} has been verified and approved.\n\nRegards,\n{{company}}' },
     whatsapp: { body: 'Dear {{student_name}}, your {{document}} has been verified and approved.', params: ['student_name', 'document'] } },
+  { event: 'attestation_stage_completed', name: 'Attestation progress',
+    email: { subject: 'Document update: {{document}}', body: 'Dear {{student_name}},\n\nYour {{document}} has completed this step: {{stage}}.\n\nRegards,\n{{company}}' },
+    whatsapp: { body: 'Dear {{student_name}}, your {{document}} has completed: {{stage}}.', params: ['student_name', 'document', 'stage'] } },
+  { event: 'attestation_completed', name: 'Attestation completed',
+    email: { subject: 'Attestation completed: {{document}}', body: 'Dear {{student_name}},\n\nThe attestation of your {{document}} is complete.\n\nRegards,\n{{company}}' },
+    whatsapp: { body: 'Dear {{student_name}}, the attestation of your {{document}} is complete.', params: ['student_name', 'document'] } },
   { event: 'visa_outcome', name: 'Visa update',
     email: { subject: 'Visa update', body: 'Dear {{student_name}},\n\nThere is an update on your visa: {{visa_outcome}}. Your visa coordinator will contact you.\n\nRegards,\n{{company}}' },
     whatsapp: { body: 'Dear {{student_name}}, there is an update on your visa: {{visa_outcome}}.', params: ['student_name', 'visa_outcome'] } },

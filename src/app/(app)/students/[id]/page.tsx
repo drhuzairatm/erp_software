@@ -104,7 +104,7 @@ async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
             ['Date of birth', s.contact_visible ? fmtDate(s.date_of_birth) : <span className="text-slate-500">hidden</span>],
             ['Preferred language', s.preferred_language],
             ['Parent / guardian', s.parent_name ? <>{s.parent_name}{s.contact_visible && (s.parent_phone || s.parent_email) && <span className="block text-xs text-slate-500">{[s.parent_phone, s.parent_email].filter(Boolean).join(' · ')}</span>}</> : null],
-            ['Destination', s.country_name], ['Course', s.course_name],
+            ['Destination', s.country_name], ['Course', s.course_name], ['Visa application country', s.visa_application_country_name],
             ['Preferred university', s.university_name ? <>{s.university_name}{s.campus_name ? ` · ${s.campus_name}` : ''}</> : null],
             ['Lead source', s.lead_source_name], ['Registration date', fmtDate(s.registration_date)],
             ['Workflow', s.workflow_name],
@@ -241,6 +241,9 @@ async function Documents({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }
                         {d.expiry_date && <span>· expires {fmtDate(d.expiry_date)}</span>}
                         {d.issuing_country && <span>· issued in {d.issuing_country}</span>}
                         {d.original_location && <Badge>Original: {label(d.original_location)}</Badge>}
+                        {d.attestation_state === 'ready' && <Badge tone="blue">Ready for attestation</Badge>}
+                        {d.attestation_state === 'processing' && <Badge tone="purple">Attestation {d.attestation_done}/{d.attestation_total}</Badge>}
+                        {d.attestation_state === 'completed' && <Badge tone="green">Attested</Badge>}
                         {d.third_party_ref && <span>· ref {d.third_party_ref}</span>}
                       </div>
                       {['rejected', 'changes_required'].includes(d.effective_status) && d.rejection_reason && <p className="mt-1 text-sm text-red-700">{d.effective_status === 'rejected' ? 'Rejected' : 'Changes required'}: {d.rejection_reason}</p>}

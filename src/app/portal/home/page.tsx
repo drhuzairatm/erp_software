@@ -89,6 +89,10 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
                     <span className={`rounded-full px-2 py-0.5 text-xs ${cls}`}>{label}</span>
                   </div>
                   {d.reason && <p className="mt-1 text-sm text-amber-900">Reason: {d.reason}</p>}
+                  {d.attestation && (
+                    <p className="mt-1 text-sm text-slate-700">{d.attestation.state === 'completed' ? 'Attestation / apostille completed'
+                      : `Attestation / apostille in progress: step ${Math.min(d.attestation.done + 1, d.attestation.total)} of ${d.attestation.total}`}</p>
+                  )}
                   {d.can_upload && <PortalUpload documentId={d.id} />}
                 </li>
               )

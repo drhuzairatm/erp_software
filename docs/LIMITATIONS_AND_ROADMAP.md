@@ -22,6 +22,9 @@
 | Tests | 138 automated (unit + integration) and 21 browser tests cover the critical paths; not every UI permutation is covered. No load testing. No independent penetration test. |
 | Platform | Developed on macOS with Node 24 and a local PostgreSQL 17 (no Docker). |
 
+- Attestation routes in the demo are **[TO CONFIRM]** examples from the brief; production starts with none. Expected days are informational only (no SLA alerts yet).
+- An attestation covers one file version. Physical courier/original-document tracking for attestation is not yet linked to stages.
+
 ## Decisions still needed from the business
 
 1. Legal/accounting relationship between the brands: which legal entity contracts with the student and

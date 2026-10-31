@@ -102,7 +102,7 @@ export async function getStudent(ctx: Ctx, id: string) {
              ls.name as lead_source_name, w.name as workflow_name, ce.name as contracting_entity_name, pe.name as payment_recipient_name,
              cu.full_name as created_by_name, uu.full_name as updated_by_name, m.student_code as merged_into_code,
              pec.name as previous_education_country_name, sc.name as school_country_name, pc.name as passport_country_name,
-             camp.name as campus_name
+             camp.name as campus_name, vac.name as visa_application_country_name
         from v_students s
         join stages st on st.key = s.current_stage_key
         join organizations o on o.id = s.originating_org_id
@@ -121,6 +121,7 @@ export async function getStudent(ctx: Ctx, id: string) {
         left join countries sc on sc.id = s.school_country_id
         left join countries pc on pc.id = s.passport_country_id
         left join university_campuses camp on camp.id = s.preferred_campus_id
+        left join countries vac on vac.id = s.visa_application_country_id
        where s.id = ${id}`
     if (!s) return null
     const [access, assignments, workflowStages, history] = await Promise.all([
@@ -212,6 +213,7 @@ export interface StudentRecord {
   preferred_campus_id: string | null; passport_number: string | null; passport_expiry: string | null; passport_country_id: string | null
   passport_masked: string | null; passport_visible: boolean
   parent_name: string | null; parent_phone: string | null; parent_email: string | null
+  visa_application_country_id: string | null; visa_application_country_name: string | null
   previous_education_country_name: string | null; school_country_name: string | null; passport_country_name: string | null; campus_name: string | null
 }
 
@@ -311,6 +313,7 @@ function studentColumns(v: StudentInput, id?: string) {
     passport_number: v.passportNumber ?? null,
     passport_expiry: v.passportExpiry ?? null,
     passport_country_id: v.passportCountryId ?? null,
+    visa_application_country_id: v.visaApplicationCountryId ?? null,
     parent_name: v.parentName ?? null,
     parent_phone: v.parentPhone ?? null,
     parent_email: v.parentEmail?.toLowerCase() ?? null,
@@ -340,7 +343,7 @@ const FIELD_LABELS: Record<string, string> = {
   lead_source_id: 'lead source', registration_date: 'registration date', next_action: 'next action', next_action_due: 'next action due date',
   contracting_entity_id: 'contracting entity', payment_recipient_entity_id: 'payment recipient',
   previous_education_country_id: 'previous education country', school_country_id: 'school country', institution_name: 'institution',
-  passport_number: 'passport number', passport_expiry: 'passport expiry', passport_country_id: 'passport country', preferred_campus_id: 'campus',
+  visa_application_country_id: 'visa application country', passport_number: 'passport number', passport_expiry: 'passport expiry', passport_country_id: 'passport country', preferred_campus_id: 'campus',
 }
 
 export async function updateStudent(ctx: Ctx, id: string, raw: Record<string, unknown>) {

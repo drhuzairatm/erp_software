@@ -142,6 +142,20 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 | G3 | Export balances (finance) and student list (MD) | CSV opens correctly in Excel |
 | G4 | Audit log shows the exports, file access, failed logins, permission changes | yes |
 
+## G2. Attestation & apostille (Phase 1)
+
+- [ ] As MD: Admin → Attestation routes shows the [TO CONFIRM] routes and their authorities.
+- [ ] As System Administrator: create a draft route with two stages and reorder them; you cannot approve it.
+- [ ] As MD: approve it. It can no longer be edited, and "Create new version" makes an editable copy.
+- [ ] A document that is not approved shows "Attestation can start once … approved by a manager".
+- [ ] An approved document with its issuing country set shows "Ready for attestation" with the matching route.
+- [ ] Documentation staff start it; "Mark completed" without a reference shows an error; with a reference it completes.
+- [ ] Stages cannot be completed out of order.
+- [ ] Documentation staff cannot skip a mandatory stage; a Manager can, with a reason (the reason appears in the audit log).
+- [ ] Uploading a new version cancels the attestation in progress (see "Earlier attestations").
+- [ ] The student portal shows "Attestation / apostille in progress: step n of m".
+- [ ] Reports → Attestation progress lists the current stage, authority and days in stage. A GRADUATER-only user sees no Edulinks rows.
+
 ## H. Usability
 | # | Test | Expected |
 |---|---|---|

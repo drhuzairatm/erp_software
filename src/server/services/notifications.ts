@@ -13,6 +13,8 @@ export const EVENTS: { key: string; label: string }[] = [
   { key: 'document_rejected', label: 'Document rejected' },
   { key: 'document_approved', label: 'Document approved' },
   { key: 'visa_outcome', label: 'Visa outcome updated' },
+  { key: 'attestation_stage_completed', label: 'Attestation stage completed' },
+  { key: 'attestation_completed', label: 'Attestation completed' },
 ]
 
 export function channelStatus(orgCodes: string[]) {

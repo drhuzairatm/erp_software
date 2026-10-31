@@ -84,6 +84,7 @@ export function dbErrorMessage(e: unknown): { kind: 'forbidden' | 'not_found' | 
   }
 }
 
-function capitalise(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1).trim().replace(/\s+$/, '') + (/[.!?]$/.test(s.trim()) ? '' : '.')
+export function capitalise(s: string) {
+  const t = s.trim()
+  return t.charAt(0).toUpperCase() + t.slice(1) + (/[.!?]$/.test(t) ? '' : '.')
 }

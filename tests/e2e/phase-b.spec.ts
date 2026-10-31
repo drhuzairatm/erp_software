@@ -39,10 +39,11 @@ test('university configuration: system administrator adds a course, intake and d
   await login(page, 'admin@demo.test')
   await page.getByRole('link', { name: 'Universities' }).click()
   await page.getByRole('link', { name: 'Black Sea Medical University (Demo)' }).click()
-  await page.getByLabel('Intake').fill('February 2028')
+  const intake = `February 2028 (e2e ${Date.now() % 100000})`
+  await page.getByLabel('Intake').fill(intake)
   await page.getByLabel('Application deadline').fill('2027-12-15')
   await page.getByRole('button', { name: 'Add intake' }).click()
-  await expect(page.getByRole('cell', { name: 'February 2028' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: intake })).toBeVisible()
   await page.getByLabel('Document').selectOption({ label: 'Medical / HIV Certificate' })
   await page.getByRole('button', { name: 'Add requirement' }).click()
   await expect(page.locator('li', { hasText: 'Medical / HIV Certificate' })).toBeVisible()

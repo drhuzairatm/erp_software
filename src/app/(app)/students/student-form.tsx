@@ -226,6 +226,13 @@ export function StudentForm(p: StudentFormProps) {
                   </div>
                 )}
               </div>
+              <div className="mt-4 max-w-sm">
+                <label className="label" htmlFor="visaApplicationCountryId">Visa application country</label>
+                <select className="input" id="visaApplicationCountryId" name="visaApplicationCountryId" defaultValue={v('visaApplicationCountryId')}>
+                  <option value="">Not yet known</option>{originsFirst.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <p className="hint">Where the student will apply for the visa (decides PCC and visa-document routes). Not the same as nationality or residence.</p>
+              </div>
               <p className="hint mt-2">Country and course determine the workflow stages; the university adds its own required documents.</p>
             </fieldset>
 
