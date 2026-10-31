@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-brand-50: #eef5ff;
+  --color-brand-100: #d9e8ff;
+  --color-brand-600: #1d5fd1;
+  --color-brand-700: #184ea9;
+  --color-brand-800: #163f86;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-slate-50 text-slate-900 antialiased; }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-brand-600; }
+  a { @apply text-brand-700; }
+  a:hover { @apply underline; }
+  input, select, textarea { @apply text-sm; }
+  table { @apply w-full text-sm; }
+  th { @apply text-left font-medium text-slate-600; }
+}
+
+/* Reusable component styles (Tailwind v4 custom utilities) */
+@utility input {
+  @apply block w-full rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm placeholder:text-slate-400
+    focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-slate-100 disabled:text-slate-500;
+  &[aria-invalid="true"] { @apply border-red-500 ring-red-100; }
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium no-underline shadow-sm transition-colors
+    hover:no-underline disabled:cursor-not-allowed disabled:opacity-60;
+}
+@utility btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
+@utility btn-secondary { @apply btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-50; }
+@utility btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+@utility btn-ghost { @apply btn text-slate-700 shadow-none hover:bg-slate-100; }
+@utility btn-sm { @apply px-2.5 py-1.5 text-xs; }
+@utility card { @apply rounded-lg border border-slate-200 bg-white shadow-sm; }
+@utility label { @apply mb-1 block text-sm font-medium text-slate-700; }
+@utility hint { @apply mt-1 text-xs text-slate-500; }
+@utility table-wrap {
+  @apply overflow-x-auto;
+  & th, & td { @apply px-3 py-2.5 align-top; }
+  & thead { @apply border-b border-slate-200 bg-slate-50; }
+  & tbody tr { @apply border-b border-slate-100; }
+  & tbody tr:last-child { @apply border-0; }
+  & tbody tr:hover { @apply bg-slate-50; }
+}
+
+/* pdf.js text layer (from pdfjs-dist/web/pdf_viewer.css, trimmed) — makes PDF text selectable over the canvas */
+.textLayer {
+  position: absolute; inset: 0; overflow: clip; opacity: 1; line-height: 1; text-align: initial;
+  -webkit-text-size-adjust: none; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; z-index: 0;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.textLayer :is(span, br) { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; user-select: text; }
+.textLayer > :not(.markedContent), .textLayer .markedContent span:not(.markedContent) {
+  z-index: 1; --font-height: 0; font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1; --rotate: 0deg; transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+.textLayer .markedContent { display: contents; }
+.textLayer ::selection { background: rgb(0 100 255 / 0.25); }
+.textLayer .pdf-hit { background: rgb(34 197 94 / 0.30); border-radius: 2px; }

@@ -1,0 +1,172 @@
+'use client'
+
+import { addReferenceAction, createRoleAction, createStaffAction, membershipAction, orgSettingsAction, resetLinkAction, rolePermissionsAction, toggleReferenceAction, userActiveAction, workflowAction } from '@/app/actions/admin'
+import { adminResetMfaAction } from '@/app/actions/auth'
+import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
+
+type Opt = { value: string; label: string }
+
+function LinkBox({ link }: { link?: unknown }) {
+  if (typeof link !== 'string') return null
+  return <input readOnly className="input font-mono text-xs" value={link} onFocus={(e) => e.currentTarget.select()} aria-label="One-time link" />
+}
+
+export function CreateStaffForm({ orgs, roles }: { orgs: Opt[]; roles: { id: string; org_id: string; name: string }[] }) {
+  return (
+    <ActionForm action={createStaffAction} resetOnSuccess>
+      {(s) => (
+        <>
+          <LinkBox link={s.data?.link} />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+            <div><label className="label" htmlFor="fullName">Full name</label><input className="input" id="fullName" name="fullName" required /><FieldError state={s} name="fullName" /></div>
+            <div><label className="label" htmlFor="email">Work email</label><input className="input" id="email" name="email" type="email" required /><FieldError state={s} name="email" /></div>
+            <div><label className="label" htmlFor="jobTitle">Job title</label><input className="input" id="jobTitle" name="jobTitle" /></div>
+            <div><label className="label" htmlFor="staff-role">Company and role</label>
+              <select className="input" id="staff-role" name="roleOrg" required onChange={(e) => {
+                const [roleId, orgId] = e.currentTarget.value.split('|')
+                const f = e.currentTarget.form!
+                ;(f.elements.namedItem('roleId') as HTMLInputElement).value = roleId
+                ;(f.elements.namedItem('orgId') as HTMLInputElement).value = orgId
+              }} defaultValue="">
+                <option value="" disabled>Choose…</option>
+                {orgs.map((o) => (
+                  <optgroup key={o.value} label={o.label}>
+                    {roles.filter((r) => r.org_id === o.value).map((r) => <option key={r.id} value={`${r.id}|${o.value}`}>{r.name}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+              <input type="hidden" name="roleId" /><input type="hidden" name="orgId" />
+              <FieldError state={s} name="roleId" /></div>
+            <div className="flex items-end"><SubmitButton>Add staff</SubmitButton></div>
+          </div>
+          <p className="hint">If the email already has an account (e.g. in the other company), the person is added to this company with the chosen role. Roles in one company never grant access in the other.</p>
+        </>
+      )}
+    </ActionForm>
+  )
+}
+
+export function MembershipForm({ id, roleId, active, roles, departments, departmentId }: {
+  id: string; roleId: string; active: boolean; roles: { id: string; name: string }[]; departments: { id: string; name: string }[]; departmentId: string | null
+}) {
+  return (
+    <ActionForm action={membershipAction.bind(null, id)} className="flex flex-wrap items-center gap-2">
+      <label className="sr-only" htmlFor={`role-${id}`}>Role</label>
+      <select id={`role-${id}`} name="roleId" className="input py-1 text-xs" defaultValue={roleId}>{roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
+      <label className="sr-only" htmlFor={`dept-${id}`}>Department</label>
+      <select id={`dept-${id}`} name="departmentId" className="input py-1 text-xs" defaultValue={departmentId ?? ''}>
+        <option value="">No department</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+      </select>
+      <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="active" value="yes" defaultChecked={active} /> Active</label>
+      <SubmitButton className="btn-secondary btn-sm">Save</SubmitButton>
+    </ActionForm>
+  )
+}
+
+export function UserButtons({ userId, active, mfaEnabled }: { userId: string; active: boolean; mfaEnabled: boolean }) {
+  return (
+    <div className="flex flex-col items-end gap-2">
+      {mfaEnabled && (
+        <ActionForm action={adminResetMfaAction.bind(null, userId)} className="flex flex-col items-end gap-1">
+          <ConfirmSubmit className="btn-secondary btn-sm" confirmText="Reset their two-factor login?">Reset 2FA</ConfirmSubmit>
+        </ActionForm>
+      )}
+      <ActionForm action={resetLinkAction.bind(null, userId)} className="flex flex-col items-end gap-1">
+        {(s) => <><LinkBox link={s.data?.link} /><SubmitButton className="btn-secondary btn-sm">Issue reset link</SubmitButton></>}
+      </ActionForm>
+      <ActionForm action={userActiveAction.bind(null, userId, !active)}>
+        {active ? <ConfirmSubmit className="btn-danger btn-sm" confirmText="Deactivate and sign out?">Deactivate</ConfirmSubmit> : <SubmitButton className="btn-secondary btn-sm">Reactivate</SubmitButton>}
+      </ActionForm>
+    </div>
+  )
+}
+
+export function RolePermissionsForm({ roleId, perms, all, disabled, grantable }: { roleId: string; perms: string[]; all: { key: string; category: string; description: string; is_sensitive: boolean }[]; disabled: boolean; grantable: string[] }) {
+  const cats = [...new Set(all.map((p) => p.category))]
+  return (
+    <ActionForm action={rolePermissionsAction.bind(null, roleId)}>
+      <fieldset disabled={disabled} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {cats.map((c) => (
+          <div key={c}>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{c}</p>
+            {all.filter((p) => p.category === c).map((p) => (
+              <label key={p.key} className="flex items-start gap-2 py-0.5 text-sm">
+                <input type="checkbox" name="perm" value={p.key} defaultChecked={perms.includes(p.key)} className="mt-1"
+                  disabled={!grantable.includes(p.key)} title={grantable.includes(p.key) ? undefined : 'You can only grant permissions you hold yourself'} />
+                {!grantable.includes(p.key) && perms.includes(p.key) && <input type="hidden" name="perm" value={p.key} />}
+                <span>{p.description}{p.is_sensitive && <span className="ml-1 text-xs text-amber-700">(sensitive)</span>}<span className="block font-mono text-xs text-slate-400">{p.key}</span></span>
+              </label>
+            ))}
+          </div>
+        ))}
+      </fieldset>
+      {!disabled && <SubmitButton>Save permissions</SubmitButton>}
+    </ActionForm>
+  )
+}
+
+export function CreateRoleForm({ orgs }: { orgs: Opt[] }) {
+  return (
+    <ActionForm action={createRoleAction} className="grid grid-cols-1 gap-3 md:grid-cols-4" resetOnSuccess>
+      <div><label className="label" htmlFor="role-org">Company</label><select className="input" id="role-org" name="orgId">{orgs.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+      <div><label className="label" htmlFor="role-name">Role name</label><input className="input" id="role-name" name="name" required /></div>
+      <div><label className="label" htmlFor="role-desc">Description</label><input className="input" id="role-desc" name="description" /></div>
+      <div className="flex items-end"><SubmitButton className="btn-secondary">Create role</SubmitButton></div>
+    </ActionForm>
+  )
+}
+
+export function OrgSettingsForm({ orgId, name, currency, allowSelf, supportPhone, supportEmail }: { orgId: string; name: string; currency: string; allowSelf: boolean; supportPhone?: string; supportEmail?: string }) {
+  return (
+    <ActionForm action={orgSettingsAction.bind(null, orgId)} className="grid grid-cols-1 gap-3 md:grid-cols-4">
+      <div className="md:col-span-2"><label className="label" htmlFor={`n-${orgId}`}>Company name</label><input className="input" id={`n-${orgId}`} name="name" defaultValue={name} required /></div>
+      <div><label className="label" htmlFor={`c-${orgId}`}>Ledger currency</label><input className="input uppercase" id={`c-${orgId}`} name="currency" defaultValue={currency} maxLength={3} required /></div>
+      <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="allowSelfVerify" value="yes" defaultChecked={allowSelf} /> Allow staff to verify payments they recorded</label>
+      <div><label className="label" htmlFor={`sp-${orgId}`}>Student portal: support phone</label><input className="input" id={`sp-${orgId}`} name="supportPhone" defaultValue={supportPhone ?? ''} /></div>
+      <div><label className="label" htmlFor={`se-${orgId}`}>Student portal: support email</label><input className="input" id={`se-${orgId}`} name="supportEmail" type="email" defaultValue={supportEmail ?? ''} /></div>
+      <div><SubmitButton>Save</SubmitButton></div>
+    </ActionForm>
+  )
+}
+
+type RefKind = 'country' | 'course' | 'university' | 'legal_entity' | 'lead_source' | 'fee_category' | 'department'
+
+export function AddReferenceForm({ kind, fields }: { kind: RefKind; fields: { name: string; label: string; options?: Opt[]; required?: boolean }[] }) {
+  return (
+    <ActionForm action={addReferenceAction.bind(null, kind)} className="flex flex-wrap items-end gap-2" resetOnSuccess>
+      {fields.map((f) => (
+        <div key={f.name}>
+          <label className="label text-xs" htmlFor={`${kind}-${f.name}`}>{f.label}</label>
+          {f.options
+            ? <select className="input py-1.5" id={`${kind}-${f.name}`} name={f.name} required={f.required}>{f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+            : <input className="input py-1.5" id={`${kind}-${f.name}`} name={f.name} required={f.required} />}
+        </div>
+      ))}
+      <SubmitButton className="btn-secondary btn-sm">Add</SubmitButton>
+    </ActionForm>
+  )
+}
+
+export function ToggleReference({ kind, id, active }: { kind: RefKind; id: string; active: boolean }) {
+  return (
+    <ActionForm action={toggleReferenceAction.bind(null, kind, id, !active)} className="inline">
+      <SubmitButton className="btn-ghost btn-sm" pendingText="…">{active ? 'Deactivate' : 'Activate'}</SubmitButton>
+    </ActionForm>
+  )
+}
+
+export function WorkflowForm({ id, stages, selected, docs, selectedDocs }: { id: string; stages: Opt[]; selected: string[]; docs: Opt[]; selectedDocs: string[] }) {
+  return (
+    <ActionForm action={workflowAction.bind(null, id)}>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <fieldset><legend className="mb-1 text-sm font-medium">Applicable stages (On Hold and Cancelled are always available)</legend>
+          {stages.map((s) => <label key={s.value} className="flex items-center gap-2 text-sm"><input type="checkbox" name="stage" value={s.value} defaultChecked={selected.includes(s.value)} /> {s.label}</label>)}
+        </fieldset>
+        <fieldset><legend className="mb-1 text-sm font-medium">Required documents</legend>
+          {docs.map((d) => <label key={d.value} className="flex items-center gap-2 text-sm"><input type="checkbox" name="doc" value={d.value} defaultChecked={selectedDocs.includes(d.value)} /> {d.label}</label>)}
+        </fieldset>
+      </div>
+      <SubmitButton className="btn-secondary">Save workflow</SubmitButton>
+    </ActionForm>
+  )
+}

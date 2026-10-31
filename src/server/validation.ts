@@ -1,0 +1,167 @@
+import { z } from 'zod'
+
+/** FormData → plain object; empty strings become undefined. */
+export function formObject(fd: FormData): Record<string, string | undefined> {
+  const out: Record<string, string | undefined> = {}
+  for (const [k, v] of fd.entries()) {
+    if (typeof v !== 'string' || k.startsWith('$ACTION')) continue
+    const t = v.trim()
+    out[k] = t === '' ? undefined : t
+  }
+  return out
+}
+
+export function fieldErrors(err: z.ZodError): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  for (const issue of err.issues) {
+    const key = issue.path.join('.') || '_'
+    ;(out[key] ??= []).push(issue.message)
+  }
+  return out
+}
+
+const uuid = z.uuid({ message: 'Invalid selection.' })
+const optUuid = uuid.optional()
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a valid date.').refine((s) => !Number.isNaN(Date.parse(s)), 'Use a valid date.')
+const optDate = isoDate.optional()
+const text = (max: number) => z.string().max(max, `Must be at most ${max} characters.`)
+
+export const PHONE_RE = /^\+?[0-9 ()-]{7,20}$/
+
+export const studentBaseSchema = z.object({
+    originatingOrgId: uuid,
+    processingOrgId: optUuid,
+    leadSourceId: optUuid,
+    fullName: z.string().min(2, 'Enter the full name.').max(200),
+    phone: z.string().regex(PHONE_RE, 'Enter a valid phone number (digits, spaces, + - ( ) only).').optional(),
+    email: z.email('Enter a valid email address.').max(200).optional(),
+    preferredLanguage: text(50).optional(),
+    dateOfBirth: optDate.refine((d) => !d || d <= new Date().toISOString().slice(0, 10), 'Date of birth cannot be in the future.'),
+    destinationCountryId: optUuid,
+    courseId: optUuid,
+    preferredUniversityId: optUuid,
+    highestQualification: text(120).optional(),
+    qualificationBoard: text(120).optional(),
+    qualificationYear: z.coerce.number().int().min(1970).max(2100).optional(),
+    qualificationScore: text(40).optional(),
+    entranceExam: text(80).optional(),
+    entranceScore: text(40).optional(),
+    academicNotes: text(2000).optional(),
+    registrationDate: optDate,
+    nextAction: text(300).optional(),
+    nextActionDue: optDate,
+    contractingEntityId: optUuid,
+    paymentRecipientEntityId: optUuid,
+    counsellorId: optUuid,
+    previousEducationCountryId: optUuid,
+    schoolCountryId: optUuid,
+    institutionName: text(200).optional(),
+    passportNumber: z.string().transform((s) => s.toUpperCase().replace(/\s/g, '')).pipe(z.string().regex(/^[A-Z0-9]{5,15}$/, 'Passport number: 5–15 letters and digits.')).optional(),
+    passportExpiry: optDate,
+    passportCountryId: optUuid,
+    preferredCampusId: optUuid,
+    parentName: text(120).optional(),
+    parentPhone: z.string().regex(PHONE_RE, 'Enter a valid phone number.').optional(),
+    parentEmail: z.email('Enter a valid email address.').max(200).optional(),
+    confirmDuplicate: z.literal('yes').optional(),
+})
+
+export const studentSchema = studentBaseSchema.refine((v) => v.phone || v.email, { message: 'Enter a phone number or an email address.', path: ['phone'] })
+
+export type StudentInput = z.infer<typeof studentSchema>
+
+export const stageChangeSchema = z.object({
+  toStage: z.string().regex(/^[a-z_]+$/),
+  reason: text(1000).optional(),
+  nextAction: text(300).optional(),
+  nextActionDue: optDate,
+  acknowledge: z.literal('yes').optional(),
+})
+
+export const noteSchema = z.object({
+  orgId: uuid,
+  body: z.string().min(1, 'Write a note.').max(5000),
+  visibility: z.enum(['internal', 'restricted']).default('internal'),
+})
+
+export const followupSchema = z.object({
+  orgId: uuid,
+  channel: z.enum(['call', 'whatsapp', 'email', 'in_person', 'video', 'other']),
+  summary: z.string().min(1, 'Write a summary.').max(2000),
+  nextFollowupDate: optDate,
+})
+
+export const assignmentSchema = z.object({
+  assignmentType: z.enum(['counsellor', 'documentation', 'visa', 'finance']),
+  userId: optUuid,
+  orgId: uuid,
+})
+
+export const TASK_STATUSES = ['not_started', 'in_progress', 'waiting_external', 'completed', 'cancelled'] as const
+export const DELAY_REASONS = ['internal_staff', 'student', 'university', 'embassy', 'provider', 'finance', 'other_external'] as const
+export const TASK_TYPES = ['general', 'followup', 'documentation', 'attestation', 'apostille', 'translation', 'university_application', 'visa', 'finance', 'travel'] as const
+export const PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const
+
+export const taskSchema = z
+  .object({
+    orgId: uuid,
+    studentId: optUuid,
+    title: z.string().min(2, 'Enter a title.').max(200),
+    description: text(4000).optional(),
+    taskType: z.enum(TASK_TYPES).default('general'),
+    assignedTo: optUuid,
+    priority: z.enum(PRIORITIES).default('normal'),
+    status: z.enum(TASK_STATUSES).default('not_started'),
+    dueDate: optDate,
+    delayReason: z.enum(DELAY_REASONS).optional(),
+    delayNote: text(1000).optional(),
+  })
+  .refine((v) => v.status !== 'waiting_external' || v.delayReason, { message: 'Choose who the task is waiting on.', path: ['delayReason'] })
+
+export const taskUpdateSchema = z
+  .object({
+    title: z.string().min(2).max(200).optional(),
+    description: text(4000).optional(),
+    assignedTo: optUuid,
+    priority: z.enum(PRIORITIES).optional(),
+    status: z.enum(TASK_STATUSES).optional(),
+    dueDate: optDate,
+    delayReason: z.enum(DELAY_REASONS).optional(),
+    delayNote: text(1000).optional(),
+  })
+  .refine((v) => v.status !== 'waiting_external' || v.delayReason, { message: 'Choose who the task is waiting on.', path: ['delayReason'] })
+
+export const ENTRY_TYPES = ['charge', 'receipt', 'refund', 'waiver', 'disbursement'] as const
+export const METHODS = ['cash', 'bank_transfer', 'upi', 'card', 'cheque', 'other'] as const
+
+export const paymentSchema = z
+  .object({
+    orgId: uuid,
+    entryType: z.enum(ENTRY_TYPES),
+    feeCategoryId: uuid,
+    amount: z.string().regex(/^\d{1,9}(\.\d{1,2})?$/, 'Enter an amount like 15000 or 15000.50.').refine((a) => Number(a) > 0, 'Amount must be greater than zero.'),
+    entryDate: isoDate,
+    method: z.enum(METHODS).optional(),
+    referenceNo: text(100).optional(),
+    receiptRef: text(100).optional(),
+    recipientEntityId: optUuid,
+    payee: text(200).optional(),
+    notes: text(2000).optional(),
+  })
+  .refine((v) => !['receipt', 'refund'].includes(v.entryType) || v.method, { message: 'Choose the payment method.', path: ['method'] })
+  .refine((v) => v.entryType !== 'disbursement' || v.payee, { message: 'Enter who was paid.', path: ['payee'] })
+
+export const DOCUMENT_STATUSES = ['missing', 'uploaded', 'under_review', 'approved', 'rejected', 'expired'] as const
+export const CUSTODY_LOCATIONS = ['with_student', 'with_staff', 'with_provider', 'at_embassy', 'at_university', 'returned_to_student'] as const
+
+export const passwordChangeSchema = z
+  .object({ current: z.string().min(1, 'Enter your current password.'), next: z.string().min(1), confirm: z.string().min(1) })
+  .refine((v) => v.next === v.confirm, { message: 'Passwords do not match.', path: ['confirm'] })
+
+export const userCreateSchema = z.object({
+  email: z.email('Enter a valid email address.').max(200),
+  fullName: z.string().min(2).max(120),
+  jobTitle: text(120).optional(),
+  orgId: uuid,
+  roleId: uuid,
+})
