@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
-import { addReferenceAction, createRoleAction, createStaffAction, membershipAction, orgSettingsAction, removeStaffPhotoAction, reportingManagerAction, resetLinkAction, roleStructureAction, rolePermissionsAction, staffPhotoAction, toggleReferenceAction, userActiveAction, workflowAction } from '@/app/actions/admin'
+import { addReferenceAction, cancelInviteAction, createRoleAction, createStaffAction, inviteAction, reassignTasksAction, revokeSessionsAction, staffDetailsAction, staffStatusAction, membershipAction, orgSettingsAction, removeStaffPhotoAction, reportingManagerAction, resetLinkAction, roleStructureAction, rolePermissionsAction, staffPhotoAction, toggleReferenceAction, workflowAction } from '@/app/actions/admin'
 import { PhotoCapture } from '@/components/photo-capture'
 import { adminResetMfaAction } from '@/app/actions/auth'
 import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
@@ -13,8 +14,9 @@ function LinkBox({ link }: { link?: unknown }) {
   return <input readOnly className="input font-mono text-xs" value={link} onFocus={(e) => e.currentTarget.select()} aria-label="One-time link" />
 }
 
-export function CreateStaffForm({ orgs, roles, managers }: { orgs: Opt[]; roles: { id: string; org_id: string; name: string }[]; managers: Opt[] }) {
+export function CreateStaffForm({ orgs, roles, managers, departments = [] }: { orgs: Opt[]; roles: { id: string; org_id: string; name: string }[]; managers: Opt[]; departments?: { id: string; org_id: string; name: string }[] }) {
   const [k, setK] = useState(0)
+  const [org, setOrg] = useState('')
   return (
     <ActionForm action={createStaffAction} resetOnSuccess onSuccess={() => setK((x) => x + 1)}>
       {(s) => (
@@ -30,6 +32,7 @@ export function CreateStaffForm({ orgs, roles, managers }: { orgs: Opt[]; roles:
                 const f = e.currentTarget.form!
                 ;(f.elements.namedItem('roleId') as HTMLInputElement).value = roleId
                 ;(f.elements.namedItem('orgId') as HTMLInputElement).value = orgId
+                setOrg(orgId)
               }} defaultValue="">
                 <option value="" disabled>Choose…</option>
                 {orgs.map((o) => (
@@ -43,10 +46,17 @@ export function CreateStaffForm({ orgs, roles, managers }: { orgs: Opt[]; roles:
             <div><label className="label" htmlFor="reportsTo">Reporting manager</label>
               <select className="input" id="reportsTo" name="reportsTo" defaultValue=""><option value="">— none —</option>{managers.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></div>
           </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <div><label className="label" htmlFor="staff-dept">Department</label>
+              <select className="input" id="staff-dept" name="departmentId" defaultValue="" key={org}><option value="">— none —</option>
+                {departments.filter((d) => d.org_id === org).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select><FieldError state={s} name="departmentId" /></div>
+            <div><label className="label" htmlFor="staff-phone">Mobile</label><input className="input" id="staff-phone" name="phone" type="tel" placeholder="+91 …" /><FieldError state={s} name="phone" /></div>
+            <div><label className="label" htmlFor="staff-joining">Joining date</label><input className="input" id="staff-joining" name="joiningDate" type="date" /><FieldError state={s} name="joiningDate" /></div>
+          </div>
           <div><p className="label">Staff Profile Photo (optional)</p>
             <PhotoCapture key={k} square help="A clear, recent photo of the face. JPG or PNG, maximum 5 MB. Shown as this person's avatar to colleagues." /></div>
           <div><SubmitButton>Add staff</SubmitButton></div>
-          <p className="hint">If the email already has an account (e.g. in the other company), the person is added to this company with the chosen role. Roles in one company never grant access in the other.</p>
+          <p className="hint">New people receive a one-time invitation (valid for a limited number of days) to create their own password; nobody else ever sees it. If the email already has an account (e.g. in the other company), the person is added to this company with the chosen role. Roles in one company never grant access in the other.</p>
         </>
       )}
     </ActionForm>
@@ -70,7 +80,7 @@ export function MembershipForm({ id, roleId, active, roles, departments, departm
   )
 }
 
-export function UserButtons({ userId, active, mfaEnabled }: { userId: string; active: boolean; mfaEnabled: boolean }) {
+export function UserButtons({ userId, status, mfaEnabled }: { userId: string; status: string; mfaEnabled: boolean }) {
   return (
     <div className="flex flex-col items-end gap-2">
       {mfaEnabled && (
@@ -78,13 +88,86 @@ export function UserButtons({ userId, active, mfaEnabled }: { userId: string; ac
           <ConfirmSubmit className="btn-secondary btn-sm" confirmText="Reset their two-factor login?">Reset 2FA</ConfirmSubmit>
         </ActionForm>
       )}
-      <ActionForm action={resetLinkAction.bind(null, userId)} className="flex flex-col items-end gap-1">
-        {(s) => <><LinkBox link={s.data?.link} /><SubmitButton className="btn-secondary btn-sm">Issue reset link</SubmitButton></>}
-      </ActionForm>
-      <ActionForm action={userActiveAction.bind(null, userId, !active)}>
-        {active ? <ConfirmSubmit className="btn-danger btn-sm" confirmText="Deactivate and sign out?">Deactivate</ConfirmSubmit> : <SubmitButton className="btn-secondary btn-sm">Reactivate</SubmitButton>}
-      </ActionForm>
+      {status === 'active' && (
+        <ActionForm action={resetLinkAction.bind(null, userId)} className="flex flex-col items-end gap-1">
+          {(s) => <><LinkBox link={s.data?.link} /><SubmitButton className="btn-secondary btn-sm">Issue reset link</SubmitButton></>}
+        </ActionForm>
+      )}
+      <Link className="btn-ghost btn-sm" href={`/admin/users/${userId}#account`}>Manage account</Link>
     </div>
+  )
+}
+
+/** Invitation: send / resend (earlier links stop working) or cancel. */
+export function InvitationButtons({ userId, pending }: { userId: string; pending: boolean }) {
+  return (
+    <div className="flex flex-wrap items-start gap-2">
+      <ActionForm action={inviteAction.bind(null, userId)} className="flex flex-col gap-1">
+        {(s) => <><LinkBox link={s.data?.link} /><SubmitButton className="btn-primary btn-sm">{pending ? 'Resend invitation' : 'Send new invitation'}</SubmitButton></>}
+      </ActionForm>
+      {pending && <ActionForm action={cancelInviteAction.bind(null, userId)}><ConfirmSubmit className="btn-secondary btn-sm" confirmText="Cancel the invitation link?">Cancel invitation</ConfirmSubmit></ActionForm>}
+    </div>
+  )
+}
+
+/** Suspend / terminate (reason required) / reactivate. */
+export function StaffStatusForm({ userId, status }: { userId: string; status: string }) {
+  const [next, setNext] = useState(status === 'active' || status === 'invited' ? 'suspended' : 'active')
+  const needsReason = next !== 'active'
+  return (
+    <ActionForm action={staffStatusAction.bind(null, userId)} className="space-y-2">
+      {(s) => (<>
+        <div className="flex flex-wrap items-end gap-2">
+          <div><label className="label" htmlFor="st-next">Change account status</label>
+            <select id="st-next" name="status" className="input" value={next} onChange={(e) => setNext(e.target.value)}>
+              {status !== 'active' && status !== 'invited' && <option value="active">Reactivate</option>}
+              {status !== 'suspended' && <option value="suspended">Suspend (temporary)</option>}
+              {status !== 'terminated' && <option value="terminated">Terminate employment</option>}
+            </select></div>
+          {needsReason && <div className="min-w-64 flex-1"><label className="label" htmlFor="st-reason">Reason *</label>
+            <input id="st-reason" name="reason" className="input" maxLength={500} required /><FieldError state={s} name="reason" /></div>}
+          {needsReason
+            ? <ConfirmSubmit className="btn-danger btn-sm" confirmText={next === 'terminated' ? 'Terminate and sign out everywhere?' : 'Suspend and sign out everywhere?'}>{next === 'terminated' ? 'Terminate' : 'Suspend'}</ConfirmSubmit>
+            : <SubmitButton className="btn-secondary btn-sm">Reactivate</SubmitButton>}
+        </div>
+        <p className="hint">Suspending or terminating ends every session at once and blocks sign-in and access to all company data, including documents. Tasks, history and audit records are kept.</p>
+      </>)}
+    </ActionForm>
+  )
+}
+
+export function SignOutEverywhereButton({ userId }: { userId: string }) {
+  return (
+    <ActionForm action={revokeSessionsAction.bind(null, userId)}>
+      <ConfirmSubmit className="btn-secondary btn-sm" confirmText="End all of this person's sessions?">Sign out everywhere</ConfirmSubmit>
+    </ActionForm>
+  )
+}
+
+export function StaffDetailsForm({ userId, v }: { userId: string; v: { full_name: string; job_title: string | null; phone: string | null; joining_date: string | null } }) {
+  return (
+    <ActionForm action={staffDetailsAction.bind(null, userId)} className="grid grid-cols-1 gap-3 md:grid-cols-4">
+      {(s) => (<>
+        <div><label className="label" htmlFor="sd-name">Full name</label><input className="input" id="sd-name" name="fullName" defaultValue={v.full_name} required /><FieldError state={s} name="fullName" /></div>
+        <div><label className="label" htmlFor="sd-title">Designation</label><input className="input" id="sd-title" name="jobTitle" defaultValue={v.job_title ?? ''} /></div>
+        <div><label className="label" htmlFor="sd-phone">Mobile</label><input className="input" id="sd-phone" name="phone" type="tel" defaultValue={v.phone ?? ''} /><FieldError state={s} name="phone" /></div>
+        <div><label className="label" htmlFor="sd-join">Joining date</label><input className="input" id="sd-join" name="joiningDate" type="date" defaultValue={v.joining_date ?? ''} /><FieldError state={s} name="joiningDate" /></div>
+        <div className="md:col-span-4"><SubmitButton className="btn-secondary btn-sm">Save details</SubmitButton></div>
+      </>)}
+    </ActionForm>
+  )
+}
+
+export function ReassignTasksForm({ userId, people, count }: { userId: string; people: Opt[]; count: number }) {
+  return (
+    <ActionForm action={reassignTasksAction.bind(null, userId)} className="flex flex-wrap items-end gap-2">
+      {(s) => (<>
+        <div><label className="label" htmlFor="rt-to">Reassign all {count} open task{count === 1 ? '' : 's'} to</label>
+          <select id="rt-to" name="toUserId" className="input" required defaultValue=""><option value="" disabled>Choose…</option>{people.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select>
+          <FieldError state={s} name="toUserId" /></div>
+        <ConfirmSubmit className="btn-primary btn-sm" confirmText={`Move ${count} open task${count === 1 ? '' : 's'}?`}>Reassign tasks</ConfirmSubmit>
+      </>)}
+    </ActionForm>
   )
 }
 

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { can, orgsWith } from '../auth/context'
 import { hashToken, newTokenValue } from '../auth/tokens'
 import { forbidden, invalid, notFound } from '../errors'
-import { fieldErrors, userCreateSchema } from '../validation'
+import { fieldErrors, staffDetailsSchema, userCreateSchema } from '../validation'
 import { type Ctx, PAGE_SIZE, pageOf, run } from './base'
 
 // ---------------------------------------------------------------------------
@@ -13,8 +13,9 @@ export async function listStaff(ctx: Ctx) {
   if (!orgIds.length) throw forbidden()
   return run(ctx, async (tx) => {
     const users = await tx<{ id: string; email: string; full_name: string; job_title: string | null; is_active: boolean; created_at: Date
-      employee_id: string; reports_to: string | null; manager_name: string | null; photo_version: number | null }[]>`
+      employee_id: string; reports_to: string | null; manager_name: string | null; photo_version: number | null; account_status: AccountStatus; phone: string | null }[]>`
       select distinct u.id, u.email, u.full_name, u.job_title, u.is_active, u.created_at, u.employee_id, u.reports_to, mg.full_name as manager_name,
+             u.account_status, u.phone,
              (select p.version from staff_photos p where p.user_id = u.id and p.is_current) as photo_version
         from user_profiles u join organization_memberships m on m.user_id = u.id left join user_profiles mg on mg.id = u.reports_to
        where m.org_id = any(${tx.array(orgIds)}::uuid[]) order by u.full_name`
@@ -34,11 +35,12 @@ export async function listStaff(ctx: Ctx) {
     const mfa = await tx<{ user_id: string; enabled: boolean }[]>`select * from app.mfa_status_of_staff()`
     const resets = await tx<{ user_id: string; requested_at: Date }[]>`select * from app.auth_pending_reset_requests()`
     const logins = await tx<{ user_id: string; last_login: Date }[]>`select * from app.last_logins()`
-    return { users, memberships, roles, departments, administerable, mfa, resets, logins, orgIds }
+    const invitations = await tx<Invitation[]>`select * from app.staff_invitations_overview()`
+    return { users, memberships, roles, departments, administerable, mfa, resets, logins, invitations, orgIds }
   })
 }
 
-/** Create a staff account (or add an existing one to this company). Returns a one-time setup link path. */
+/** Create a staff account (or add an existing one to this company). New people get a one-time, time-limited invitation. */
 export async function createStaff(ctx: Ctx, raw: Record<string, unknown>) {
   const parsed = userCreateSchema.safeParse(raw)
   if (!parsed.success) throw invalid('Please correct the highlighted fields.', fieldErrors(parsed.error))
@@ -47,25 +49,102 @@ export async function createStaff(ctx: Ctx, raw: Record<string, unknown>) {
   return run(ctx, async (tx) => {
     const [role] = await tx`select 1 from roles where id = ${v.roleId} and org_id = ${v.orgId}`
     if (!role) throw invalid('Choose a role of this company.', { roleId: ['Choose a role.'] })
+    if (v.departmentId && !(await tx`select 1 from departments where id = ${v.departmentId} and org_id = ${v.orgId} and is_active`).length) {
+      throw invalid('Choose a department of this company.', { departmentId: ['Choose a department.'] })
+    }
     const [existing] = await tx<{ id: string; full_name: string }[]>`select * from app.find_user_by_email(${v.email})`
     let userId = existing?.id
     let created = false
     if (!userId) {
       userId = randomUUID()
-      await tx`insert into user_profiles (id, email, full_name, job_title, created_by)
-               values (${userId}, ${v.email.toLowerCase()}, ${v.fullName}, ${v.jobTitle ?? null}, ${ctx.userId})`
+      await tx`insert into user_profiles (id, email, full_name, job_title, phone, joining_date, created_by)
+               values (${userId}, ${v.email.toLowerCase()}, ${v.fullName}, ${v.jobTitle ?? null}, ${v.phone ?? null}, ${v.joiningDate ?? null}, ${ctx.userId})`
       created = true
     }
     const [m] = await tx`select 1 from organization_memberships where user_id = ${userId} and org_id = ${v.orgId}`
     if (m) throw invalid('This person is already a member of this company.')
-    await tx`insert into organization_memberships (user_id, org_id, role_id, created_by) values (${userId}, ${v.orgId}, ${v.roleId}, ${ctx.userId})`
+    await tx`insert into organization_memberships (user_id, org_id, role_id, department_id, created_by) values (${userId}, ${v.orgId}, ${v.roleId}, ${v.departmentId ?? null}, ${ctx.userId})`
     let setupPath: string | null = null
+    let expiresAt: Date | null = null
     if (created) {
       const token = newTokenValue()
-      await tx`select app.auth_admin_issue_reset(${userId}, ${hashToken(token)})`
-      setupPath = `/reset-password/${token}`
+      const [r] = await tx<{ exp: Date }[]>`select app.issue_staff_invitation(${userId}, ${hashToken(token)}, ${inviteDays()}) as exp`
+      setupPath = `/invite/${token}`
+      expiresAt = r.exp
     }
-    return { userId, created, setupPath, existingName: existing?.full_name ?? null }
+    return { userId, created, setupPath, expiresAt, existingName: existing?.full_name ?? null }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Account lifecycle: invitations, status, sessions, details, task hand-over
+// ---------------------------------------------------------------------------
+export type AccountStatus = 'invited' | 'active' | 'suspended' | 'terminated'
+export interface Invitation { user_id: string; created_at: Date; expires_at: Date; state: 'pending' | 'accepted' | 'cancelled' | 'expired' }
+/** Invitation validity in days (STAFF_INVITE_DAYS, 1–14, default 7). */
+export const inviteDays = () => Math.min(14, Math.max(1, Number(process.env.STAFF_INVITE_DAYS) || 7))
+
+/** New (or replacement) invitation for someone who has not accepted yet. Earlier links stop working. */
+export async function issueInvitation(ctx: Ctx, userId: string) {
+  const token = newTokenValue()
+  const [r] = await run(ctx, (tx) => tx<{ exp: Date; email: string; full_name: string }[]>`
+    select app.issue_staff_invitation(${userId}, ${hashToken(token)}, ${inviteDays()}) as exp, u.email, u.full_name from user_profiles u where u.id = ${userId}`)
+  if (!r) throw notFound()
+  return { path: `/invite/${token}`, expiresAt: r.exp, email: r.email, fullName: r.full_name }
+}
+
+export async function cancelInvitation(ctx: Ctx, userId: string) {
+  await run(ctx, (tx) => tx`select app.cancel_staff_invitation(${userId})`)
+}
+
+/** Suspend, terminate (reason required) or reactivate. Suspended/terminated people are signed out at once and cannot sign in. */
+export async function setStaffStatus(ctx: Ctx, userId: string, status: 'active' | 'suspended' | 'terminated', reason?: string) {
+  if (!['active', 'suspended', 'terminated'].includes(status)) throw invalid('Choose a status.')
+  if ((status === 'suspended' || status === 'terminated') && !reason?.trim()) throw invalid('Give a reason.', { reason: ['Required.'] })
+  const [r] = await run(ctx, (tx) => tx<{ s: AccountStatus }[]>`select app.set_staff_status(${userId}, ${status}, ${reason?.trim().slice(0, 500) ?? null}) as s`)
+  return r.s
+}
+
+/** Sign out everywhere: ends every session of this person (or of yourself). Returns the number of sessions ended. */
+export async function revokeSessions(ctx: Ctx, userId: string) {
+  const [r] = await run(ctx, (tx) => tx<{ n: number }[]>`select app.revoke_user_sessions(${userId}) as n`)
+  return r.n
+}
+
+export async function updateStaffDetails(ctx: Ctx, userId: string, raw: Record<string, unknown>) {
+  const parsed = staffDetailsSchema.safeParse(raw)
+  if (!parsed.success) throw invalid('Please correct the highlighted fields.', fieldErrors(parsed.error))
+  const v = parsed.data
+  if (userId === ctx.userId) throw forbidden('Ask an administrator to change your own details.')
+  return run(ctx, async (tx) => {
+    const r = await tx`update user_profiles set full_name = ${v.fullName}, job_title = ${v.jobTitle ?? null}, phone = ${v.phone ?? null}, joining_date = ${v.joiningDate ?? null}
+                       where id = ${userId}`
+    if (r.count === 0) throw forbidden('You cannot manage this account.')
+  })
+}
+
+/**
+ * Hand over every open task of one person to another (companies where you may assign tasks and the new person is an
+ * active member). Each task records the reassignment, who did it and the previous owner (task history).
+ */
+export async function reassignOpenTasks(ctx: Ctx, fromUserId: string, toUserId: string) {
+  const orgIds = orgsWith(ctx, 'tasks.assign')
+  if (!orgIds.length) throw forbidden('You cannot reassign tasks.')
+  if (!/^[0-9a-f-]{36}$/i.test(fromUserId) || !/^[0-9a-f-]{36}$/i.test(toUserId)) throw invalid('Choose a person.', { toUserId: ['Required.'] })
+  if (fromUserId === toUserId) throw invalid('Choose a different person.', { toUserId: ['Choose someone else.'] })
+  return run(ctx, async (tx) => {
+    const moved = await tx<{ id: string; org_id: string }[]>`
+      update tasks set assigned_to = ${toUserId}
+       where assigned_to = ${fromUserId} and status in ('not_started', 'in_progress', 'waiting_external')
+         and org_id = any(${tx.array(orgIds)}::uuid[]) and app.user_is_active_member(${toUserId}, org_id)
+      returning id, org_id`
+    const [{ left }] = await tx<{ left: number }[]>`select count(*)::int as left from tasks where assigned_to = ${fromUserId}
+      and status in ('not_started', 'in_progress', 'waiting_external')`
+    if (moved.length) {
+      await tx`select app.audit('tasks_bulk_reassigned', 'user_profiles', ${fromUserId}, null, null, null, null, 'success',
+        ${tx.json({ to_user_id: toUserId, tasks: moved.length, task_ids: moved.map((t) => t.id) })})`
+    }
+    return { moved: moved.length, left }
   })
 }
 
@@ -100,8 +179,12 @@ export async function getStaffMember(ctx: Ctx, userId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(userId) || !can(ctx, 'users.manage')) return null
   return run(ctx, async (tx) => {
     const [u] = await tx<{ id: string; email: string; full_name: string; job_title: string | null; is_active: boolean; created_at: Date; employee_id: string
-      reports_to: string | null; manager_name: string | null; photo_version: number | null; can_admin: boolean; can_photo: boolean }[]>`
+      reports_to: string | null; manager_name: string | null; photo_version: number | null; can_admin: boolean; can_photo: boolean
+      account_status: AccountStatus; phone: string | null; joining_date: string | null; email_verified_at: Date | null; status_reason: string | null
+      status_changed_at: Date | null; status_changed_by_name: string | null }[]>`
       select u.id, u.email, u.full_name, u.job_title, u.is_active, u.created_at, u.employee_id, u.reports_to, mg.full_name as manager_name,
+             u.account_status, u.phone, to_char(u.joining_date, 'YYYY-MM-DD') as joining_date, u.email_verified_at, u.status_reason, u.status_changed_at,
+             (select sc.full_name from user_profiles sc where sc.id = u.status_changed_by) as status_changed_by_name,
              (select p.version from staff_photos p where p.user_id = u.id and p.is_current) as photo_version,
              app.can_administer_user(u.id) as can_admin, app.can_change_staff_photo(u.id) as can_photo
         from user_profiles u left join user_profiles mg on mg.id = u.reports_to where u.id = ${userId}`
@@ -118,7 +201,15 @@ export async function getStaffMember(ctx: Ctx, userId: string) {
       select l.id::text, l.action, l.entity_type, l.occurred_at, au.full_name as actor from audit_logs l left join user_profiles au on au.id = l.actor_user_id
        where (l.entity_type in ('user_profiles', 'staff_photos', 'organization_memberships') and (l.entity_id = ${userId} or l.after_data ->> 'user_id' = ${userId} or l.before_data ->> 'user_id' = ${userId}))
        order by l.occurred_at desc limit 30`.catch(() => [])
-    return { user: u, memberships, reports, managers, history }
+    const [invitation] = await tx<Invitation[]>`select * from app.staff_invitations_overview() where user_id = ${userId}`
+    const assignOrgs = orgsWith(ctx, 'tasks.assign')
+    const [{ open_tasks }] = await tx<{ open_tasks: number }[]>`select count(*)::int as open_tasks from tasks where assigned_to = ${userId}
+      and status in ('not_started', 'in_progress', 'waiting_external')`
+    const handover = assignOrgs.length ? await tx<{ id: string; full_name: string; employee_id: string }[]>`
+      select distinct u.id, u.full_name, u.employee_id from user_profiles u join organization_memberships m on m.user_id = u.id and m.is_active
+       where u.account_status = 'active' and u.id <> ${userId} and m.org_id = any(${tx.array(assignOrgs)}::uuid[])
+         and m.org_id in (select org_id from organization_memberships where user_id = ${userId}) order by u.full_name` : []
+    return { user: u, memberships, reports, managers, history, invitation: invitation ?? null, openTasks: open_tasks, handover, canReassign: assignOrgs.length > 0 }
   })
 }
 

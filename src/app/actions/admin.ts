@@ -23,14 +23,71 @@ export async function createStaffAction(_: ActionResult, fd: FormData): Promise<
     if (v.reportsTo) await admin.setReportingManager(ctx, r.userId, v.reportsTo).catch(() => { extra.push('Reporting manager not saved.') })
     if (extra.length && !r.created) return { ok: true, message: `${r.existingName} was added to this company. ${extra.join(' ')}` }
     if (!r.created) return { ok: true, message: `${r.existingName} already had an account and has been added to this company.` }
-    const link = appUrl(r.setupPath!)
-    let emailed = false
-    if (emailConfigured() && v.email) emailed = (await sendEmail(v.email, 'Your staff portal account', `An account has been created for you.\n\nSet your password within 24 hours:\n${link}\n`)).sent
-    return {
-      ok: true,
-      message: emailed ? 'Account created and a setup link was emailed.' : 'Account created. Email is not configured, so give this one-time setup link to the person securely (valid 24 hours):',
-      data: emailed ? undefined : { link },
-    }
+    const sent = await deliverInvitation(v.email ?? '', v.fullName ?? '', r.setupPath!, r.expiresAt!)
+    return sent.emailed
+      ? { ok: true, message: `Account created and an invitation was emailed (valid until ${fmt(r.expiresAt!)}).` }
+      : { ok: true, message: `Account created. Email is not configured, so give this one-time invitation link to the person securely (valid until ${fmt(r.expiresAt!)}):`, data: { link: sent.link } }
+  })
+}
+
+const fmt = (d: Date) => new Date(d).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: process.env.APP_TIMEZONE || 'Asia/Kolkata' })
+async function deliverInvitation(email: string, name: string, path: string, expiresAt: Date) {
+  const link = appUrl(path)
+  let emailed = false
+  if (emailConfigured() && email) {
+    emailed = (await sendEmail(email, 'Your staff account invitation',
+      `Hello ${name},\n\nAn account has been created for you on the Dr.Expert Edulinks / GRADUATER staff portal.\n\nOpen this link to create your private password and activate your account (valid until ${fmt(expiresAt)}):\n${link}\n\nIf you were not expecting this, ignore this email.`)).sent
+  }
+  return { emailed, link }
+}
+
+export async function inviteAction(userId: string, _: ActionResult): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => {
+    const r = await admin.issueInvitation(ctx, userId)
+    revalidatePath(`/admin/users/${userId}`); revalidatePath('/admin/users')
+    const sent = await deliverInvitation(r.email, r.fullName, r.path, r.expiresAt)
+    return sent.emailed ? { ok: true, message: `Invitation emailed (valid until ${fmt(r.expiresAt)}). Earlier links no longer work.` }
+      : { ok: true, message: `New invitation (valid until ${fmt(r.expiresAt)}). Earlier links no longer work. Email is not configured, so share it securely:`, data: { link: sent.link } }
+  })
+}
+
+export async function cancelInviteAction(userId: string, _: ActionResult): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => { await admin.cancelInvitation(ctx, userId); revalidatePath(`/admin/users/${userId}`) }, 'Invitation cancelled.')
+}
+
+export async function staffStatusAction(userId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  const v = formObject(fd)
+  return runAction(async () => {
+    const s = await admin.setStaffStatus(ctx, userId, v.status as 'active' | 'suspended' | 'terminated', v.reason)
+    revalidatePath(`/admin/users/${userId}`); revalidatePath('/admin/users')
+    return { ok: true, message: s === 'active' ? 'Account reactivated.' : s === 'invited' ? 'Access restored. The person still has to accept an invitation.'
+      : s === 'suspended' ? 'Account suspended and signed out everywhere.' : 'Employment terminated: account closed and signed out everywhere. History is kept.' }
+  })
+}
+
+export async function revokeSessionsAction(userId: string, _: ActionResult): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => {
+    const n = await admin.revokeSessions(ctx, userId)
+    revalidatePath(`/admin/users/${userId}`)
+    return { ok: true, message: n ? `Signed out everywhere (${n} session${n === 1 ? '' : 's'} ended).` : 'There were no active sessions.' }
+  })
+}
+
+export async function staffDetailsAction(userId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => { await admin.updateStaffDetails(ctx, userId, formObject(fd)); revalidatePath(`/admin/users/${userId}`) }, 'Details saved.')
+}
+
+export async function reassignTasksAction(userId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => {
+    const r = await admin.reassignOpenTasks(ctx, userId, String(fd.get('toUserId') ?? ''))
+    revalidatePath(`/admin/users/${userId}`); revalidatePath('/tasks')
+    return { ok: true, message: `${r.moved} open task${r.moved === 1 ? '' : 's'} reassigned.${r.left ? ` ${r.left} could not be moved (another company or outside your authority).` : ''}` }
   })
 }
 

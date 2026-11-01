@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { fmtDateTime, label } from '@/components/format'
+import { fmtDate, fmtDateTime, label } from '@/components/format'
 import { Avatar, Badge, Card, DL, PageHeader, staffPhotoUrl } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { getStaffMember } from '@/server/services/admin'
-import { ReportingManagerForm, StaffPhotoForm } from '../../admin-forms'
+import { InvitationButtons, ReassignTasksForm, ReportingManagerForm, SignOutEverywhereButton, StaffDetailsForm, StaffPhotoForm, StaffStatusForm } from '../../admin-forms'
+import { StatusBadge } from '../status-badge'
 
 export const metadata: Metadata = { title: 'Staff profile' }
 
@@ -20,7 +21,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
     <>
       <PageHeader back={{ href: '/admin/users', label: 'Staff' }} title={u.full_name}
         description={<span className="flex flex-wrap items-center gap-2"><span className="font-mono">{u.employee_id}</span>{u.job_title && <>· {u.job_title}</>}
-          {u.is_active ? <Badge tone="green">Active</Badge> : <Badge tone="red">Deactivated</Badge>}</span>} />
+          <StatusBadge status={u.account_status} /></span>} />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card title="Profile photo">
           <div className="flex flex-col items-center gap-3">
@@ -36,11 +37,32 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
         </Card>
         <div className="space-y-6 xl:col-span-2">
           <Card title="Details">
-            <DL items={[['Employee ID', <span key="e" className="font-mono">{u.employee_id}</span>], ['Work email', u.email], ['Job title', u.job_title],
-              ['Reporting manager', u.manager_name ?? 'None'], ['Account created', fmtDateTime(u.created_at)]]} />
+            <DL items={[['Employee ID', <span key="e" className="font-mono">{u.employee_id}</span>], ['Official email', u.email], ['Mobile', u.phone], ['Designation', u.job_title],
+              ['Joining date', u.joining_date ? fmtDate(u.joining_date) : null], ['Reporting manager', u.manager_name ?? 'None'],
+              ['Employment status', <StatusBadge key="s" status={u.account_status} />], ['Account created', fmtDateTime(u.created_at)]]} />
+            {u.can_admin && <div className="mt-4 border-t border-slate-100 pt-4"><StaffDetailsForm userId={u.id} v={u} /></div>}
             {u.can_admin && <div className="mt-4 border-t border-slate-100 pt-4">
               <ReportingManagerForm userId={u.id} current={u.reports_to} managers={data.managers.map((m) => ({ value: m.id, label: `${m.full_name} (${m.employee_id})` }))} /></div>}
           </Card>
+          <section id="account"><Card title="Account and access">
+            <DL items={[['Status', <StatusBadge key="s" status={u.account_status} />],
+              ['Reason', u.status_reason], ['Status changed', u.status_changed_at ? `${fmtDateTime(u.status_changed_at)}${u.status_changed_by_name ? ` by ${u.status_changed_by_name}` : ''}` : null],
+              ['Email confirmed', u.email_verified_at ? fmtDateTime(u.email_verified_at) : 'Not yet'],
+              ['Invitation', data.invitation ? `${label(data.invitation.state)} – sent ${fmtDateTime(data.invitation.created_at)}, valid until ${fmtDateTime(data.invitation.expires_at)}` : 'None']]} />
+            {u.can_admin && <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
+              {u.account_status === 'invited' && <InvitationButtons userId={u.id} pending={data.invitation?.state === 'pending'} />}
+              {u.account_status === 'active' && <SignOutEverywhereButton userId={u.id} />}
+              <StaffStatusForm userId={u.id} status={u.account_status} />
+            </div>}
+            {!u.can_admin && <p className="hint mt-3">This account is outside your authority to change.</p>}
+          </Card></section>
+          {data.canReassign && (
+            <Card title={`Open tasks (${data.openTasks})`}>
+              {data.openTasks === 0 ? <p className="text-sm text-slate-600">No open tasks assigned.</p>
+                : <ReassignTasksForm userId={u.id} count={data.openTasks} people={data.handover.map((p) => ({ value: p.id, label: `${p.full_name} (${p.employee_id})` }))} />}
+              <p className="hint mt-2">Each task keeps its history, including the previous owner and who reassigned it. <Link href={`/tasks?assignee=${u.id}`}>View tasks</Link></p>
+            </Card>
+          )}
           <Card title="Company access and role" padded={false}>
             <div className="table-wrap"><table>
               <thead><tr><th>Company</th><th>Role</th><th>Department</th><th>Status</th></tr></thead>

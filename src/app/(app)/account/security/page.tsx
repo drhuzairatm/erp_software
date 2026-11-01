@@ -4,6 +4,7 @@ import { Alert, Card, PageHeader } from '@/components/ui'
 import { mfaStatus } from '@/server/auth/mfa-service'
 import { requireUser } from '@/server/auth/session'
 import { MfaSetup } from './mfa-setup'
+import { SignOutAll } from './sign-out-all'
 
 export const metadata: Metadata = { title: 'Two-factor login' }
 
@@ -23,6 +24,10 @@ export default async function SecurityPage({ searchParams }: { searchParams: Pro
             <p className="text-slate-600">New phone or lost access? Ask an administrator to reset your two-factor login, then set it up again.</p>
           </div>
         ) : <MfaSetup />}
+      </Card>
+      <Card title="Signed in somewhere else?" className="mt-6">
+        <p className="mb-3 text-sm text-slate-600">If you used a shared or lost device, sign out everywhere. This ends every session, including this one.</p>
+        <SignOutAll />
       </Card>
     </div>
   )

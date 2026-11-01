@@ -188,10 +188,21 @@ export const passwordChangeSchema = z
   .object({ current: z.string().min(1, 'Enter your current password.'), next: z.string().min(1), confirm: z.string().min(1) })
   .refine((v) => v.next === v.confirm, { message: 'Passwords do not match.', path: ['confirm'] })
 
+const staffPhone = z.string().trim().max(40).regex(/^\+?[0-9 ()-]{5,40}$/, 'Enter a valid phone number.').optional().or(z.literal('').transform(() => undefined))
+const staffDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a valid date.').optional().or(z.literal('').transform(() => undefined))
 export const userCreateSchema = z.object({
   email: z.email('Enter a valid email address.').max(200),
   fullName: z.string().min(2).max(120),
   jobTitle: text(120).optional(),
+  phone: staffPhone,
+  joiningDate: staffDate,
+  departmentId: uuid.optional().or(z.literal('').transform(() => undefined)),
   orgId: uuid,
   roleId: uuid,
+})
+export const staffDetailsSchema = z.object({
+  fullName: z.string().trim().min(2).max(120),
+  jobTitle: text(120).optional(),
+  phone: staffPhone,
+  joiningDate: staffDate,
 })

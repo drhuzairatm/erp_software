@@ -2,7 +2,8 @@
 
 import { redirect } from 'next/navigation'
 import type { ActionResult } from '@/components/action-types'
-import { changeOwnPassword, completePasswordReset, requestPasswordReset } from '@/server/auth/passwords'
+import { acceptInvitation, changeOwnPassword, completePasswordReset, requestPasswordReset } from '@/server/auth/passwords'
+import { revokeSessions } from '@/server/services/admin'
 import { adminResetMfa, finishEnrolment, startEnrolment, verifyLoginCode } from '@/server/auth/mfa-service'
 import { getPendingMfaToken, login, logout, requireUser } from '@/server/auth/session'
 import { emailConfigured } from '@/server/email'
@@ -77,4 +78,22 @@ export async function finishMfaAction(_: ActionResult, fd: FormData): Promise<Ac
 export async function adminResetMfaAction(userId: string, _: ActionResult): Promise<ActionResult> {
   const ctx = await requireUser()
   return runAction(async () => { await adminResetMfa(ctx, userId) }, 'Two-factor login reset. The person must set it up again at their next sign-in; their sessions were ended.')
+}
+
+export async function acceptInvitationAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const token = String(fd.get('token') ?? '')
+  return runAction(async () => {
+    await acceptInvitation(token, String(fd.get('password') ?? ''), String(fd.get('confirm') ?? ''))
+    redirect('/login?invited=1')
+  })
+}
+
+/** Sign out of every device, including this one. */
+export async function signOutEverywhereAction(_: ActionResult): Promise<ActionResult> {
+  const ctx = await requireUser({ allowMfaSetup: true, allowPasswordChange: true })
+  return runAction(async () => {
+    await revokeSessions(ctx, ctx.userId)
+    await logout()
+    redirect('/login?signedout=all')
+  })
 }

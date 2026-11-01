@@ -10,6 +10,10 @@
  * printed, stored in files, or passed on the command line.
  *
  * --role accepts any role key, e.g. system_admin or md.
+ *
+ * Protected MD: the first MD is created with --role md. Once an active MD exists, the database refuses
+ * another one unless --allow-additional-md is given deliberately (both are recorded in the audit log).
+ * The MD role can never be granted from inside the web app.
  */
 import { parseArgs } from 'node:util'
 import postgres from 'postgres'
@@ -18,7 +22,7 @@ import { loadEnv, requireEnv } from './lib/env'
 
 loadEnv()
 const { values } = parseArgs({
-  options: { email: { type: 'string' }, name: { type: 'string' }, role: { type: 'string', default: 'system_admin' }, orgs: { type: 'string', default: 'EDX,GRD' } },
+  options: { email: { type: 'string' }, name: { type: 'string' }, 'allow-additional-md': { type: 'boolean', default: false }, role: { type: 'string', default: 'system_admin' }, orgs: { type: 'string', default: 'EDX,GRD' } },
 })
 if (!values.email || !values.name) {
   console.error('Usage: npm run admin:create -- --email someone@company.com --name "Full Name" [--role system_admin] [--orgs EDX,GRD]')
@@ -31,9 +35,13 @@ const sql = postgres(requireEnv('DATABASE_ADMIN_URL'), { max: 1, onnotice: () =>
 try {
   const token = newTokenValue()
   await sql.begin(async (tx) => {
+    if (values['allow-additional-md']) {
+      await tx`select set_config('app.allow_additional_md', 'on', true)`
+      console.log('WARNING: --allow-additional-md given: an additional MD may be created (audited).')
+    }
     let [user] = await tx<{ id: string }[]>`select id from user_profiles where lower(email) = ${email}`
     if (!user) {
-      ;[user] = await tx<{ id: string }[]>`insert into user_profiles (email, full_name) values (${email}, ${values.name!}) returning id`
+      ;[user] = await tx<{ id: string }[]>`insert into user_profiles (email, full_name, account_status) values (${email}, ${values.name!}, 'invited') returning id`
       console.log(`Created account for ${email}`)
     }
     for (const code of orgCodes) {
@@ -53,7 +61,10 @@ try {
   const base = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '')
   console.log(`\nOne-time setup link (valid 24 hours, share securely):\n${base}/reset-password/${token}\n`)
 } catch (e) {
-  console.error(e instanceof Error ? e.message : e)
+  const msg = e instanceof Error ? e.message : String(e)
+  console.error(msg.includes('An MD account already exists')
+    ? 'Refused: an MD account already exists. Use --allow-additional-md only if the current MD has approved a second MD.'
+    : msg)
   process.exitCode = 1
 } finally {
   await sql.end()
