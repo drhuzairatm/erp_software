@@ -174,7 +174,10 @@ export const paymentSchema = z
     recipientEntityId: optUuid,
     payee: text(200).optional(),
     notes: text(2000).optional(),
+    currency: z.string().regex(/^[A-Z]{3}$/, 'Choose the currency.').optional(),
+    exchangeRate: z.string().regex(/^\d{1,6}(\.\d{1,8})?$/, 'Enter the rate like 83.25 (INR for 1 unit).').refine((a) => Number(a) > 0, 'The rate must be greater than zero.').optional(),
   })
+  .refine((v) => !v.currency || v.currency === 'INR' || v.exchangeRate, { message: 'Enter the exchange rate applied to this payment.', path: ['exchangeRate'] })
   .refine((v) => !['receipt', 'refund'].includes(v.entryType) || v.method, { message: 'Choose the payment method.', path: ['method'] })
   .refine((v) => v.entryType !== 'disbursement' || v.payee, { message: 'Enter who was paid.', path: ['payee'] })
 

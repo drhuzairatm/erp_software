@@ -324,6 +324,26 @@ async function Analytics({ ctx, orgIds, sp }: { ctx: Ctx; orgIds: string[]; sp: 
         )}
       </div>
 
+      {a.financeVisible && a.finance.length > 0 && (
+        <Card title="Fees by currency (service fees, verified)" className="mb-6" padded={false}>
+          <div className="table-wrap"><table>
+            <thead><tr><th>Currency</th><th className="text-right">Expected (period)</th><th className="text-right">Received (period)</th><th className="text-right">Outstanding (all time)</th><th className="text-right">Awaiting verification</th></tr></thead>
+            <tbody>
+              {a.finance.map((f) => (
+                <tr key={f.currency}><td className="font-semibold">{f.currency}</td><td className="text-right tabular-nums">{fmtMoney(f.due_period, f.currency)}</td>
+                  <td className="text-right tabular-nums">{fmtMoney(f.received_period, f.currency)}</td><td className="text-right font-semibold tabular-nums">{fmtMoney(f.outstanding, f.currency)}</td>
+                  <td className="text-right tabular-nums">{fmtMoney(f.pending, f.currency)}</td></tr>))}
+              {a.financeInr && (
+                <tr className="bg-slate-50"><td className="font-semibold">Consolidated – INR equivalent</td><td className="text-right tabular-nums">{fmtMoney(a.financeInr.due_period, 'INR')}</td>
+                  <td className="text-right tabular-nums">{fmtMoney(a.financeInr.received_period, 'INR')}</td><td className="text-right font-semibold tabular-nums">{fmtMoney(a.financeInr.outstanding, 'INR')}</td><td className="text-right text-xs text-slate-500">—</td></tr>
+              )}
+            </tbody>
+          </table></div>
+          <p className="hint px-4 pb-3">Each currency is shown separately; original amounts are never added together. The INR-equivalent row uses the exchange rate stored on each payment, not today&apos;s rate
+            {a.financeInr && a.financeInr.missing > 0 ? ` (${a.financeInr.missing} entries without a rate are left out)` : ''}.</p>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card title="Monthly admissions (registrations)" className="xl:col-span-2"><BarChart title="Registrations per month, last 12 months" data={a.monthly.map((m) => ({ label: m.label, value: m.registered }))} /></Card>
         <Card title="Country-wise admissions"><DonutChart title="Students by destination" centerLabel="students" data={top(a.byCountry, 7)} /></Card>

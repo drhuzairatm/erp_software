@@ -83,7 +83,16 @@ export async function managementAnalytics(ctx: Ctx, orgIds: string[], f: Dashboa
                coalesce((select sum(e.pending_receipts) from payment_entry_effects e where e.currency = cur.currency and e.org_id = any(${tx.array(financeOrgs)}::uuid[])), 0)::float as pending
           from cur order by cur.currency`
     }
-    return { kpis: k, monthly, yearly, byCountry, byCourse, byStage, byCompany, rates, staff, canStaff, finance, financeVisible: financeOrgs.length > 0, from, to }
+    // Consolidated INR equivalents: each entry at the rate stored on it (never today's rate)
+    let financeInr: { due_period: number; received_period: number; outstanding: number; missing: number } | null = null
+    if (financeOrgs.length) {
+      ;[financeInr] = await tx<{ due_period: number; received_period: number; outstanding: number; missing: number }[]>`
+        select coalesce(sum(due_inr) filter (where entry_date between coalesce(${from}::date, current_date - 364) and coalesce(${to}::date, current_date)), 0)::float as due_period,
+               coalesce(sum(received_inr) filter (where entry_date between coalesce(${from}::date, current_date - 364) and coalesce(${to}::date, current_date)), 0)::float as received_period,
+               coalesce(sum(due_inr) - sum(received_inr), 0)::float as outstanding, count(*) filter (where inr_missing)::int as missing
+          from payment_entry_effects where ledger = 'service' and org_id = any(${tx.array(financeOrgs)}::uuid[])`
+    }
+    return { kpis: k, monthly, yearly, byCountry, byCourse, byStage, byCompany, rates, staff, canStaff, finance, financeInr, financeVisible: financeOrgs.length > 0, from, to }
   })
 }
 

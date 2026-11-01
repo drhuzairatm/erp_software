@@ -31,3 +31,14 @@ export async function reversePaymentAction(entryId: string, back: string, _: Act
     revalidatePath(back)
   }, 'Reversal recorded and awaiting verification.')
 }
+
+export async function correctRateAction(entryId: string, back: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => { await payments.correctRate(ctx, entryId, String(fd.get('rate') ?? ''), String(fd.get('reason') ?? '')); revalidatePath(back) },
+    'Exchange rate corrected; the change is kept in the history.')
+}
+
+export async function saveCurrencyAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => { await payments.saveCurrency(ctx, formObject(fd)); revalidatePath('/admin/currencies') }, 'Saved. Existing payments keep their own rates.')
+}

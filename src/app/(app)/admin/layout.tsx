@@ -12,6 +12,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   add(canAny(ctx, ['settings.manage', 'reference.manage', 'workflow.manage', 'departments.manage']), 'Administration', '/admin/settings', 'Company settings', 'settings')
   add(can(ctx, 'settings.manage'), 'Administration', '/admin/courier', 'Courier addresses', 'truck')
   add(can(ctx, 'notifications.manage'), 'Administration', '/admin/notifications', 'Notifications', 'bell')
+  add(can(ctx, 'currencies.manage'), 'Administration', '/admin/currencies', 'Currencies', 'wallet')
   add(can(ctx, 'requirements.manage'), 'Rules', '/admin/requirements', 'Country requirements', 'globe')
   add(canAny(ctx, ['academic.rules.manage', 'one_and_same.templates.approve']), 'Rules', '/admin/academic-rules', 'Academic & names', 'book')
   add(can(ctx, 'passport.rules.manage'), 'Rules', '/admin/passport-rules', 'Passport & contact', 'passport')

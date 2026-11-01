@@ -25,6 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (canAny(ctx, ['tasks.read.all', 'tasks.read.own'])) add('Workspace', '/tasks', 'Tasks', 'tasks')
   if (ctx.memberships.length) add('Workspace', '/universities', 'Universities', 'university')
   if (can(ctx, 'payments.read')) add('Finance', '/payments', 'Payment ledger', 'payments')
+  if (can(ctx, 'currencies.manage')) add('Finance', '/admin/currencies', 'Currencies & rates', 'wallet')
   if (can(ctx, 'reports.view')) add('Insights', '/reports', 'Reports', 'reports')
   if (can(ctx, 'notifications.view')) add('Insights', '/notifications', 'Messages', 'messages')
   if (can(ctx, 'users.manage')) add('Administration', '/admin/users', 'Staff', 'staff')

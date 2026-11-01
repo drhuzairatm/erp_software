@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { addChecklistItemAction, custodyAction, documentDetailsAction, uploadAction } from '@/app/actions/documents'
-import { recordPaymentAction, reversePaymentAction, verifyPaymentAction } from '@/app/actions/payments'
+import { correctRateAction, recordPaymentAction, reversePaymentAction, verifyPaymentAction } from '@/app/actions/payments'
 import { createTaskAction } from '@/app/actions/tasks'
 import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
 
@@ -68,14 +68,21 @@ export function AddChecklistItemForm({ studentId, types }: { studentId: string; 
 }
 
 // ---------------------------------------------------------------- payments
-export function PaymentForm({ studentId, orgs, categories, entities, today }: {
+export function PaymentForm({ studentId, orgs, categories, entities, today, currencies }: {
   studentId: string; orgs: Opt[]; categories: { id: string; org_id: string; name: string; kind: string }[]; entities: Opt[]; today: string
+  currencies: { code: string; name: string; reference_rate: string | null; reference_rate_date: string | null }[]
 }) {
   const [org, setOrg] = useState(orgs[0]?.value ?? '')
   const [type, setType] = useState('charge')
+  const [cur, setCur] = useState('INR')
+  const [amount, setAmount] = useState('')
+  const [rate, setRate] = useState('')
+  const ref = currencies.find((c) => c.code === cur)
+  const inr = cur === 'INR' ? Number(amount) : Number(amount) * Number(rate)
+  const inrText = Number.isFinite(inr) && inr > 0 ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Math.round(inr * 100) / 100) : '—'
   const cats = categories.filter((c) => c.org_id === org && (type !== 'disbursement' || c.kind === 'third_party'))
   return (
-    <ActionForm action={recordPaymentAction.bind(null, studentId)} resetOnSuccess>
+    <ActionForm action={recordPaymentAction.bind(null, studentId)} resetOnSuccess onSuccess={() => { setAmount(''); setRate(''); setCur('INR') }}>
       {(s) => (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           {orgs.length > 1 && (
@@ -93,7 +100,21 @@ export function PaymentForm({ studentId, orgs, categories, entities, today }: {
             <select id="feeCategoryId" name="feeCategoryId" className="input" required key={org + type}>
               {cats.map((c) => <option key={c.id} value={c.id}>{c.name}{c.kind === 'third_party' ? ' (third-party)' : ''}</option>)}
             </select><FieldError state={s} name="feeCategoryId" /></div>
-          <div><label className="label" htmlFor="amount">Amount</label><input id="amount" name="amount" inputMode="decimal" className="input" required placeholder="15000" aria-invalid={!!s.fieldErrors?.amount} /><FieldError state={s} name="amount" /></div>
+          <div><label className="label" htmlFor="currency">Currency</label>
+            <select id="currency" name="currency" className="input" value={cur}
+              onChange={(e) => { setCur(e.target.value); const c = currencies.find((x) => x.code === e.target.value); setRate(e.target.value === 'INR' ? '' : c?.reference_rate ? String(Number(c.reference_rate)) : '') }}>
+              {currencies.map((c) => <option key={c.code} value={c.code}>{c.code} – {c.name}</option>)}
+            </select></div>
+          <div><label className="label" htmlFor="amount">Amount{cur !== 'INR' ? ` (${cur})` : ''}</label><input id="amount" name="amount" inputMode="decimal" className="input" required placeholder="15000"
+            value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={!!s.fieldErrors?.amount} /><FieldError state={s} name="amount" /></div>
+          {cur !== 'INR' && (
+            <div><label className="label" htmlFor="exchangeRate">Exchange rate applied (INR for 1 {cur}) *</label>
+              <input id="exchangeRate" name="exchangeRate" inputMode="decimal" className="input" required value={rate} onChange={(e) => setRate(e.target.value)} placeholder="e.g. 90" />
+              {ref?.reference_rate && <p className="hint">Reference rate {Number(ref.reference_rate)}{ref.reference_rate_date ? ` (${ref.reference_rate_date})` : ''} – check the rate actually applied.</p>}
+              <FieldError state={s} name="exchangeRate" /></div>
+          )}
+          <div className="flex flex-col justify-end"><p className="label">INR equivalent</p>
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold tabular-nums text-slate-900 ring-1 ring-slate-200" aria-live="polite">{inrText}</p></div>
           <div><label className="label" htmlFor="entryDate">Date</label><input id="entryDate" name="entryDate" type="date" className="input" required defaultValue={today} /></div>
           {type !== 'charge' && type !== 'waiver' && (
             <>
@@ -182,5 +203,24 @@ export function QuickTaskForm({ studentId, orgs, staff, canAssignOrgs, me }: {
         </div>
       )}
     </ActionForm>
+  )
+}
+
+export function RateCorrectionForm({ entryId, back, currency, rate }: { entryId: string; back: string; currency: string; rate: string | null }) {
+  return (
+    <details className="text-left">
+      <summary className="cursor-pointer text-xs text-brand-700">Correct rate</summary>
+      <ActionForm action={correctRateAction.bind(null, entryId, back)} className="mt-2 flex flex-wrap items-end gap-2">
+        {(s) => (
+          <>
+            <div><label className="label text-xs" htmlFor={`rate-${entryId}`}>INR for 1 {currency}</label>
+              <input id={`rate-${entryId}`} name="rate" inputMode="decimal" className="input w-28 py-1.5 text-sm" defaultValue={rate ? String(Number(rate)) : ''} required /><FieldError state={s} name="rate" /></div>
+            <div><label className="label text-xs" htmlFor={`rr-${entryId}`}>Reason *</label>
+              <input id={`rr-${entryId}`} name="reason" className="input w-48 py-1.5 text-sm" required maxLength={500} /><FieldError state={s} name="reason" /></div>
+            <SubmitButton className="btn-secondary btn-sm">Save rate</SubmitButton>
+          </>
+        )}
+      </ActionForm>
+    </details>
   )
 }

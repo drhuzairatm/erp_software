@@ -7,7 +7,7 @@ import { can } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
 import { getChecklist } from '@/server/services/documents'
 import { getLookups } from '@/server/services/lookups'
-import { studentLedger } from '@/server/services/payments'
+import { listCurrencies, studentLedger } from '@/server/services/payments'
 import { assignableStaff, getNotes, getStudent, getTimeline, type StudentProfile } from '@/server/services/students'
 import { listTasks, taskAssignees } from '@/server/services/tasks'
 import type { Ctx } from '@/server/services/base'
@@ -25,7 +25,7 @@ import { currentPhoto } from '@/server/services/photos'
 import { PortalAccountCard, PublicationsCard } from './portal-panel'
 import { VerifyEmailButton } from './passport-forms'
 import { AdmissionForm, ArchiveForm, AssignmentForm, FollowupForm, MergeForm, NoteForm, StageChangeForm, VisaForm } from './panels'
-import { AddChecklistItemForm, CustodyForm, DocumentDetailsForm, PaymentForm, QuickTaskForm, ReverseForm, UploadForm, VerifyForm } from './tab-forms'
+import { AddChecklistItemForm, CustodyForm, DocumentDetailsForm, PaymentForm, QuickTaskForm, RateCorrectionForm, ReverseForm, UploadForm, VerifyForm } from './tab-forms'
 
 export const metadata: Metadata = { title: 'Student profile' }
 
@@ -433,7 +433,7 @@ function needsAction(status: string, perms: { review: boolean; approve: boolean 
 
 async function Payments({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }) {
   const s = profile.student
-  const [ledger, lookups] = await Promise.all([studentLedger(ctx, s.id), getLookups(ctx)])
+  const [ledger, lookups, currencies] = await Promise.all([studentLedger(ctx, s.id), getLookups(ctx), listCurrencies(ctx)])
   const recordOrgs = orgOptions(ctx, profile, 'payments.record')
   const back = `/students/${s.id}`
   return (
@@ -446,6 +446,8 @@ async function Payments({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
               ['Amount due', fmtMoney(b.amount_due, b.currency)], ['Received (verified)', fmtMoney(b.amount_received, b.currency)],
               ['Outstanding', <strong key="o" className={Number(b.outstanding) > 0 ? 'text-red-700' : ''}>{fmtMoney(b.outstanding, b.currency)}</strong>],
               ['Awaiting verification', fmtMoney(b.pending_receipts, b.currency)],
+              ...(b.currency !== 'INR' ? (() => { const x = ledger.inr.find((i) => i.org_id === b.org_id && i.ledger === b.ledger && i.currency === b.currency)
+                return x ? [['INR equivalent (rates applied on each entry)', <span key="i" className="text-xs">due {fmtMoney(x.due_inr, 'INR')} · received {fmtMoney(x.received_inr, 'INR')}{x.missing ? ` · ${x.missing} entr${x.missing === 1 ? 'y' : 'ies'} without a rate` : ''}</span>] as [string, React.ReactNode]] : [] })() : []),
             ] : [
               ['Collected from student (verified)', fmtMoney(b.amount_received, b.currency)], ['Paid out (verified)', fmtMoney(b.amount_disbursed, b.currency)],
               ['Held, not yet paid out', fmtMoney(b.held_balance, b.currency)], ['Due from student', fmtMoney(b.outstanding, b.currency)],
@@ -456,13 +458,18 @@ async function Payments({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
       <Card title="Ledger entries" padded={false}>
         {ledger.entries.length === 0 ? <EmptyState title="No entries" /> : (
           <div className="table-wrap"><table>
-            <thead><tr><th>Date</th><th>Entry</th><th className="text-right">Amount</th><th>Reference</th><th>Recorded by</th><th>Verification</th><th></th></tr></thead>
+            <thead><tr><th>Date</th><th>Entry</th><th className="text-right">Amount</th><th className="text-right">Rate · INR equivalent</th><th>Reference</th><th>Recorded by</th><th>Verification</th><th></th></tr></thead>
             <tbody>{ledger.entries.map((e) => (
               <tr key={e.id} className={e.verification_status === 'rejected' ? 'opacity-60' : ''}>
                 <td className="whitespace-nowrap">{fmtDate(e.entry_date)}</td>
                 <td><span className="font-medium">{label(e.entry_type)}</span> · {e.fee_category}<div className="text-xs text-slate-500">{e.org_name}{e.ledger === 'third_party' ? ' · third-party' : ''}{e.payee ? ` · paid to ${e.payee}` : ''}{e.notes ? ` · ${e.notes}` : ''}</div></td>
-                <td className="text-right tabular-nums">{fmtMoney(e.amount, e.currency)}</td>
-                <td className="text-xs">{e.method && label(e.method)}{e.reference_no && <div>{e.reference_no}</div>}{e.receipt_ref && <div>Receipt {e.receipt_ref}</div>}</td>
+                <td className="text-right font-semibold tabular-nums">{fmtMoney(e.amount, e.currency)}</td>
+                <td className="text-right text-xs tabular-nums">{e.currency === 'INR' ? '—' : e.exchange_rate ? <>{Number(e.exchange_rate)}<div className="font-medium text-slate-800">{fmtMoney(e.inr_amount, 'INR')}</div></> : <span className="text-amber-700">no rate</span>}
+                  {e.rate_changes > 0 && <div className="text-amber-700">rate changed</div>}
+                  {e.currency !== 'INR' && e.entry_type !== 'reversal' && (e.verification_status === 'pending' || (e.entry_type === 'charge' && !e.reversed_by_id)) && can(ctx, 'payments.record', e.org_id)
+                    && <RateCorrectionForm entryId={e.id} back={back} currency={e.currency} rate={e.exchange_rate} />}</td>
+                <td className="text-xs">{e.method && label(e.method)}{e.reference_no && <div>{e.reference_no}</div>}{e.receipt_ref && <div>Receipt {e.receipt_ref}</div>}
+                  {e.receipt_no && <div><Link href={`/receipts/${e.id}`}>Receipt {e.receipt_no}</Link></div>}</td>
                 <td className="text-xs">{e.recorder_name}<div className="text-slate-500">{fmtDateTime(e.recorded_at)}</div></td>
                 <td><StatusBadge status={e.verification_status} />{e.verifier_name && <div className="text-xs text-slate-500">{e.verifier_name}</div>}{e.reversed_by_id && <div className="text-xs text-amber-700">Reversed</div>}</td>
                 <td className="text-right">
@@ -478,7 +485,7 @@ async function Payments({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
       </Card>
       {recordOrgs.length > 0 && s.status !== 'merged' && (
         <Card title="Record an entry">
-          <PaymentForm studentId={s.id} orgs={recordOrgs} categories={ledger.categories} today={todayISO()}
+          <PaymentForm studentId={s.id} orgs={recordOrgs} categories={ledger.categories} today={todayISO()} currencies={currencies}
             entities={lookups.legalEntities.map((e) => ({ value: e.id, label: e.name }))} />
         </Card>
       )}

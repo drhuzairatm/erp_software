@@ -7,7 +7,7 @@ import { Icon } from '@/components/icons'
 import { Alert, Card, EmptyState, PageHeader, Pagination, StatCard, StatusBadge, ViewTabs } from '@/components/ui'
 import { can } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
-import { type LedgerFilters, listLedger } from '@/server/services/payments'
+import { type LedgerFilters, listCurrencies, listLedger } from '@/server/services/payments'
 import { getScope } from '@/server/scope'
 
 export const metadata: Metadata = { title: 'Payment ledger' }
@@ -17,7 +17,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
   const scope = await getScope(ctx)
   if (!scope.orgIds.some((o) => can(ctx, 'payments.read', o))) return <PageHeader title="Payment ledger" description="You do not have access to financial records." />
   const sp = await searchParams
-  const data = await listLedger(ctx, scope.orgIds, sp as LedgerFilters)
+  const [data, currencies] = await Promise.all([listLedger(ctx, scope.orgIds, sp as LedgerFilters), listCurrencies(ctx, false)])
   const back = '/payments'
   const main = data.totals[0]
   const kpi = (v: string | number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: main?.currency ?? 'INR', maximumFractionDigits: 0 }).format(Number(v))
@@ -38,6 +38,15 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         <StatCard label="Awaiting verification" value={data.summary.pending_count} tone={data.summary.pending_count ? 'amber' : 'slate'}
           icon={<Icon name="clock" className="h-5 w-5" />} href="/payments?status=pending" sub={data.summary.pending_count ? `${fmtMoney(data.summary.pending)} in receipts` : undefined} />
       </section>
+      <section aria-label="Consolidated INR equivalents" className="mb-5 rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4 text-sm">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Consolidated – INR equivalents (rates stored on each payment)</h2>
+        <div className="mt-2 flex flex-wrap gap-x-8 gap-y-2">
+          <p>Received, last 30 days: <strong className="tabular-nums">{fmtMoney(data.inr.received_30, 'INR')}</strong></p>
+          <p>Outstanding (service fees): <strong className="tabular-nums">{fmtMoney(data.inr.outstanding, 'INR')}</strong></p>
+          {data.inr.missing > 0 && <p className="text-amber-800">{data.inr.missing} entr{data.inr.missing === 1 ? 'y has' : 'ies have'} no recorded rate and {data.inr.missing === 1 ? 'is' : 'are'} not included</p>}
+        </div>
+        <p className="hint mt-1">Original-currency figures above are never added together; this section converts each payment at the rate applied on that payment.</p>
+      </section>
       {data.totals.length > 1 && <p className="-mt-3 mb-4 text-xs text-slate-500">Other currencies in this ledger: {data.totals.slice(1).map((t) => `${t.currency} ${fmtMoney(t.received_30, t.currency)} received (30 days)`).join(' · ')}</p>}
       <ViewTabs label="Ledger views" items={[
         { href: qs({ status: undefined }), label: 'All entries', active: !sp.status },
@@ -52,6 +61,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
           <select className="input" id="status" name="status" defaultValue={sp.status ?? ''}><option value="">Any</option><option value="pending">Awaiting verification</option><option value="verified">Verified</option><option value="rejected">Rejected</option><option value="not_required">Charges</option></select></div>
         <div><label className="label" htmlFor="type">Type</label>
           <select className="input" id="type" name="type" defaultValue={sp.type ?? ''}><option value="">Any</option>{['charge', 'receipt', 'waiver', 'refund', 'disbursement', 'reversal'].map((t) => <option key={t} value={t}>{label(t)}</option>)}</select></div>
+        <div><label className="label" htmlFor="currency">Currency</label>
+          <select className="input" id="currency" name="currency" defaultValue={sp.currency ?? ''}><option value="">All</option>{currencies.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}</select></div>
         <div><label className="label" htmlFor="ledger">Ledger</label>
           <select className="input" id="ledger" name="ledger" defaultValue={sp.ledger ?? ''}><option value="">Both</option><option value="service">Service fees</option><option value="third_party">Third-party money</option></select></div>
         <div><label className="label" htmlFor="from">From</label><input className="input" type="date" id="from" name="from" defaultValue={sp.from} /></div>
@@ -61,14 +72,15 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
       <Card padded={false}>
         {data.rows.length === 0 ? <EmptyState title="No ledger entries" /> : (
           <div className="table-wrap"><table>
-            <thead><tr><th>Date</th><th>Student</th><th>Entry</th><th className="text-right">Amount</th><th>Reference</th><th>Recorded by</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Date</th><th>Student</th><th>Entry</th><th className="text-right">Amount</th><th className="text-right">INR equivalent</th><th>Reference</th><th>Recorded by</th><th>Status</th><th></th></tr></thead>
             <tbody>{data.rows.map((e) => (
               <tr key={e.id}>
                 <td className="whitespace-nowrap">{fmtDate(e.entry_date)}</td>
                 <td>{e.student_code ? <Link href={`/students/${e.student_id}?tab=payments`}>{e.student_name}</Link> : '—'}<div className="font-mono text-xs text-slate-500">{e.student_code}</div></td>
                 <td>{label(e.entry_type)} · {e.fee_category}<div className="text-xs text-slate-500">{e.org_name}{e.ledger === 'third_party' ? ' · third-party' : ''}</div></td>
                 <td className={`text-right font-semibold tabular-nums ${TYPE_TONE[e.entry_type] ?? ''}`}>{['refund', 'disbursement'].includes(e.entry_type) ? '−' : ''}{fmtMoney(e.amount, e.currency)}</td>
-                <td className="text-xs">{e.method && label(e.method)}<div>{e.reference_no}</div></td>
+                <td className="text-right text-xs tabular-nums">{e.currency === 'INR' ? '—' : e.inr_amount ? <>{fmtMoney(e.inr_amount, 'INR')}<div className="text-slate-500">@ {Number(e.exchange_rate)}</div></> : <span className="text-amber-700">no rate</span>}</td>
+                <td className="text-xs">{e.method && label(e.method)}<div>{e.reference_no}</div>{e.receipt_no && <Link href={`/receipts/${e.id}`}>Receipt {e.receipt_no}</Link>}</td>
                 <td className="text-xs">{e.recorder_name}<div className="text-slate-500">{fmtDateTime(e.recorded_at)}</div></td>
                 <td><StatusBadge status={e.verification_status} />{e.verifier_name && <div className="text-xs text-slate-500">{e.verifier_name}</div>}</td>
                 <td>{e.verification_status === 'pending' && can(ctx, 'payments.verify', e.org_id) && e.recorded_by !== ctx.userId && <VerifyForm entryId={e.id} back={back} />}</td>
