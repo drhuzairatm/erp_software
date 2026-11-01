@@ -38,6 +38,7 @@
     "libphonenumber-js": "^1.13.15",
     "next": "^16.4.3",
     "nodemailer": "^10.2.1",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.4.299",
     "postgres": "^3.4.9",
     "qrcode": "^1.5.4",

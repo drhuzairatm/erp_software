@@ -20,6 +20,8 @@ import { PassportStatusBadge, PassportTab } from './passport-tab'
 import { AcademicTab } from './academic-tab'
 import { AttentionPanel } from './attention'
 import { CourierPanel } from './courier-panel'
+import { MergePanel } from './merge-panel'
+import { mergeCandidates } from '@/server/services/merge'
 import { StudentPhoto } from './photo-controls'
 import { currentPhoto } from '@/server/services/photos'
 import { PortalAccountCard, PublicationsCard } from './portal-panel'
@@ -375,6 +377,7 @@ async function Documents({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }
           </ul>
         )}
       </Card>
+      <MergeCard ctx={ctx} studentId={s.id} />
       <PublicationsCard ctx={ctx} studentId={s.id} editable={editable}
         approved={cl.items.filter((d) => d.status === 'approved').map((d) => ({ id: d.id, name: d.type_name + (d.label ? ` – ${d.label}` : '') }))} />
       <CourierPanel ctx={ctx} studentId={s.id} editable={editable}
@@ -385,6 +388,18 @@ async function Documents({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }
         </Card>
       )}
     </div>
+  )
+}
+
+async function MergeCard({ ctx, studentId }: { ctx: Ctx; studentId: string }) {
+  const m = await mergeCandidates(ctx, studentId)
+  if (!m) return null
+  return (
+    <Card title={<span className="flex items-center gap-2">Merge &amp; Download PDF <span className="text-xs font-normal text-slate-500">combine documents into one file for a submission</span></span>}>
+      <MergePanel studentId={studentId} canSeePassport={m.canSeePassport} universities={m.universities} student={m.student}
+        docs={m.docs.map((d) => ({ ...d, uploaded_at: new Date(d.uploaded_at).toISOString() }))}
+        history={m.history.map((h) => ({ ...h, created_at: new Date(h.created_at).toISOString() }))} />
+    </Card>
   )
 }
 
