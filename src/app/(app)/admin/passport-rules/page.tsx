@@ -4,6 +4,8 @@ import { requireUser } from '@/server/auth/session'
 import { run } from '@/server/services/base'
 import { getLookups } from '@/server/services/lookups'
 import { canManagePassportRules, contactRequiredStage, listValidityRules } from '@/server/services/passport'
+import { describe } from '@/lib/conditions'
+import { conditionOptions, namesOf } from '@/server/services/rules'
 import { AddRuleForm, ContactStageForm, ToggleRule } from './forms'
 
 export const metadata: Metadata = { title: 'Passport & contact rules' }
@@ -11,8 +13,9 @@ export const metadata: Metadata = { title: 'Passport & contact rules' }
 export default async function PassportRulesPage() {
   const ctx = await requireUser()
   if (!canManagePassportRules(ctx)) return <PageHeader title="Passport & contact rules" description="You do not have access to this page." />
-  const [rules, lookups, current, stages] = await Promise.all([listValidityRules(ctx), getLookups(ctx), contactRequiredStage(ctx),
-    run(ctx, (tx) => tx<{ key: string; name: string }[]>`select key, name from stages where kind = 'normal' order by sort_order`)])
+  const [rules, lookups, current, stages, condOptions] = await Promise.all([listValidityRules(ctx), getLookups(ctx), contactRequiredStage(ctx),
+    run(ctx, (tx) => tx<{ key: string; name: string }[]>`select key, name from stages where kind = 'normal' order by sort_order`), conditionOptions(ctx)])
+  const names = namesOf(condOptions)
   return (
     <>
       <PageHeader title="Passport & contact rules" description="Minimum passport validity by destination, university, course and stage; when full contact details become mandatory." />
@@ -28,7 +31,8 @@ export default async function PassportRulesPage() {
               <tbody>{rules.map((r) => (
                 <tr key={r.id} className={r.is_active ? '' : 'opacity-50'}>
                   <td className="font-medium">{r.name}{r.notes && <div className="text-xs font-normal text-slate-500">{r.notes}</div>}</td>
-                  <td className="text-xs">{[r.destination, r.university, r.course].filter(Boolean).join(' · ') || 'All students'}</td>
+                  <td className="text-xs">{[r.destination, r.university, r.course].filter(Boolean).join(' · ') || 'All students'}
+                    {r.conditions && <div className="mt-1 text-brand-800">If: {describe(r.conditions, names)}</div>}</td>
                   <td>{r.stage}</td><td className="text-right tabular-nums">{r.min_months}</td>
                   <td>{r.enforcement === 'block' ? <Badge tone="red">Block</Badge> : <Badge tone="amber">Warn</Badge>}</td>
                   <td><ToggleRule id={r.id} active={r.is_active} /></td>
@@ -38,7 +42,7 @@ export default async function PassportRulesPage() {
           )}
           <div className="border-t border-slate-100 p-4">
             <AddRuleForm stages={stages} countries={lookups.countries.filter((c) => c.is_destination).map((c) => ({ id: c.id, name: c.name }))}
-              universities={lookups.universities.map((u) => ({ id: u.id, name: u.name }))} courses={lookups.courses.map((c) => ({ id: c.id, name: c.name }))} />
+              universities={lookups.universities.map((u) => ({ id: u.id, name: u.name }))} courses={lookups.courses.map((c) => ({ id: c.id, name: c.name }))} condOptions={condOptions} />
           </div>
         </Card>
       </div>

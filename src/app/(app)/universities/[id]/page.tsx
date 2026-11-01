@@ -5,6 +5,8 @@ import { Icon } from '@/components/icons'
 import { Badge, Card, EmptyState, PageHeader } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { getLookups } from '@/server/services/lookups'
+import { describe } from '@/lib/conditions'
+import { conditionOptions, namesOf } from '@/server/services/rules'
 import { canManageUniversities, getUniversity } from '@/server/services/universities'
 import { AddCampusForm, AddCourseForm, AddIntakeForm, AddRequirementForm, RemoveRequirement, TogglePart, UniversityForm } from '../university-forms'
 
@@ -13,7 +15,8 @@ export const metadata: Metadata = { title: 'University' }
 export default async function UniversityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const ctx = await requireUser()
-  const [data, lookups] = await Promise.all([getUniversity(ctx, id), getLookups(ctx)])
+  const [data, lookups, condOptions] = await Promise.all([getUniversity(ctx, id), getLookups(ctx), conditionOptions(ctx)])
+  const names = namesOf(condOptions)
   if (!data) notFound()
   const { university: u } = data
   const manage = canManageUniversities(ctx)
@@ -64,12 +67,13 @@ export default async function UniversityPage({ params }: { params: Promise<{ id:
           {data.requirements.length === 0 ? <EmptyState title="No university-specific documents" /> : (
             <ul className="divide-y divide-slate-100">{data.requirements.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
-                <span>{r.document} {!r.is_required && <Badge>Optional</Badge>} <span className="text-xs text-slate-500">{r.course ? `· ${r.course} only` : '· all courses'}{r.notes ? ` · ${r.notes}` : ''}</span></span>
+                <span>{r.document} {!r.is_required && <Badge>Optional</Badge>} <span className="text-xs text-slate-500">{r.course ? `· ${r.course} only` : '· all courses'}{r.notes ? ` · ${r.notes}` : ''}</span>
+                  {r.conditions && <span className="block text-xs text-brand-800">Only if: {describe(r.conditions, names)}</span>}</span>
                 {manage && <RemoveRequirement universityId={u.id} id={r.id} />}
               </li>))}
             </ul>
           )}
-          {manage && <div className="border-t border-slate-100 p-4"><AddRequirementForm universityId={u.id} courses={courseOpts} documentTypes={lookups.documentTypes.map((d) => ({ value: d.id, label: d.name }))} /></div>}
+          {manage && <div className="border-t border-slate-100 p-4"><AddRequirementForm universityId={u.id} courses={courseOpts} documentTypes={lookups.documentTypes.map((d) => ({ value: d.id, label: d.name }))} condOptions={condOptions} /></div>}
         </Card>
         <Card title="Campuses" padded={false}>
           {data.campuses.length === 0 ? <EmptyState title="No campuses recorded" /> : (

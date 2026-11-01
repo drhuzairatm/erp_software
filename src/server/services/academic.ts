@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { can } from '../auth/context'
 import { forbidden, invalid, notFound } from '../errors'
 import { type Ctx, run } from './base'
+import { conditionsFromForm } from './rules'
+import type { Condition } from '@/lib/conditions'
 
 const UUID = /^[0-9a-f-]{36}$/i
 const opt = (v?: string | null) => (v && UUID.test(v) ? v : null)
@@ -163,8 +165,8 @@ export async function academicConfig(ctx: Ctx) {
         left join courses co on co.id = t.course_id left join university_intakes i on i.id = t.intake_id
        order by t.is_active desc, t.name, t.subject_key`
     const rules = await tx<{ id: string; name: string; destination: string | null; university: string | null; course: string | null; record_kind: string | null
-      mismatch_type: string | null; requirement: string; is_active: boolean; notes: string | null }[]>`
-      select r.id, r.name, c.name as destination, u.name as university, co.name as course, r.record_kind, r.mismatch_type, r.requirement, r.is_active, r.notes
+      mismatch_type: string | null; requirement: string; is_active: boolean; notes: string | null; conditions: Condition | null }[]>`
+      select r.id, r.name, c.name as destination, u.name as university, co.name as course, r.record_kind, r.mismatch_type, r.requirement, r.is_active, r.notes, r.conditions
         from one_and_same_rules r left join countries c on c.id = r.destination_country_id left join universities u on u.id = r.university_id
         left join courses co on co.id = r.course_id order by r.is_active desc, r.name`
     const templates = await tx<{ id: string; name: string; body: string; status: string; approved_by_name: string | null; approved_at: Date | null }[]>`
@@ -200,8 +202,9 @@ export async function addOasRule(ctx: Ctx, v: Record<string, string | undefined>
   if (!['recommended', 'mandatory'].includes(v.requirement ?? '')) throw invalid('Choose Recommended or Mandatory.')
   if (v.recordKind && !KIND_SET.has(v.recordKind)) throw invalid('Choose the document.')
   if (v.mismatchType && !(v.mismatchType in MISMATCH_LABELS)) throw invalid('Choose the type of difference.')
-  return run(ctx, (tx) => tx`insert into one_and_same_rules (name, destination_country_id, university_id, course_id, record_kind, mismatch_type, requirement, notes, created_by)
-    values (${name}, ${opt(v.destinationCountryId)}, ${opt(v.universityId)}, ${opt(v.courseId)}, ${v.recordKind || null}, ${v.mismatchType || null}, ${v.requirement!}, ${str(v.notes, 500)}, ${ctx.userId})`)
+  const conditions = conditionsFromForm(v.conditions)
+  return run(ctx, (tx) => tx`insert into one_and_same_rules (name, destination_country_id, university_id, course_id, record_kind, mismatch_type, requirement, notes, conditions, created_by)
+    values (${name}, ${opt(v.destinationCountryId)}, ${opt(v.universityId)}, ${opt(v.courseId)}, ${v.recordKind || null}, ${v.mismatchType || null}, ${v.requirement!}, ${str(v.notes, 500)}, ${conditions ? tx.json(conditions as never) : null}, ${ctx.userId})`)
 }
 export async function toggleOasRule(ctx: Ctx, id: string, active: boolean) {
   guard(ctx)

@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { addRequirementAction, approveRuleAction, deleteDraftAction, newVersionAction, removeRequirementAction, saveRuleAction } from '@/app/actions/verification-rules'
+import { ConditionBuilder, type ConditionOptions } from '@/components/condition-builder'
 import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
+import type { Condition } from '@/lib/conditions'
 
 type Opt = { value: string; label: string }
 
-export function RuleForm({ id, options, initial, readOnly }: {
-  id: string | null; readOnly?: boolean
+export function RuleForm({ id, options, initial, readOnly, condOptions, conditions, conditionsText }: {
+  id: string | null; readOnly?: boolean; condOptions: ConditionOptions; conditions?: Condition | null; conditionsText?: string
   options: { documentTypes: Opt[]; countries: Opt[]; universities: Opt[]; courses: Opt[] }
   initial?: Record<string, string | null>
 }) {
@@ -37,6 +39,9 @@ export function RuleForm({ id, options, initial, readOnly }: {
           {sel('courseId', 'Course', options.courses)}
           <div className="md:col-span-2"><label className="label" htmlFor="description">Description / source of the wording</label>
             <input className="input" id="description" name="description" defaultValue={v('description')} disabled={readOnly} /></div>
+          <div className="md:col-span-3">{readOnly
+            ? <p className="text-sm"><span className="label inline">Extra conditions: </span>{conditionsText ?? 'No extra conditions'}</p>
+            : <><ConditionBuilder initial={conditions ?? null} options={condOptions} label="Extra conditions (optional) – e.g. nationality, school country, age" /><FieldError state={s} name="conditions" /></>}</div>
           {!readOnly && <div className="md:col-span-3"><SubmitButton>{id ? 'Save draft' : 'Create draft'}</SubmitButton></div>}
           <p className="hint md:col-span-3">Leave a scope as “Any” to apply to all. A rule applies to a document only when every chosen scope matches the student.</p>
         </>

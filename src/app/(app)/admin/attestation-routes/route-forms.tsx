@@ -1,12 +1,15 @@
 'use client'
 
 import { addAuthorityAction, addStageAction, approveRouteAction, deleteRouteDraftAction, moveStageAction, newRouteVersionAction, removeStageAction, saveRouteAction, toggleAuthorityAction } from '@/app/actions/attestation'
+import { ConditionBuilder, type ConditionOptions } from '@/components/condition-builder'
 import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
+import type { Condition } from '@/lib/conditions'
 
 type Opt = { value: string; label: string }
 export interface RouteOptions { countries: Opt[]; documentTypes: Opt[]; universities: Opt[]; authorities: Opt[]; departments: string[] }
 
-export function RouteForm({ id, options, initial, readOnly }: { id: string | null; options: RouteOptions; initial?: Record<string, string | null>; readOnly?: boolean }) {
+export function RouteForm({ id, options, initial, readOnly, condOptions, conditions, conditionsText }: { id: string | null; options: RouteOptions; initial?: Record<string, string | null>; readOnly?: boolean
+  condOptions: ConditionOptions; conditions?: Condition | null; conditionsText?: string }) {
   const v = (k: string) => initial?.[k] ?? ''
   const sel = (name: string, text: string, opts: Opt[], any: string) => (
     <div><label className="label" htmlFor={name}>{text}</label>
@@ -35,6 +38,9 @@ export function RouteForm({ id, options, initial, readOnly }: { id: string | nul
             <input className="input" id="sourceNote" name="sourceNote" defaultValue={v('sourceNote')} disabled={readOnly} placeholder="e.g. Business procedure supplied by the MD, Oct 2026 – not legal advice" /></div>
           <div className="md:col-span-3"><label className="label" htmlFor="description">Notes</label>
             <input className="input" id="description" name="description" defaultValue={v('description')} disabled={readOnly} /></div>
+          <div className="md:col-span-3">{readOnly
+            ? <p className="text-sm"><span className="label inline">Extra conditions: </span>{conditionsText ?? 'No extra conditions'}</p>
+            : <><ConditionBuilder initial={conditions ?? null} options={condOptions} label="Extra conditions (optional) – e.g. nationality" /><FieldError state={s} name="conditions" /></>}</div>
           {!readOnly && <div className="md:col-span-3"><SubmitButton>{id ? 'Save draft' : 'Create draft'}</SubmitButton></div>}
           <p className="hint md:col-span-3">The most specific approved route that matches a document is listed first. Staff choose the route when starting attestation.</p>
         </>

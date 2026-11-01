@@ -1,6 +1,8 @@
 'use client'
 
 import { addValidityRuleAction, contactStageAction, toggleValidityRuleAction } from '@/app/actions/passport'
+import { useState } from 'react'
+import { ConditionBuilder, type ConditionOptions } from '@/components/condition-builder'
 import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
 
 type Opt = { id: string; name: string }
@@ -17,13 +19,14 @@ export function ContactStageForm({ stages, current }: { stages: { key: string; n
   )
 }
 
-export function AddRuleForm({ countries, universities, courses, stages }: { countries: Opt[]; universities: Opt[]; courses: Opt[]; stages: { key: string; name: string }[] }) {
+export function AddRuleForm({ countries, universities, courses, stages, condOptions }: { countries: Opt[]; universities: Opt[]; courses: Opt[]; stages: { key: string; name: string }[]; condOptions: ConditionOptions }) {
+  const [k, setK] = useState(0)
   const sel = (name: string, text: string, opts: Opt[]) => (
     <div><label className="label" htmlFor={`r-${name}`}>{text}</label>
       <select className="input" id={`r-${name}`} name={name} defaultValue=""><option value="">Any</option>{opts.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></div>
   )
   return (
-    <ActionForm action={addValidityRuleAction} className="grid grid-cols-1 gap-3 md:grid-cols-3" resetOnSuccess>
+    <ActionForm action={addValidityRuleAction} className="grid grid-cols-1 gap-3 md:grid-cols-3" resetOnSuccess onSuccess={() => setK((x) => x + 1)}>
       {(s) => (
         <>
           <div className="md:col-span-2"><label className="label" htmlFor="r-name">Rule name</label>
@@ -39,6 +42,7 @@ export function AddRuleForm({ countries, universities, courses, stages }: { coun
           <div><label className="label" htmlFor="r-enf">When not met</label>
             <select className="input" id="r-enf" name="enforcement" defaultValue="warn"><option value="warn">Warn (staff acknowledge)</option><option value="block">Block the stage change</option></select></div>
           <div><label className="label" htmlFor="r-notes">Source / notes</label><input className="input" id="r-notes" name="notes" /></div>
+          <div className="md:col-span-3"><ConditionBuilder key={k} initial={null} options={condOptions} /><FieldError state={s} name="conditions" /></div>
           <div className="md:col-span-3"><SubmitButton>Add rule</SubmitButton></div>
         </>
       )}

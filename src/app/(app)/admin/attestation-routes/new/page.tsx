@@ -3,6 +3,7 @@ import { Card, PageHeader } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { canManageRoutes } from '@/server/services/attestation'
 import { routeOptions } from '../options'
+import { conditionOptions } from '@/server/services/rules'
 import { RouteForm } from '../route-forms'
 
 export const metadata: Metadata = { title: 'New attestation route' }
@@ -13,7 +14,7 @@ export default async function NewRoutePage() {
   return (
     <>
       <PageHeader title="New attestation route" back={{ href: '/admin/attestation-routes', label: 'Attestation routes' }} />
-      <Card><RouteForm id={null} options={await routeOptions(ctx)} /></Card>
+      <Card><RouteForm id={null} options={await routeOptions(ctx)} condOptions={await conditionOptions(ctx)} /></Card>
     </>
   )
 }

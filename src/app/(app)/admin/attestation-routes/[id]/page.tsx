@@ -5,6 +5,8 @@ import { fmtDate, fmtDateTime } from '@/components/format'
 import { Alert, Badge, Card, PageHeader } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { canApproveRoutes, canManageRoutes, getRoute } from '@/server/services/attestation'
+import { describe } from '@/lib/conditions'
+import { conditionOptions, namesOf } from '@/server/services/rules'
 import { routeOptions } from '../options'
 import { AddStageForm, ApproveRouteButton, DeleteRouteDraftButton, NewRouteVersionButton, RouteForm, StageButtons } from '../route-forms'
 
@@ -13,7 +15,7 @@ export const metadata: Metadata = { title: 'Attestation route' }
 export default async function RoutePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const ctx = await requireUser()
-  const data = await getRoute(ctx, id)
+  const [data, condOptions] = await Promise.all([getRoute(ctx, id), conditionOptions(ctx)])
   if (!data) notFound()
   const { route: r } = data
   const draft = r.status === 'draft'
@@ -30,7 +32,8 @@ export default async function RoutePage({ params }: { params: Promise<{ id: stri
       {data.usage > 0 && <div className="mb-4"><Alert tone="blue">{data.usage} attestation(s) used this version; they keep their own copy of its stages.</Alert></div>}
       <div className="space-y-6">
         <Card title="Applies to">
-          <RouteForm id={r.id} readOnly={!draft || !manage} options={options} initial={{
+          <RouteForm id={r.id} readOnly={!draft || !manage} options={options} condOptions={condOptions}
+            conditions={r.conditions} conditionsText={describe(r.conditions, namesOf(condOptions))} initial={{
             name: r.name, description: r.description, routeType: r.route_type, destinationCountryId: r.destination_country_id, issuingCountryId: r.issuing_country_id,
             documentTypeId: r.document_type_id, visaApplicationCountryId: r.visa_application_country_id, previousEducationCountryId: r.previous_education_country_id,
             universityId: r.university_id, sourceNote: r.source_note }} />

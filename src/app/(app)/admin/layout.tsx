@@ -1,5 +1,6 @@
 import { can, canAny } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
+import { canTestRules } from '@/server/services/rules'
 import { type AdminSection, AdminTabs } from './admin-tabs'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -16,5 +17,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   add(can(ctx, 'passport.rules.manage'), 'Rules', '/admin/passport-rules', 'Passport & contact', 'passport')
   add(canAny(ctx, ['attestation.routes.manage', 'attestation.routes.approve']), 'Rules', '/admin/attestation-routes', 'Attestation', 'stamp')
   add(canAny(ctx, ['verification.rules.manage', 'verification.rules.approve']), 'Rules', '/admin/verification-rules', 'Verification', 'rules')
+  add(canTestRules(ctx), 'Rules', '/admin/rule-tester', 'Rule tester', 'check')
   return <><AdminTabs sections={s} />{children}</>
 }

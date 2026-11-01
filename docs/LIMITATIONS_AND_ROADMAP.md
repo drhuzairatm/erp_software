@@ -32,7 +32,7 @@
 
 - Name checks compare the passport holder name with certificate names recorded in the Academic tab (typed by staff; OCR is not used). They need the holder name on the Passport tab.
 - One and Same requests by message use the notification rules (off by default, consent required); otherwise record a manual request. No real One and Same wording has been supplied yet.
-- Bonafide rules cannot yet be conditioned on nationality (the Qatar-school rule is scoped by previous education country, destination and university). The generic AND/OR rule engine is Phase 4.
+- Rules support AND/OR conditions such as nationality, age and residence (Phase 4, see RULE_ENGINE.md). The Bonafide rule is now limited to Indian nationals (version 2). Advisory notices don't use conditions yet.
 
 ## Decisions recorded (Nov 2026)
 

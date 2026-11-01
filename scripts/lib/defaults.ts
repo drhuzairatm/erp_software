@@ -280,7 +280,7 @@ export const ONE_AND_SAME_TEMPLATES = [
 ]
 
 export const BONAFIDE_RULES = [
-  { name: 'Bonafide – Indian student at a Qatar school → Medical University – Varna (Bulgaria)', previousEducation: 'QA', destination: 'BG',
+  { name: 'Bonafide – Indian student at a Qatar school → Medical University – Varna (Bulgaria)', previousEducation: 'QA', destination: 'BG', nationality: 'IN',
     university: 'Medical University – Varna',
     description: 'Wording supplied by the MD (Oct 2026) for an Indian national at a school in Qatar applying to Varna. Approved by the MD on 1 Nov 2026.',
     approved: true,

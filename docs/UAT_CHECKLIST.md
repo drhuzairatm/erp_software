@@ -201,6 +201,14 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 - [ ] Staff: the courier details appear as "Submitted by the student in the portal". Mark in transit, confirm receipt (the original location becomes "With staff"), and reconcile each document. A mismatch needs a note and creates a task.
 - [ ] Reports → Original documents by courier lists open shipments first.
 
+## G7. Rule engine (Phase 4)
+
+- [ ] Admin → Rule tester: enter a Student ID and check that each rule shows Applies / Does not apply, with reasons.
+- [ ] Preview "Destination country is one of Bulgaria AND (Nationality is one of India OR Age is at least 18)" and check the count.
+- [ ] Add a passport rule limited to a nationality and check that it only blocks matching students.
+- [ ] University → add a document requirement "only if nationality is …" and check that only matching students get it on their checklist.
+- [ ] Verification rule draft: add a condition, approve it as MD, create a new version and check that the condition is copied.
+
 ## H. Usability
 | # | Test | Expected |
 |---|---|---|

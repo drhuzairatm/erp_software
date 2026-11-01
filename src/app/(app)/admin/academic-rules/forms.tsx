@@ -1,6 +1,8 @@
 'use client'
 
 import { academicCheckAction, addOasRuleAction, addTemplateAction, addThresholdAction, approveTemplateAction, retireTemplateAction, toggleOasRuleAction, toggleThresholdAction } from '@/app/actions/academic'
+import { useState } from 'react'
+import { ConditionBuilder, type ConditionOptions } from '@/components/condition-builder'
 import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
 
 type Opt = { id: string; name: string }
@@ -36,9 +38,10 @@ export function AddThresholdForm({ countries, universities, courses, intakes }: 
   )
 }
 
-export function AddOasRuleForm({ countries, universities, courses }: { countries: Opt[]; universities: Opt[]; courses: Opt[] }) {
+export function AddOasRuleForm({ countries, universities, courses, condOptions }: { countries: Opt[]; universities: Opt[]; courses: Opt[]; condOptions: ConditionOptions }) {
+  const [k, setK] = useState(0)
   return (
-    <ActionForm action={addOasRuleAction} className="grid grid-cols-1 gap-3 md:grid-cols-4" resetOnSuccess>
+    <ActionForm action={addOasRuleAction} className="grid grid-cols-1 gap-3 md:grid-cols-4" resetOnSuccess onSuccess={() => setK((x) => x + 1)}>
       {(s) => (
         <>
           <div className="md:col-span-2"><label className="label" htmlFor="f-rname">Name</label><input className="input" id="f-rname" name="name" required placeholder="e.g. Bulgaria – surname missing on Plus Two" /><FieldError state={s} name="name" /></div>
@@ -54,6 +57,7 @@ export function AddOasRuleForm({ countries, universities, courses }: { countries
           {sel('destinationCountryId', 'Destination', countries)}
           {sel('universityId', 'University', universities)}
           {sel('courseId', 'Course / pathway', courses)}
+          <div className="md:col-span-4"><ConditionBuilder key={k} initial={null} options={condOptions} /><FieldError state={s} name="conditions" /></div>
           <div className="md:col-span-4"><SubmitButton>Add rule</SubmitButton></div>
         </>
       )}

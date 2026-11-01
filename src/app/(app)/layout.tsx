@@ -35,6 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (canAny(ctx, ['passport.rules.manage'])) add('Rules & compliance', '/admin/passport-rules', 'Passport & contact rules', 'passport')
   if (canAny(ctx, ['attestation.routes.manage', 'attestation.routes.approve'])) add('Rules & compliance', '/admin/attestation-routes', 'Attestation routes', 'stamp')
   if (canAny(ctx, ['verification.rules.manage', 'verification.rules.approve'])) add('Rules & compliance', '/admin/verification-rules', 'Verification rules', 'rules')
+  if (canAny(ctx, ['verification.rules.manage', 'verification.rules.approve', 'attestation.routes.manage', 'attestation.routes.approve', 'passport.rules.manage', 'academic.rules.manage', 'universities.manage'])) add('Rules & compliance', '/admin/rule-tester', 'Rule tester', 'check')
   if (can(ctx, 'notifications.manage')) add('Administration', '/admin/notifications', 'Notification settings', 'bell')
   if (can(ctx, 'audit.read')) add('Administration', '/audit', 'Audit log', 'audit')
 

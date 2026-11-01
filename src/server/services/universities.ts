@@ -1,6 +1,7 @@
 import { can } from '../auth/context'
 import { forbidden, invalid, notFound } from '../errors'
 import { type Ctx, run } from './base'
+import { conditionsFromForm } from './rules'
 
 const UUID = /^[0-9a-f-]{36}$/i
 const isDate = (s?: string) => !s || /^\d{4}-\d{2}-\d{2}$/.test(s)
@@ -44,8 +45,8 @@ export async function getUniversity(ctx: Ctx, id: string) {
         select i.id, i.name, co.name as course, i.application_deadline, i.starts_on, i.is_active
           from university_intakes i left join courses co on co.id = i.course_id where i.university_id = ${id}
          order by i.application_deadline nulls last`,
-      tx<{ id: string; document: string; course: string | null; is_required: boolean; notes: string | null }[]>`
-        select r.id, t.name as document, co.name as course, r.is_required, r.notes
+      tx<{ id: string; document: string; course: string | null; is_required: boolean; notes: string | null; conditions: import('@/lib/conditions').Condition | null }[]>`
+        select r.id, t.name as document, co.name as course, r.is_required, r.notes, r.conditions
           from university_document_requirements r join document_types t on t.id = r.document_type_id
           left join courses co on co.id = r.course_id where r.university_id = ${id} order by t.sort_order`,
     ])
@@ -101,8 +102,11 @@ export async function addUniversityPart(ctx: Ctx, universityId: string, part: Pa
                   values (${universityId}, ${v.courseId || null}, ${v.name.trim()}, ${v.applicationDeadline ?? null}, ${v.startsOn ?? null})`
       case 'requirement':
         if (!v.documentTypeId) throw invalid('Choose a document type.')
-        return tx`insert into university_document_requirements (university_id, course_id, document_type_id, is_required, notes)
-                  values (${universityId}, ${v.courseId || null}, ${v.documentTypeId}, ${v.required !== 'no'}, ${v.notes ?? null})`
+        {
+          const conditions = conditionsFromForm(v.conditions)
+          return tx`insert into university_document_requirements (university_id, course_id, document_type_id, is_required, notes, conditions)
+                  values (${universityId}, ${v.courseId || null}, ${v.documentTypeId}, ${v.required !== 'no'}, ${v.notes ?? null}, ${conditions ? tx.json(conditions as never) : null})`
+        }
     }
   })
 }

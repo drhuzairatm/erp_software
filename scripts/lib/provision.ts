@@ -141,9 +141,10 @@ export async function provision(adminUrl: string, log: (m: string) => void = con
           continue
         }
         const [r] = await tx<{ id: string }[]>`
-          insert into verification_rules (name, description, document_type_id, previous_education_country_id, destination_country_id, university_id)
+          insert into verification_rules (name, description, document_type_id, previous_education_country_id, destination_country_id, university_id, conditions)
           values (${b.name}, ${b.description}, (select id from document_types where key = 'bonafide_certificate'), ${await cid(b.previousEducation)},
-                  ${await cid(b.destination)}, (select id from universities where name = ${b.university} limit 1)) returning id`
+                  ${await cid(b.destination)}, (select id from universities where name = ${b.university} limit 1),
+                  ${b.nationality ? tx.json({ all: [{ field: 'nationality', op: 'in', values: [await cid(b.nationality)] }] }) : null}) returning id`
 
         for (const [k, [kind, text, mandatory, keywords]] of b.requirements.entries()) {
           await tx`insert into verification_requirements (rule_id, sort_order, kind, text, keywords, is_mandatory)

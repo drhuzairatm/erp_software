@@ -6,6 +6,8 @@ import { Alert, Badge, Card, PageHeader } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { canApproveRules, canManageRules, getRule } from '@/server/services/verification-rules'
 import { ruleOptions } from '../options'
+import { describe } from '@/lib/conditions'
+import { conditionOptions, namesOf } from '@/server/services/rules'
 import { AddRequirementForm, ApproveRuleButton, DeleteDraftButton, NewVersionButton, RemoveRequirementButton, RuleForm } from '../rule-forms'
 
 export const metadata: Metadata = { title: 'Verification rule' }
@@ -15,7 +17,7 @@ const KIND: Record<string, string> = { exact_phrase: 'Exact phrase', statement: 
 export default async function RulePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const ctx = await requireUser()
-  const data = await getRule(ctx, id)
+  const [data, condOptions] = await Promise.all([getRule(ctx, id), conditionOptions(ctx)])
   if (!data) notFound()
   const { rule: r } = data
   const draft = r.status === 'draft'
@@ -34,7 +36,8 @@ export default async function RulePage({ params }: { params: Promise<{ id: strin
       {draft && !canApproveRules(ctx) && <div className="mb-4"><Alert tone="amber">This draft has no effect until the MD approves it.</Alert></div>}
       {data.usage > 0 && <div className="mb-4"><Alert tone="blue">{data.usage} verification record(s) were made against this version; they stay linked to it.</Alert></div>}
       <div className="space-y-6">
-        <Card title="Scope"><RuleForm id={r.id} readOnly={!draft || !manage} options={await ruleOptions(ctx)}
+        <Card title="Scope"><RuleForm id={r.id} readOnly={!draft || !manage} options={await ruleOptions(ctx)} condOptions={condOptions}
+          conditions={r.conditions} conditionsText={describe(r.conditions, namesOf(condOptions))}
           initial={{ name: r.name, description: r.description, documentTypeId: r.document_type_id, previousEducationCountryId: r.previous_education_country_id,
             destinationCountryId: r.destination_country_id, universityId: r.university_id, courseId: r.course_id }} /></Card>
         <Card title="Checks staff must confirm" padded={false}>

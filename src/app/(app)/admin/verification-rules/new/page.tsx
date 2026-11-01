@@ -3,6 +3,7 @@ import { Card, PageHeader } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { canManageRules } from '@/server/services/verification-rules'
 import { ruleOptions } from '../options'
+import { conditionOptions } from '@/server/services/rules'
 import { RuleForm } from '../rule-forms'
 
 export const metadata: Metadata = { title: 'New verification rule' }
@@ -13,7 +14,7 @@ export default async function NewRulePage() {
   return (
     <>
       <PageHeader title="New verification rule" back={{ href: '/admin/verification-rules', label: 'Verification rules' }} />
-      <Card><RuleForm id={null} options={await ruleOptions(ctx)} /></Card>
+      <Card><RuleForm id={null} options={await ruleOptions(ctx)} condOptions={await conditionOptions(ctx)} /></Card>
     </>
   )
 }

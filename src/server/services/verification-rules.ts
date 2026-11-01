@@ -1,6 +1,7 @@
 import { can } from '../auth/context'
 import { forbidden, invalid, notFound } from '../errors'
 import { type Ctx, run } from './base'
+import { conditionsFromForm } from './rules'
 
 const UUID = /^[0-9a-f-]{36}$/i
 const opt = (v?: string) => (v && UUID.test(v) ? v : null)
@@ -14,6 +15,7 @@ export interface RuleRow {
   university: string | null; course: string | null; effective_from: string | null; effective_to: string | null
   approved_by_name: string | null; approved_at: Date | null; requirements: number
   previous_education_country_id: string | null; destination_country_id: string | null; university_id: string | null; course_id: string | null
+  conditions: import('@/lib/conditions').Condition | null
 }
 
 export async function listRules(ctx: Ctx, f: { status?: string } = {}) {
@@ -68,7 +70,9 @@ export async function saveRuleDraft(ctx: Ctx, id: string | null, v: Record<strin
     previous_education_country_id: opt(v.previousEducationCountryId), destination_country_id: opt(v.destinationCountryId),
     university_id: opt(v.universityId), course_id: opt(v.courseId),
   }
+  const conditions = conditionsFromForm(v.conditions)
   return run(ctx, async (tx) => {
+    Object.assign(cols, { conditions: conditions ? tx.json(conditions as never) : null })
     if (id) {
       const r = await tx`update verification_rules set ${tx(cols as never)} where id = ${id} and status = 'draft'`
       if (!r.count) throw invalid('Only draft rules can be edited. Create a new version instead.')

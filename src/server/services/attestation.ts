@@ -2,6 +2,7 @@ import { can } from '../auth/context'
 import { forbidden, invalid, notFound } from '../errors'
 import { getStorage, MAX_UPLOAD_BYTES, newStorageKey, safeFilename, sha256, sniffMime } from '../storage'
 import { type Ctx, run } from './base'
+import { conditionsFromForm } from './rules'
 
 const UUID = /^[0-9a-f-]{36}$/i
 const opt = (v?: string) => (v && UUID.test(v) ? v : null)
@@ -17,6 +18,7 @@ export interface RouteRow {
   visa_application_country: string | null; visa_application_country_id: string | null
   previous_education_country: string | null; previous_education_country_id: string | null
   source_note: string | null; effective_from: string | null; effective_to: string | null; approved_by_name: string | null; approved_at: Date | null; stages: number
+  conditions: import('@/lib/conditions').Condition | null
 }
 
 const ROUTE_SELECT = `
@@ -64,7 +66,9 @@ export async function saveRouteDraft(ctx: Ctx, id: string | null, v: Record<stri
     visa_application_country_id: opt(v.visaApplicationCountryId), previous_education_country_id: opt(v.previousEducationCountryId),
     source_note: v.sourceNote ?? null,
   }
+  const conditions = conditionsFromForm(v.conditions)
   return run(ctx, async (tx) => {
+    Object.assign(cols, { conditions: conditions ? tx.json(conditions as never) : null })
     if (id) {
       const r = await tx`update attestation_routes set ${tx(cols as never)} where id = ${id} and status = 'draft'`
       if (!r.count) throw invalid('Only draft routes can be edited. Create a new version instead.')

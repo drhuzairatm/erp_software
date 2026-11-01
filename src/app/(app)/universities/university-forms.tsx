@@ -1,6 +1,8 @@
 'use client'
 
 import { addPartAction, removeRequirementAction, saveUniversityAction, togglePartAction } from '@/app/actions/universities'
+import { useState } from 'react'
+import { ConditionBuilder, type ConditionOptions } from '@/components/condition-builder'
 import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
 
 type Opt = { value: string; label: string }
@@ -64,13 +66,15 @@ export function AddIntakeForm({ universityId, courses }: { universityId: string;
   )
 }
 
-export function AddRequirementForm({ universityId, courses, documentTypes }: { universityId: string; courses: Opt[]; documentTypes: Opt[] }) {
+export function AddRequirementForm({ universityId, courses, documentTypes, condOptions }: { universityId: string; courses: Opt[]; documentTypes: Opt[]; condOptions: ConditionOptions }) {
+  const [k, setK] = useState(0)
   return (
-    <ActionForm action={addPartAction.bind(null, universityId, 'requirement')} className="grid grid-cols-1 gap-2 md:grid-cols-5" resetOnSuccess>
+    <ActionForm action={addPartAction.bind(null, universityId, 'requirement')} className="grid grid-cols-1 gap-2 md:grid-cols-5" resetOnSuccess onSuccess={() => setK((x) => x + 1)}>
       <div><label className="label text-xs" htmlFor="rq-doc">Document</label><select className="input py-1.5" id="rq-doc" name="documentTypeId" required>{documentTypes.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}</select></div>
       <div><label className="label text-xs" htmlFor="rq-course">For course</label><select className="input py-1.5" id="rq-course" name="courseId" defaultValue=""><option value="">All courses</option>{courses.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></div>
       <div className="md:col-span-2"><label className="label text-xs" htmlFor="rq-notes">Notes</label><input className="input py-1.5" id="rq-notes" name="notes" placeholder="e.g. must be apostilled" /></div>
       <label className="flex items-end gap-2 pb-2 text-xs"><input type="checkbox" name="required" value="no" /> Optional</label>
+      <div className="md:col-span-5"><ConditionBuilder key={k} initial={null} options={condOptions} label="Only for students who match (optional) – e.g. nationality, school country" /></div>
       <div><SubmitButton className="btn-secondary btn-sm">Add requirement</SubmitButton></div>
     </ActionForm>
   )

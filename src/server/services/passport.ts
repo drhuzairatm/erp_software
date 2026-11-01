@@ -4,6 +4,8 @@ import { can } from '../auth/context'
 import { hashToken, newTokenValue } from '../auth/tokens'
 import { forbidden, invalid } from '../errors'
 import { type Ctx, run } from './base'
+import { conditionsFromForm } from './rules'
+import type { Condition } from '@/lib/conditions'
 
 const UUID = /^[0-9a-f-]{36}$/i
 const opt = (v?: string) => (v && UUID.test(v) ? v : null)
@@ -127,8 +129,8 @@ export const canManagePassportRules = (ctx: Ctx) => can(ctx, 'passport.rules.man
 
 export async function listValidityRules(ctx: Ctx) {
   return run(ctx, (tx) => tx<{ id: string; name: string; destination: string | null; university: string | null; course: string | null; stage: string;
-    min_months: number; enforcement: string; is_active: boolean; notes: string | null }[]>`
-    select r.id, r.name, c.name as destination, u.name as university, co.name as course, st.name as stage, r.min_months, r.enforcement, r.is_active, r.notes
+    min_months: number; enforcement: string; is_active: boolean; notes: string | null; conditions: Condition | null }[]>`
+    select r.id, r.name, c.name as destination, u.name as university, co.name as course, st.name as stage, r.min_months, r.enforcement, r.is_active, r.notes, r.conditions
       from passport_validity_rules r join stages st on st.key = r.stage_key left join countries c on c.id = r.destination_country_id
       left join universities u on u.id = r.university_id left join courses co on co.id = r.course_id
      order by r.is_active desc, c.name nulls first, st.sort_order`)
@@ -142,8 +144,9 @@ export async function addValidityRule(ctx: Ctx, v: Record<string, string | undef
   if (!Number.isInteger(months) || months < 0 || months > 120) throw invalid('Minimum validity: 0–120 months.', { minMonths: ['0–120.'] })
   if (!/^[a-z_]+$/.test(v.stageKey ?? '')) throw invalid('Choose the stage.', { stageKey: ['Required.'] })
   if (!['warn', 'block'].includes(v.enforcement ?? '')) throw invalid('Choose warn or block.')
-  return run(ctx, (tx) => tx`insert into passport_validity_rules (name, destination_country_id, university_id, course_id, stage_key, min_months, enforcement, notes, created_by)
-    values (${name}, ${opt(v.destinationCountryId)}, ${opt(v.universityId)}, ${opt(v.courseId)}, ${v.stageKey!}, ${months}, ${v.enforcement!}, ${v.notes ?? null}, ${ctx.userId})`)
+  const conditions = conditionsFromForm(v.conditions)
+  return run(ctx, (tx) => tx`insert into passport_validity_rules (name, destination_country_id, university_id, course_id, stage_key, min_months, enforcement, notes, conditions, created_by)
+    values (${name}, ${opt(v.destinationCountryId)}, ${opt(v.universityId)}, ${opt(v.courseId)}, ${v.stageKey!}, ${months}, ${v.enforcement!}, ${v.notes ?? null}, ${conditions ? tx.json(conditions as never) : null}, ${ctx.userId})`)
 }
 
 export async function setValidityRuleActive(ctx: Ctx, id: string, active: boolean) {

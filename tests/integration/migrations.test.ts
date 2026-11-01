@@ -2,6 +2,7 @@
 import { existsSync, readdirSync } from 'node:fs'
 import { afterAll, describe, expect, it } from 'vitest'
 import { ROLLBACK_REQUIRED_FROM, rollbackFileFor, rollbackTo, runMigrations } from '../../scripts/lib/migrations'
+import { provision } from '../../scripts/lib/provision'
 import { adminSql } from '../support/helpers'
 
 afterAll(async () => { await adminSql().end() })
@@ -23,5 +24,8 @@ describe('migration safety', () => {
     await runMigrations(url, { log: quiet })
     const after = await adminSql()`select version from schema_migrations order by version`
     expect(after.map((r) => r.version)).toEqual(before.map((r) => r.version))
+    // rollbacks remove configuration added by those migrations; re-provision (idempotent), as after a real rollback
+    await provision(url, quiet)
+    expect((await adminSql()`select count(*)::int as n from passport_validity_rules where is_active`)[0].n).toBeGreaterThan(0)
   })
 })
