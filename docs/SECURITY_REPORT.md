@@ -27,7 +27,7 @@
   `auth_private` and are only reachable through narrow functions.
 - **Login protection**: 5 failed attempts per email / 30 per IP in 15 minutes → temporary block; generic
   error messages; constant-time-ish verification for unknown accounts; all attempts audited.
-- **Two-factor login**: TOTP (RFC 6238) via authenticator apps; secrets encrypted with AES-256-GCM using a key held outside the database (`MFA_ENCRYPTION_KEY`); codes cannot be replayed; 10 single-use recovery codes stored hashed; 5 wrong codes cancel the sign-in; a password-only session cannot use any page or API until the code is entered; required for MD, CEO, administrators and finance (`MFA_ENFORCE=roles`, which cannot be switched off in production builds).
+- **Two-factor login**: TOTP (RFC 6238) via authenticator apps; secrets encrypted with AES-256-GCM using a key held outside the database (`MFA_ENCRYPTION_KEY`); codes cannot be replayed; 10 single-use recovery codes stored hashed; 5 wrong codes cancel the sign-in; a password-only session cannot use any page or API until the code is entered. **Required for every user** (MD decision, Phase B); production builds always enforce it. Resets only with `users.mfa_reset` (MD by default) and a note of how identity was verified.
 - **Sessions**: random 256-bit tokens, only SHA-256 hash stored; httpOnly + SameSite=Lax (+ Secure and
   `__Host-` prefix in production); 12 h absolute, 8 h idle; deactivating a user or resetting a password
   revokes sessions.
@@ -39,11 +39,13 @@
 - **XSS / injection**: React output encoding; no `dangerouslySetInnerHTML`; parameterized SQL only
   (postgres.js tagged templates); whitelisted sort/filter values; Zod validation on all forms; CSV cells
   starting with `= + - @` are neutralised.
-- **Headers**: strict Content-Security-Policy, `frame-ancestors 'none'`, X-Frame-Options DENY, nosniff,
+- **Headers**: strict Content-Security-Policy with a per-request nonce (no inline scripts; Phase B), `frame-ancestors 'none'`, X-Frame-Options DENY, nosniff,
   Referrer-Policy, Permissions-Policy, HSTS (production), `X-Powered-By` removed; reset-password pages
   use `no-referrer`.
 - **Uploads**: type detected from file content (PDF, JPEG, PNG, WebP), 10 MB limit, safe filenames,
-  never auto-approved; served with `Content-Disposition`, nosniff and a sandbox CSP.
+  never auto-approved; served with `Content-Disposition`, nosniff and a sandbox CSP. Virus-scan status,
+  quarantine and manual clearance (Phase B): approval and courier release need a clean scan or an audited
+  manual clearance.
 - **Errors/logs**: users see generic messages; unexpected errors are logged server-side as JSON without
   request bodies; document contents, passwords and tokens are never logged.
 - **Audit log**: append-only (update/delete/truncate blocked by triggers), records actor, company,
@@ -54,14 +56,14 @@
 
 ## Residual risks and recommendations
 
-| Item | Recommendation |
-|---|---|
-| 2FA required only for privileged/finance roles by default | Set `MFA_ENFORCE=all` before real data, so every staff member uses it. |
-| System Administrator can rarely assign roles | By design (no-escalation): it can only assign roles whose permissions it holds. Staff onboarding is done by the MD, or by a CEO/administrator the MD has granted the needed permissions. |
-| Dependency advisories | `npm audit --omit=dev` reports 0 vulnerabilities for the application. Advisories exist in development-only lint tooling (ESLint); they do not ship. Re-check before each release. |
-| CSP allows inline scripts (Next.js requirement without nonces) | Move to nonce-based CSP in a later iteration. |
-| Rate limiting is per database, not at the edge | Enable the host's WAF/bot protection (e.g. Vercel Firewall) in production. |
-| Staff can screenshot/download files they may view | Organisational policy + audit review; watermarking is a possible later feature. |
-| Local file driver is for development only | Production refuses to start file storage with `STORAGE_DRIVER=local`. |
-| Retention / deletion policy not defined | Decide retention periods and a data-subject request procedure (DPDP Act 2023 / applicable law). |
-| Independent penetration test not performed | Commission one before storing real student data at scale. |
+**Superseded (1 Nov 2026):** the current, complete risk list is **SECURITY_THREAT_ASSESSMENT.md**, and test evidence is in **SECURITY_EVIDENCE_REGISTER.md**. Since this report was first written:
+- two-step login became mandatory for all
+- the browser policy became nonce-based (no inline scripts)
+- virus-scan status, quarantine and security alerts were added
+
+Still open:
+- edge rate limiting
+- a real virus scanner
+- watermarking
+- retention policy
+- independent penetration test

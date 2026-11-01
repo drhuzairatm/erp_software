@@ -9,10 +9,13 @@
 - **Alerts** (top right): your overdue tasks, tasks due soon, new assignments, documents to review,
   rejected documents and students whose next action is due. Click an item to open the filtered list.
 - **Change password**: your name (top right) → *Change password*. Other sessions are signed out.
-- **Two-factor login (2FA)**: your name → *2FA* → *Set up two-factor login*. Scan the QR code with an
-  authenticator app (Google Authenticator, Microsoft Authenticator…), enter the 6-digit code, and **save the
-  10 recovery codes** somewhere safe. From then on you enter a code after your password at every sign-in.
-  Required for MD, CEO, administrators and finance staff. New phone? Ask an administrator to *Reset 2FA*.
+- **Two-factor login (2FA)**: **required for every staff account.** Your name → *Two-factor login* →
+  *Set up two-factor login*. Scan the QR code with an authenticator app (Google Authenticator, Microsoft
+  Authenticator…), enter the 6-digit code, and **save the 10 recovery codes** somewhere safe and offline.
+  From then on you enter a code after your password at every sign-in. New or lost phone: sign in with a
+  recovery code and set it up again. If you have none left, the MD resets it after verifying your identity.
+  The same page shows your **sign-in activity** and **Sign out everywhere**. Full details:
+  STAFF_ONBOARDING_GUIDE.md.
 - Records marked **DEMO** are fictional training data.
 
 ## Managing Director (master super admin)
@@ -163,14 +166,17 @@
 
 ## System Administrator
 
-- **Staff**: *Add a staff member* (company + role). Without email configured you get a one-time setup
-  link (24 h) to give the person privately. *Issue reset link* for forgotten passwords (requests appear
-  as a badge). **Deactivate** leavers immediately — all their sessions end.
+- **Staff**: *Add a staff member* (company + role). The person receives a one-time **invitation** (valid
+  7 days). Without email configured, you get the link once to give the person privately. *Issue reset link*
+  for forgotten passwords (requests appear as a badge). Suspend or terminate leavers on the person's profile
+  (*Account and access*). All their sessions end immediately. See ADMIN_MD_OPERATIONS_GUIDE.md.
+- **Not the System Administrator's job (MD only unless delegated):** two-step login resets, manual
+  security clearance of files, security alerts, master data and admission rules.
 - **Roles & permissions**: adjust what each role can do per company. You cannot edit your own role.
   Sensitive permissions are marked.
 - **Company settings**: company name, ledger currency, self-verification rule, fee categories,
-  lead sources, legal entities, countries, courses, universities, and workflows (applicable stages and
-  required documents per country/course).
+  lead sources and legal entities. Workflows, countries, courses and universities are MD-controlled
+  (**Master data**) unless the MD delegates them.
 - By default administrators do **not** see student records. If you also do operational work, ask for
   an additional role.
 - You can only assign roles whose permissions you hold yourself, so in practice the MD (or someone the MD

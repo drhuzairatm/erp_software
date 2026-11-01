@@ -58,20 +58,20 @@
 3. Exact default permissions per role (especially: should the MD open document files? should managers
    do Fee Clearance? should counsellors see payment status?).
 4. Data retention periods for cancelled/completed students and a procedure for deletion requests.
-5. Whether two-factor login is mandatory for all staff before go-live (`MFA_ENFORCE=all`, recommended).
+5. ~~Whether two-factor login is mandatory for all staff~~: **decided 1 Nov 2026: mandatory for every user** (Phase B). Remaining owner decisions and business confirmations are tracked in PILOT_READINESS_CHECKLIST.md.
 6. Hosting region, domain name, and who holds admin credentials (two named people recommended).
 7. Leadist CRM: how leads should flow in later (manual for now; "Leadist CRM (manual)" lead source exists).
 8. Fee structure and categories per company and per country/course.
 
 ## Roadmap after the pilot (prioritised)
 
-1. **Production hardening**: nonce-based CSP, edge rate limiting, Sentry alerts, automated restore drills.
+1. **Production hardening**: edge rate limiting, Sentry alerts, scheduled restore drills on staging (nonce-based CSP done in Phase B; restore drill script exists).
 2. **Leadist CRM integration**: one-way lead import (API/webhook) with duplicate detection, then status sync.
 3. **Notifications**: email digests of overdue work; WhatsApp/SMS with consent, templates, delivery status and retry tracking.
 4. **Finance**: receipt PDFs, invoice numbering per legal entity, tax rules once confirmed, accounting export (Tally/Zoho).
 5. **Workflow engine**: per-stage checklists, approvals, SLA timers and escalation; university application tracking per university.
 6. **Student portal**: secure document upload and status view for students/parents.
 7. **Reporting**: custom report builder, scheduled reports, conversion funnel by lead source/brand.
-8. **Documents**: virus scanning, watermarking on download, bulk upload, expiry reminders.
+8. **Documents**: connect a real virus scanner (integration built in Phase B), watermarking on download, bulk upload, expiry reminders.
 9. **Data lifecycle**: retention automation, anonymisation of old records, audit-log archiving.
 10. **Wider ERP**: HR/payroll, agent/sub-agent management, accounting — only after the core workflow is proven.

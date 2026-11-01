@@ -29,14 +29,20 @@ test('documentation staff start and complete an apostille route for an approved 
   if (!d) {
     // the demo data has been used up by earlier runs: prepare one through the real workflow (upload in the app,
     // then verification, submission, MANUAL security clearance by the MD and approval by the manager)
-    const [c] = await admin`
-      select d.id, d.student_id from student_documents d join students s on s.id = d.student_id and s.is_demo
-        join countries dc on dc.id = s.destination_country_id and dc.code = 'BG'
-        join student_assignments a on a.student_id = s.id and a.is_active and a.assignment_type = 'documentation'
-        join user_profiles u on u.id = a.user_id and u.email = 'docs@demo.test'
-        join document_types t on t.id = d.document_type_id and t.key in ('birth_certificate', 'tenth_certificate', 'migration_certificate')
-       where d.status = 'missing' and s.originating_org_id = (select id from organizations where code = 'EDX') limit 1`
-    test.skip(!c, 'no Bulgaria demo student assigned to docs@ with a missing document (reset the demo data)')
+    // a fresh FICTIONAL Bulgaria student (India-educated, assigned to docs@) – same path as the attestation demo script
+    const sid = await asUser('edx.counsellor@demo.test', async (tx) => {
+      const [r] = await tx`insert into students (originating_org_id, full_name, phone, email, destination_country_id, course_id,
+          previous_education_country_id, registration_date, is_demo, created_by)
+        values ((select id from organizations where code = 'EDX'), ${'Attestation E2E Student (Demo)'}, ${'+91 90093 ' + String(Date.now()).slice(-5)},
+                ${'attest.e2e.' + Date.now() + '@example.test'}, (select id from countries where code = 'BG'), (select id from courses where code = 'MBBS'),
+                (select id from countries where code = 'IN'), current_date, true, app.current_user_id()) returning id`
+      return r.id as string
+    })
+    await asUser('edx.manager@demo.test', (tx) => tx`insert into student_assignments (student_id, user_id, org_id, assignment_type, assigned_by)
+      values (${sid}, (select id from user_profiles where email = 'docs@demo.test'), (select id from organizations where code = 'EDX'), 'documentation', app.current_user_id())`)
+    const [c] = await admin`select d.id, d.student_id from student_documents d join document_types t on t.id = d.document_type_id
+      where d.student_id = ${sid} and t.key = 'plus_two_certificate'`
+    expect(c).toBeDefined()
     await login(page, 'docs@demo.test')
     await page.goto(`/students/${c.student_id}?tab=documents`)
     await page.locator(`#file-${c.id}`).setInputFiles({ name: 'certificate.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n% fictional e2e certificate\n%%EOF') })

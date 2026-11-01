@@ -111,7 +111,7 @@ Rules that hold regardless of configuration (enforced by database policies):
 - The MD role is locked: it always holds every permission and cannot be changed or assigned in the app.
 - Financial amounts need `payments.read`; `payments.status` (CEO) returns counts only.
 - Payment entries must be verified by someone other than the recorder (unless a company enables self-verification).
-- Two-factor login is required for roles flagged "2FA required" (MD, CEO, administrators, finance) when `MFA_ENFORCE=roles`.
+- Two-factor login is required for **every** user (Phase B). Production builds always enforce it; only local development/tests may relax it with `MFA_ENFORCE`.
 
 ## Request flow (example: open a student profile)
 1. `requireUser()` hashes the session cookie, calls `app.auth_resolve_session()`; loads memberships.

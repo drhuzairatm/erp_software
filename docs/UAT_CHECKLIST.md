@@ -28,7 +28,7 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 | P5 ★ | MD grants CEO "Create staff accounts"; CEO adds a staff member | only roles within the CEO's own permissions are offered; privileged roles not offered |
 | P6 ★ | Anyone tries to tick a permission they do not hold | checkbox disabled; server refuses |
 | P7 ★ | Set up 2FA, sign out, sign in | code required; wrong code shows attempts left; recovery code works once |
-| P8 | With `MFA_ENFORCE=roles`, sign in as finance without 2FA | must set up 2FA before any page works |
+| P8 | On staging/production (always enforced), sign in as **any** staff member without 2FA | must set up 2FA before any page works |
 | P9 | Assign departments to staff | shown in the user menu and staff list |
 
 ## A3. Education background, passport, universities

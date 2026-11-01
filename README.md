@@ -102,3 +102,6 @@ docs/                 Architecture, security, deployment, backup, user guide, UA
 - [User guide by role](docs/USER_GUIDE.md)
 - [User acceptance testing checklist](docs/UAT_CHECKLIST.md)
 - [Known limitations, open decisions and roadmap](docs/LIMITATIONS_AND_ROADMAP.md)
+- [Security threat assessment](docs/SECURITY_THREAT_ASSESSMENT.md) · [Security evidence register](docs/SECURITY_EVIDENCE_REGISTER.md) · [Incident response plan](docs/INCIDENT_RESPONSE_PLAN.md)
+- [Staff onboarding and security guide](docs/STAFF_ONBOARDING_GUIDE.md) · [Administrator and MD operations guide](docs/ADMIN_MD_OPERATIONS_GUIDE.md)
+- [Pilot readiness checklist](docs/PILOT_READINESS_CHECKLIST.md) · Phase reports: [audit](docs/FINAL_AUDIT_AND_PLAN.md), [A](docs/PHASE_A_STAFF_ACCOUNTS_REPORT.md), [B](docs/PHASE_B_SECURITY_REPORT.md), [C](docs/PHASE_C_TEST_REPORT.md), [D](docs/PHASE_D_REPORT.md)

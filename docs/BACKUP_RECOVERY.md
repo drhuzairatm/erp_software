@@ -1,6 +1,8 @@
 # Backup and recovery
 
-> Not yet configured — these are the procedures to set up and **test** for each environment.
+> **Status (1 Nov 2026):** no staging or production environment exists, so provider backups are **not yet configured**.
+> **Tested so far:** a backup → isolated restore drill on the development database passed 31/31 checks (BACKUP_RESTORE_DRILL.md; repeat with `npx tsx scripts/backup-restore-drill.ts`, local/staging only).
+> **Not yet tested:** the `pg_dump`/`pg_restore` procedure below (client tools not installed; downloading them needs owner permission) and the hosting provider's restore.
 
 ## What must be backed up
 
@@ -58,8 +60,6 @@ Retain e.g. 8 weekly + 12 monthly copies, then delete (personal data must not be
 - Students are archived/merged, not deleted; payments are reversed, not deleted; the audit log keeps
   before/after values — most mistakes can be corrected in the app without a restore.
 
-## Incident checklist (suspected data leak or account compromise)
-1. Deactivate the affected account(s) in **Staff** (sessions are revoked immediately).
-2. Rotate secrets if exposure is possible: `APP_DB_PASSWORD` (`db:migrate`), `STORAGE_SIGNING_SECRET`, S3 keys.
-3. Export relevant audit log entries (file access, exports, logins) for the period.
-4. Assess notification duties under applicable law (e.g. India's DPDP Act 2023) with your adviser.
+## Incidents
+
+See **INCIDENT_RESPONSE_PLAN.md** (§4.8 database compromise, §4.9 backup failure or corruption). It replaces the short checklist that used to be here.

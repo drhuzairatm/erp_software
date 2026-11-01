@@ -50,8 +50,7 @@ close to your users and compliant with your requirements (e.g. Mumbai `ap-south-
 3. Environment variables (Production and Preview separately):
    `APP_URL`, `DATABASE_URL` (erp_app pooled URL), `DATABASE_POOLED=true`, `STORAGE_DRIVER=s3`, the `S3_*`
    values, `STORAGE_SIGNING_SECRET` (random 32+ chars), `MFA_ENCRYPTION_KEY` (32 random bytes, base64 —
-   **back it up in the password manager; losing it means everyone must re-enrol 2FA**), `MFA_ENFORCE=roles`
-   (or `all`), `CRON_SECRET` (32+ random chars), `PORTAL_SECRET` (32+ random chars), the notification settings in docs/NOTIFICATIONS.md
+   **back it up in the password manager; losing it means everyone must re-enrol 2FA**), `MFA_ENFORCE=all` (production enforces two-step login for everyone regardless), `CRON_SECRET` (32+ random chars), `PORTAL_SECRET` (32+ random chars), the notification settings in docs/NOTIFICATIONS.md
    (`NOTIFICATIONS_MODE=test` until approved), `APP_TIMEZONE=Asia/Kolkata`, optional
    `RESEND_API_KEY` and `EMAIL_FROM`.
    **Never** add `DATABASE_ADMIN_URL`, `APP_DB_PASSWORD` or `SEED_DEMO_PASSWORD` to Vercel.
@@ -93,7 +92,9 @@ staff from **Staff** in the app.
 - [ ] Data API disabled; `erp_app` connection verified; admin URL not present in Vercel
 - [ ] Bucket private; signed-link expiry verified
 - [ ] Backups enabled and a **restore test** performed (docs/BACKUP_RECOVERY.md)
-- [ ] Two-factor login: `MFA_ENFORCE=all` decided; MD, CEO, administrators and finance enrolled
+- [ ] Two-factor login (mandatory for everyone): every pilot user enrolled; MD recovery codes stored offline
+- [ ] Virus scanner configured (`CLAMAV_HOST` or `SCANNER_URL`) and tested on staging, or manual clearance formally accepted (PILOT_READINESS_CHECKLIST.md D1)
+- [ ] Full pre-pilot list: PILOT_READINESS_CHECKLIST.md
 - [ ] `MFA_ENCRYPTION_KEY` stored in the company password manager
 - [ ] Retention policy and privacy notice for students agreed
 - [ ] Demo accounts absent from production (never run `db:seed` there)

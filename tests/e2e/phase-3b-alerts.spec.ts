@@ -54,7 +54,7 @@ test('MD adds a blue additional point for Romania; managers see pending acknowle
   await login(page, 'md@demo.test')
   await page.getByRole('link', { name: 'Country-wise requirements' }).click()
   await page.getByRole('link', { name: 'New requirement' }).click()
-  const t = `ROMANIA – ADDITIONAL UNIVERSITY REQUIREMENT ${Date.now().toString().slice(-4)}`
+  const t = `ROMANIA – E2E TEST REQUIREMENT ${Date.now().toString().slice(-4)} (not a business rule)`
   await page.getByLabel('Country *').selectOption({ label: 'Romania' })
   await page.getByLabel('Category *', { exact: true }).selectOption('general')
   await page.getByLabel('Display category *').selectOption('additional_point')
