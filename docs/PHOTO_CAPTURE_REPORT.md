@@ -20,7 +20,7 @@ The old picker used only `<input type="file" capture="user">`. On laptops and de
 - Camera previews are temporary (in memory only); only the photo you save is stored.
 
 ## 4–5. Staff and student integration
-Same storage and permissions as before (private storage, versioned photos, previous versions kept, served through authorised routes; the version in the URL avoids outdated cached images).
+Same storage and permissions as before (private storage, versioned photo history, served through authorised routes; the version in the URL avoids outdated cached images). As designed in STUDENT_PHOTOS.md, when a photo is replaced its old image files are deleted from storage; only the history record stays. *(Corrected 1 Nov 2026: this line earlier said "previous versions kept", which was inaccurate.)*
 - **Staff:** registration, profile (view/replace/remove), staff list, task screens, leads, dashboard, audit log show the avatar; default initials avatar when none.
 - **Students:** registration, edit, profile (view/upload/replace), student list, dashboard, task screens show the photo; default avatar when none.
 - **Who can change photos:** unchanged existing rules (staff photos: user administrators within their authority; student photos: staff who may edit that student). No new permission system.
