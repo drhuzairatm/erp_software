@@ -1,13 +1,13 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { fmtDate } from '@/components/format'
+import { fmtDate, fmtDateTime, fmtMoney } from '@/components/format'
 import { BrandMark } from '@/components/brand-mark'
 import { RadialProgress } from '@/components/charts'
 import { Icon } from '@/components/icons'
 import { brandOf } from '@/lib/brands'
-import { portalChoices, portalOverview, portalSession, portalShipments } from '@/server/portal'
+import { portalChoices, portalNotices, portalOverview, portalPayments, portalPublications, portalSession, portalShipments } from '@/server/portal'
 import { logoutAction } from '../actions'
-import { ChooseButton, CourierDetailsForm, PortalUpload } from '../forms'
+import { ChooseButton, CourierDetailsForm, MarkReadButton, PortalUpload } from '../forms'
 
 export const metadata: Metadata = { title: 'My application' }
 
@@ -43,7 +43,9 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
   }
   const o = await portalOverview(session.tokenHash)
   if (!o) redirect('/portal')
-  const shipments = await portalShipments(session.tokenHash)
+  const [shipments, notices, publications, payments] = await Promise.all([portalShipments(session.tokenHash), portalNotices(session.tokenHash),
+    portalPublications(session.tokenHash), portalPayments(session.tokenHash)])
+  const unread = notices.filter((n) => !n.read).length
   const s = o.student
   const brand = brandOf(o.company.code)
   const toUpload = o.documents.filter((d) => d.can_upload && d.required)
@@ -76,7 +78,11 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
       <header className="bg-hero text-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4">
           <div><BrandMark brand={brand} /><p className="mt-0.5 text-xs text-cyan-brand">Student portal</p></div>
+          <div className="flex items-center gap-2">
+          <a href="#notices-h" className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 no-underline hover:bg-white/20" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
+            <Icon name="bell" className="h-5 w-5" />{unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold">{unread}</span>}</a>
           <form action={logoutAction}><button className="btn border border-white/25 bg-white/10 text-white hover:bg-white/20 btn-sm" type="submit">Sign out</button></form>
+          </div>
         </div>
         <div className="mx-auto max-w-3xl px-4 pb-20 pt-2">
           <p className="text-sm text-slate-300">Hello,</p>
@@ -173,9 +179,61 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
           {o.documents.length === 0 && <p className="card p-5 text-sm text-slate-600">Nothing is needed from you right now.</p>}
         </section>
 
-        <section className="card p-5 text-sm">
-          <h2 className="flex items-center gap-2 font-semibold"><Icon name="wallet" className="h-5 w-5 text-slate-500" />Payments</h2>
-          <p className="mt-1 text-slate-600">Payment details are shared by your counsellor. Please contact them for fee information.</p>
+        {publications.length > 0 && (
+          <section className="card p-5 text-sm" aria-labelledby="pub-h">
+            <h2 id="pub-h" className="flex items-center gap-2 font-semibold"><Icon name="doc" className="h-5 w-5 text-slate-500" />Documents from us</h2>
+            <ul className="mt-3 divide-y divide-slate-100">
+              {publications.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <span><span className="font-medium text-slate-900">{p.title}</span><span className="block text-xs text-slate-500">Shared {fmtDate(p.published_at)}</span></span>
+                  <a className="btn-secondary btn-sm" href={`/portal/files/${p.id}`}>Download</a>
+                </li>))}
+            </ul>
+          </section>
+        )}
+
+        <section className="card p-5 text-sm" aria-labelledby="pay-h">
+          <h2 id="pay-h" className="flex items-center gap-2 font-semibold"><Icon name="wallet" className="h-5 w-5 text-slate-500" />Payments</h2>
+          {!payments ? <p className="mt-1 text-slate-600">Payment details are shared by your counsellor. Please contact them for fee information.</p> : (
+            <>
+              <dl className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {payments.balances.map((b) => (
+                  <div key={b.currency} className="contents">
+                    <div className="rounded-xl bg-slate-50 px-3 py-2"><dt className="text-[11px] text-slate-500">Total fees ({b.currency})</dt><dd className="font-bold tabular-nums">{fmtMoney(b.due, b.currency)}</dd></div>
+                    <div className="rounded-xl bg-green-50 px-3 py-2"><dt className="text-[11px] text-green-800">Paid (confirmed)</dt><dd className="font-bold tabular-nums text-green-900">{fmtMoney(b.received, b.currency)}</dd></div>
+                    <div className={`rounded-xl px-3 py-2 ${Number(b.outstanding) > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}><dt className="text-[11px] text-amber-900">Outstanding</dt><dd className="font-bold tabular-nums text-amber-900">{fmtMoney(b.outstanding, b.currency)}</dd></div>
+                  </div>))}
+              </dl>
+              {payments.balances.some((b) => Number(b.pending) > 0) && <p className="mt-2 text-xs text-slate-600">Payments you made are shown as confirmed after our accounts team checks them.</p>}
+              {payments.entries.length > 0 && (
+                <ul className="mt-3 divide-y divide-slate-100">
+                  {payments.entries.slice(0, 20).map((e, i) => (
+                    <li key={i} className="flex items-center justify-between gap-3 py-2">
+                      <span><span className="font-medium">{e.category}</span><span className="block text-xs text-slate-500">{fmtDate(e.date)} · {e.type === 'receipt' ? (e.status === 'pending' ? 'payment – being confirmed' : 'payment') : e.type}{e.reference ? ` · receipt ${e.reference}` : ''}</span></span>
+                      <span className={`font-semibold tabular-nums ${e.type === 'receipt' ? 'text-green-700' : ''}`}>{e.type === 'receipt' || e.type === 'waiver' ? '−' : ''}{fmtMoney(e.amount, e.currency)}</span>
+                    </li>))}
+                </ul>
+              )}
+            </>
+          )}
+        </section>
+
+        <section className="card p-5 text-sm" aria-labelledby="notices-h">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="notices-h" className="flex items-center gap-2 font-semibold"><Icon name="bell" className="h-5 w-5 text-slate-500" />Notifications
+              {unread > 0 && <span className="rounded-full bg-rose-100 px-2 text-xs font-semibold text-rose-700">{unread} new</span>}</h2>
+            {unread > 0 && <MarkReadButton />}
+          </div>
+          {notices.length === 0 ? <p className="mt-1 text-slate-600">No notifications yet.</p> : (
+            <ul className="mt-3 space-y-2">
+              {notices.map((n) => (
+                <li key={n.id} className={`rounded-xl px-3 py-2 ${n.read ? 'bg-slate-50' : 'bg-brand-50 ring-1 ring-brand-100'}`}>
+                  <p className={`text-slate-900 ${n.read ? '' : 'font-semibold'}`}>{n.title}</p>
+                  {n.body && <p className="text-xs text-slate-600">{n.body}</p>}
+                  <p className="text-[11px] text-slate-500">{fmtDateTime(n.created_at)}</p>
+                </li>))}
+            </ul>
+          )}
         </section>
 
         <section className="card p-5 text-sm">

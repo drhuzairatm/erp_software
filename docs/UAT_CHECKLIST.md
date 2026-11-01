@@ -209,6 +209,16 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 - [ ] University → add a document requirement "only if nationality is …" and check that only matching students get it on their checklist.
 - [ ] Verification rule draft: add a condition, approve it as MD, create a new version and check that the condition is copied.
 
+## G8. Student portal v2 (Phase 6)
+
+- [ ] Student profile → Student portal account → create the account. With an unverified email, the one-time link is shown; with a verified email, it is emailed.
+- [ ] Open the link on a phone, set a password, and sign in with the Student ID. Five wrong passwords lock the account for 15 minutes.
+- [ ] "Forgot password" with a verified email sends a reset link. With an unverified email, nothing is sent and the message looks the same.
+- [ ] Disable the account (with a reason); the student is signed out.
+- [ ] Documents tab → Published to the student portal: publish an approved document. The student downloads it, and the download count increases. Withdraw it; the download stops working.
+- [ ] Approve a document or change the stage: a notice appears in the portal with a bell count.
+- [ ] Company settings → switch on "Show students their own fees…" and check the portal Payments card. Leave it off if not wanted.
+
 ## H. Usability
 | # | Test | Expected |
 |---|---|---|

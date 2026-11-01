@@ -49,6 +49,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
       'documents.approve',
       'students.passport.view',
       'students.passport.verify',
+      'portal.accounts.manage', 'documents.publish',
       ...DASH, 'staff.workload.view',
       'students.read.all', 'students.read.processing', 'students.contact.view', 'students.create', 'students.update',
       'students.assign', 'students.merge', 'students.archive', 'students.stage.change', 'students.import',
@@ -66,6 +67,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     permissions: [
       'notifications.consent',
       'students.passport.view',
+      'portal.accounts.manage',
       ...DASH, ...OWN_TASKS,
       'students.read.all', 'students.contact.view', 'students.create', 'students.update', 'students.stage.change',
       'stage.sales', 'stage.hold', 'notes.read', 'notes.write', 'documents.read', 'documents.upload',
@@ -80,6 +82,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
       'documents.download',
       'students.passport.view',
       'students.passport.verify',
+      'documents.publish',
       ...DASH, ...OWN_TASKS,
       'students.read.assigned', 'students.stage.change', 'stage.documents', 'stage.admission',
       'notes.read', 'notes.write',

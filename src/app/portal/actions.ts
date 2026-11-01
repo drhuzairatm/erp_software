@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import type { ActionResult } from '@/components/action-types'
-import { chooseStudent, portalLogout, portalSubmitCourier, portalUpload, requestCode, verifyCode } from '@/server/portal'
+import { chooseStudent, markNoticesRead, passwordLogin, portalLogout, portalSubmitCourier, portalUpload, requestCode, requestPasswordReset, setPasswordWithLink, verifyCode } from '@/server/portal'
 import { runAction } from '../actions/run-action'
 
 export async function requestCodeAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
@@ -48,4 +48,31 @@ export async function submitCourierAction(shipmentId: string, _: ActionResult, f
     await portalSubmitCourier(shipmentId, String(fd.get('courierCompany') ?? ''), String(fd.get('trackingNumber') ?? ''), String(fd.get('dispatchDate') ?? '') || null)
     revalidatePath('/portal/home')
   }, 'Thank you. Your courier details were sent to our team.')
+}
+
+export async function passwordLoginAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ok = await passwordLogin(String(fd.get('loginId') ?? ''), String(fd.get('password') ?? ''))
+  if (ok) redirect('/portal/home')
+  return { ok: false, message: 'The Student ID / email or password is not correct, or the account is locked for 15 minutes after repeated attempts.' }
+}
+
+export async function setPasswordAction(token: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  let done = false
+  const res = await runAction(async () => {
+    await setPasswordWithLink(token, String(fd.get('password') ?? ''), String(fd.get('confirm') ?? ''))
+    done = true
+  })
+  if (done) redirect('/portal?passwordset=1')
+  return res
+}
+
+export async function forgotPasswordAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  return runAction(async () => { await requestPasswordReset(String(fd.get('loginId') ?? '')) },
+    'If an active account with a verified email address matches, we have emailed a reset link. It is valid for 1 hour.')
+}
+
+export async function markNoticesReadAction(): Promise<ActionResult> {
+  await markNoticesRead()
+  revalidatePath('/portal/home')
+  return { ok: true }
 }

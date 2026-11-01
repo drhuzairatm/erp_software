@@ -63,6 +63,15 @@ export async function provision(adminUrl: string, log: (m: string) => void = con
                  values (${org.id}, 'Email verification', 'email', 'Please confirm your email address',
                          ${'Dear {{student_name}},\n\nPlease confirm this email address for your {{company}} student record by opening the link below and pressing "Confirm":\n\n{{link}}\n\nThe link is valid for 48 hours. If you did not expect this message, ignore it.\n\nRegards,\n{{company}}'})
                  on conflict (org_id, name, channel, language) do nothing`
+        // Student portal password account e-mails (sent on staff request / "forgot password"; do not use rules)
+        await tx`insert into notification_templates (org_id, name, channel, subject, body)
+                 values (${org.id}, 'Portal account set-up', 'email', 'Set your student portal password',
+                         ${'Dear {{student_name}},\n\nYour {{company}} student portal account is ready. Open the link below to choose your password:\n\n{{link}}\n\nThe link is valid for 72 hours and can be used once. You can then sign in with your Student ID ({{student_code}}) or this email address.\n\nRegards,\n{{company}}'})
+                 on conflict (org_id, name, channel, language) do nothing`
+        await tx`insert into notification_templates (org_id, name, channel, subject, body)
+                 values (${org.id}, 'Portal password reset', 'email', 'Reset your student portal password',
+                         ${'Dear {{student_name}},\n\nWe received a request to reset your {{company}} student portal password. Open the link below to choose a new one:\n\n{{link}}\n\nThe link is valid for 1 hour and can be used once. If you did not ask for this, ignore this message – your password stays the same.\n\nRegards,\n{{company}}'})
+                 on conflict (org_id, name, channel, language) do nothing`
         for (const name of DEPARTMENTS) {
           await tx`insert into departments (org_id, name) values (${org.id}, ${name}) on conflict (org_id, name) do nothing`
         }

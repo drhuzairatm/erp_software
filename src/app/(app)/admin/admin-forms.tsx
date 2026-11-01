@@ -116,7 +116,7 @@ export function CreateRoleForm({ orgs }: { orgs: Opt[] }) {
   )
 }
 
-export function OrgSettingsForm({ orgId, name, currency, allowSelf, supportPhone, supportEmail }: { orgId: string; name: string; currency: string; allowSelf: boolean; supportPhone?: string; supportEmail?: string }) {
+export function OrgSettingsForm({ orgId, name, currency, allowSelf, supportPhone, supportEmail, portalPayments }: { orgId: string; name: string; currency: string; allowSelf: boolean; supportPhone?: string; supportEmail?: string; portalPayments?: boolean }) {
   return (
     <ActionForm action={orgSettingsAction.bind(null, orgId)} className="grid grid-cols-1 gap-3 md:grid-cols-4">
       <div className="md:col-span-2"><label className="label" htmlFor={`n-${orgId}`}>Company name</label><input className="input" id={`n-${orgId}`} name="name" defaultValue={name} required /></div>
@@ -124,6 +124,7 @@ export function OrgSettingsForm({ orgId, name, currency, allowSelf, supportPhone
       <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="allowSelfVerify" value="yes" defaultChecked={allowSelf} /> Allow staff to verify payments they recorded</label>
       <div><label className="label" htmlFor={`sp-${orgId}`}>Student portal: support phone</label><input className="input" id={`sp-${orgId}`} name="supportPhone" defaultValue={supportPhone ?? ''} /></div>
       <div><label className="label" htmlFor={`se-${orgId}`}>Student portal: support email</label><input className="input" id={`se-${orgId}`} name="supportEmail" type="email" defaultValue={supportEmail ?? ''} /></div>
+      <label className="flex items-end gap-2 pb-2 text-sm md:col-span-2"><input type="checkbox" name="portalPayments" value="yes" defaultChecked={portalPayments} /> Show students their own fees, confirmed payments and balance in the portal</label>
       <div><SubmitButton>Save</SubmitButton></div>
     </ActionForm>
   )

@@ -30,7 +30,8 @@ export default async function SettingsPage() {
         {settingsOrgs.map((o) => (
           <Card key={o.id} title={<>{o.name} <span className="font-mono text-xs text-slate-500">Student ID prefix {o.student_code_prefix}</span></>}>
             <OrgSettingsForm orgId={o.id} name={o.name} currency={String(o.settings.currency ?? 'INR')} allowSelf={o.settings.allow_self_payment_verification === true}
-              supportPhone={o.settings.support_phone as string | undefined} supportEmail={o.settings.support_email as string | undefined} />
+              supportPhone={o.settings.support_phone as string | undefined} supportEmail={o.settings.support_email as string | undefined}
+              portalPayments={o.settings.portal_show_payments === true} />
             <div className="mt-4 border-t border-slate-100 pt-4">
               <p className="mb-2 text-sm font-medium">Fee categories</p>
               <ul className="divide-y divide-slate-100">{s.feeCategories.filter((f) => f.org_id === o.id).map((f) => (

@@ -168,14 +168,15 @@ export async function getSettings(ctx: Ctx) {
   }))
 }
 
-export async function updateOrgSettings(ctx: Ctx, orgId: string, name: string, currency: string, allowSelfVerify: boolean, supportPhone?: string, supportEmail?: string) {
+export async function updateOrgSettings(ctx: Ctx, orgId: string, name: string, currency: string, allowSelfVerify: boolean, supportPhone?: string, supportEmail?: string, portalPayments = false) {
   if (!can(ctx, 'settings.manage', orgId)) throw forbidden()
   if (!/^[A-Z]{3}$/.test(currency)) throw invalid('Currency must be a 3-letter code such as INR.')
   if (name.trim().length < 2) throw invalid('Enter the company name.')
   return run(ctx, async (tx) => {
     const r = await tx`update organizations set name = ${name.trim()},
                          settings = settings || ${tx.json({ currency, allow_self_payment_verification: allowSelfVerify,
-                                                            support_phone: supportPhone?.slice(0, 40) || null, support_email: supportEmail?.slice(0, 120) || null })}
+                                                            support_phone: supportPhone?.slice(0, 40) || null, support_email: supportEmail?.slice(0, 120) || null,
+                                                            portal_show_payments: portalPayments })}
                        where id = ${orgId}`
     if (r.count === 0) throw forbidden()
   })

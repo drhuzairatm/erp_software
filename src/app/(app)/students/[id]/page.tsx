@@ -20,6 +20,7 @@ import { PassportStatusBadge, PassportTab } from './passport-tab'
 import { AcademicTab } from './academic-tab'
 import { AttentionPanel } from './attention'
 import { CourierPanel } from './courier-panel'
+import { PortalAccountCard, PublicationsCard } from './portal-panel'
 import { VerifyEmailButton } from './passport-forms'
 import { AdmissionForm, ArchiveForm, AssignmentForm, FollowupForm, MergeForm, NoteForm, StageChangeForm, VisaForm } from './panels'
 import { AddChecklistItemForm, CustodyForm, DocumentDetailsForm, PaymentForm, QuickTaskForm, ReverseForm, UploadForm, VerifyForm } from './tab-forms'
@@ -276,6 +277,7 @@ async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
           {p.admission && <div className="mt-4 border-t border-slate-100 pt-3"><AdmissionForm studentId={s.id} applicationRef={s.university_application_ref} letterDate={s.admission_letter_date} /></div>}
           {p.visa && <div className="mt-4 border-t border-slate-100 pt-3"><VisaForm studentId={s.id} appointment={s.visa_appointment_date} outcome={s.visa_outcome} reference={s.visa_reference} /></div>}
         </Card>
+        <PortalAccountCard ctx={ctx} studentId={s.id} emailVerified={s.email_status === 'verified'} editable={s.status !== 'merged' && !s.archived_at} />
         <Card title="Record information">
           <DL items={[['Created', `${fmtDateTime(s.created_at)} by ${s.created_by_name ?? '—'}`], ['Last updated', `${fmtDateTime(s.updated_at)} by ${s.updated_by_name ?? '—'}`]]} />
         </Card>
@@ -369,6 +371,8 @@ async function Documents({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }
           </ul>
         )}
       </Card>
+      <PublicationsCard ctx={ctx} studentId={s.id} editable={editable}
+        approved={cl.items.filter((d) => d.status === 'approved').map((d) => ({ id: d.id, name: d.type_name + (d.label ? ` – ${d.label}` : '') }))} />
       <CourierPanel ctx={ctx} studentId={s.id} editable={editable}
         documents={cl.items.map((d) => ({ id: d.id, name: d.type_name + (d.label ? ` – ${d.label}` : ''), status: d.effective_status }))} />
       {editable && cl.perms.upload && (

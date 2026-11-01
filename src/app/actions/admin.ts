@@ -73,7 +73,7 @@ export async function orgSettingsAction(orgId: string, _: ActionResult, fd: Form
   const ctx = await requireUser()
   const v = formObject(fd)
   return runAction(async () => {
-    await admin.updateOrgSettings(ctx, orgId, v.name ?? '', (v.currency ?? 'INR').toUpperCase(), v.allowSelfVerify === 'yes', v.supportPhone, v.supportEmail)
+    await admin.updateOrgSettings(ctx, orgId, v.name ?? '', (v.currency ?? 'INR').toUpperCase(), v.allowSelfVerify === 'yes', v.supportPhone, v.supportEmail, v.portalPayments === 'yes')
     revalidatePath('/admin/settings')
   }, 'Company settings saved.')
 }

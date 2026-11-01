@@ -44,7 +44,7 @@
 - **Official logos** supplied by the MD and installed in `public/brands/` (cropped copies of the supplied files).
 - Hardening to do: functions added in migrations 0017 onwards are executable by every database role, which is PostgreSQL's default. Each checks permissions itself, and the app connects with a single role. A later migration should revoke PUBLIC and grant erp_app explicitly.
 
-- Portal sign-in: students need a **password** login (Phase 6 — to confirm then whether one-time codes stay as an alternative).
+- Portal sign-in: **password login built** (Phase 6, see STUDENT_PORTAL_V2.md). One-time codes remain available as an alternative; say if they should be switched off.
 - Leads come from **both** this ERP and the Leadist CRM (Phase 9: own lead module plus an import/integration; Leadist itself is not modified).
 - Super admins (MD; System Administrator) add countries, courses, universities and attestation routes in the app.
 - Passport validity of **12 months or more is mandatory** (installed as a blocking rule from University Application).

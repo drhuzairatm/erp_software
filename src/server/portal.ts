@@ -2,6 +2,9 @@ import 'server-only'
 import { createHmac, randomBytes, randomInt } from 'node:crypto'
 import { cookies, headers } from 'next/headers'
 import { anonymous } from './db'
+import { checkPasswordStrength, getDummyHash, hashPassword, verifyPassword } from './auth/password'
+import { hashToken, newTokenValue } from './auth/tokens'
+import { appUrl } from './email'
 import { invalid, ServiceError } from './errors'
 import { getStorage, MAX_UPLOAD_BYTES, newStorageKey, safeFilename, sha256, sniffMime } from './storage'
 
@@ -141,4 +144,90 @@ export async function portalSubmitCourier(shipmentId: string, company: string, t
     ...(c ? {} : { courierCompany: ['Required.'] }), ...(t ? {} : { trackingNumber: ['Required.'] }) })
   const d = dispatchDate && /^\d{4}-\d{2}-\d{2}$/.test(dispatchDate) ? dispatchDate : null
   await anonymous((tx) => tx`select app.portal_submit_courier(${th}, ${shipmentId}, ${c}, ${t}, ${d})`)
+}
+
+// ---------------------------------------------------------------- password login (portal v2)
+/** Student ID or verified email + password. Same answer for unknown, wrong or locked (no enumeration). */
+export async function passwordLogin(identifier: string, password: string) {
+  const id = identifier.trim().slice(0, 200)
+  if (!id || !password || password.length > 200) return false
+  const candidates = await anonymous((tx) => tx<{ account_id: string; password_hash: string | null; locked: boolean }[]>`
+    select * from app.portal_password_candidates(${id})`)
+  const ok: string[] = []; const failed: string[] = []
+  if (!candidates.length) await verifyPassword(await getDummyHash(), password) // equal timing
+  for (const c of candidates) {
+    if (!c.password_hash) { failed.push(c.account_id); continue }
+    if (await verifyPassword(c.password_hash, password)) ok.push(c.account_id); else failed.push(c.account_id)
+  }
+  const token = randomBytes(32).toString('base64url')
+  const { ip, ua } = await ipAndAgent()
+  const [r] = await anonymous((tx) => tx<{ ok: boolean }[]>`
+    select app.portal_password_result(${id}, ${ok}::uuid[], ${failed}::uuid[], ${hmac(token)}, ${ip}, ${ua}) as ok`)
+  if (r.ok) {
+    ;(await cookies()).set(PORTAL_COOKIE, token, {
+      httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/portal', maxAge: 4 * 3600,
+    })
+  }
+  return r.ok
+}
+
+/** Set-up / reset link: returns the Student ID to show, or null if the link is not valid. */
+export async function checkPasswordLink(token: string) {
+  if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) return null
+  const [r] = await anonymous((tx) => tx<{ code: string | null }[]>`select app.portal_link_check(${hashToken(token)}) as code`)
+  return r?.code ?? null
+}
+
+export async function setPasswordWithLink(token: string, password: string, confirm: string) {
+  if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) throw invalid('This link is not valid. Ask us for a new one.')
+  if (password !== confirm) throw invalid('The two passwords are different.', { confirm: ['Does not match.'] })
+  const weak = checkPasswordStrength(password)
+  if (weak) throw invalid(weak, { password: [weak] })
+  const [r] = await anonymous(async (tx) => tx<{ code: string | null }[]>`select app.portal_set_password(${hashToken(token)}, ${await hashPassword(password)}) as code`)
+  if (!r?.code) throw invalid('This link has expired or was already used. Ask us for a new one, or use "Forgot password".')
+  return r.code
+}
+
+export async function requestPasswordReset(identifier: string) {
+  const id = identifier.trim().slice(0, 200)
+  if (id.length < 3) throw invalid('Enter your Student ID or verified email address.')
+  const token = newTokenValue()
+  await anonymous((tx) => tx`select app.portal_request_reset(${id}, ${hashToken(token)}, ${appUrl(`/portal/password?token=${token}`)})`)
+}
+
+// ---------------------------------------------------------------- notices, publications, payments
+export interface PortalNotice { id: string; kind: string; title: string; body: string | null; created_at: string; read: boolean }
+export async function portalNotices(th: string): Promise<PortalNotice[]> {
+  const [r] = await anonymous((tx) => tx<{ n: PortalNotice[] }[]>`select app.portal_notices(${th}) as n`)
+  return r?.n ?? []
+}
+export async function markNoticesRead() {
+  const th = await tokenHash()
+  if (th) await anonymous((tx) => tx`select app.portal_mark_notices_read(${th})`)
+}
+
+export interface PortalPublication { id: string; title: string; published_at: string; mime: string }
+export async function portalPublications(th: string): Promise<PortalPublication[]> {
+  const [r] = await anonymous((tx) => tx<{ p: PortalPublication[] }[]>`select app.portal_publications(${th}) as p`)
+  return r?.p ?? []
+}
+
+/** Bytes of a published file for the signed-in student (logged and audited in the database). */
+export async function portalDownload(publicationId: string) {
+  const th = await tokenHash()
+  if (!th || !/^[0-9a-f-]{36}$/i.test(publicationId)) return null
+  const { ip } = await ipAndAgent()
+  const [f] = await anonymous((tx) => tx<{ storage_key: string; mime_type: string; original_filename: string }[]>`
+    select * from app.portal_download(${th}, ${publicationId}, ${ip})`)
+  if (!f) return null
+  return { data: await (await getStorage()).get(f.storage_key), mime: f.mime_type, filename: f.original_filename }
+}
+
+export interface PortalPayments {
+  entries: { date: string; type: string; category: string; amount: string; currency: string; status: string; reference: string | null }[]
+  balances: { currency: string; due: string; received: string; outstanding: string; pending: string }[]
+}
+export async function portalPayments(th: string): Promise<PortalPayments | null> {
+  const [r] = await anonymous((tx) => tx<{ p: PortalPayments | null }[]>`select app.portal_payments(${th}) as p`)
+  return r?.p ?? null
 }

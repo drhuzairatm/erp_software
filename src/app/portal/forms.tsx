@@ -1,14 +1,14 @@
 'use client'
 
 import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
-import { chooseAction, requestCodeAction, submitCourierAction, uploadAction, verifyCodeAction } from './actions'
+import { chooseAction, forgotPasswordAction, markNoticesReadAction, passwordLoginAction, requestCodeAction, setPasswordAction, submitCourierAction, uploadAction, verifyCodeAction } from './actions'
 
 export function RequestCodeForm() {
   return (
     <ActionForm action={requestCodeAction}>
       <div>
         <label htmlFor="identifier" className="label">Email or mobile number you registered with</label>
-        <input id="identifier" name="identifier" className="input text-base" autoComplete="username" required autoFocus placeholder="name@example.com or +91 …" />
+        <input id="identifier" name="identifier" className="input text-base" autoComplete="username" required placeholder="name@example.com or +91 …" />
       </div>
       <SubmitButton className="btn-primary w-full" pendingText="Sending…">Send me a code</SubmitButton>
     </ActionForm>
@@ -59,4 +59,55 @@ export function CourierDetailsForm({ shipmentId, company, tracking }: { shipment
       )}
     </ActionForm>
   )
+}
+
+export function PasswordLoginForm() {
+  return (
+    <ActionForm action={passwordLoginAction}>
+      <div>
+        <label htmlFor="loginId" className="label">Student ID or verified email</label>
+        <input id="loginId" name="loginId" className="input text-base" autoComplete="username" required placeholder="e.g. EDX-26-001234" />
+      </div>
+      <div>
+        <label htmlFor="password" className="label">Password</label>
+        <input id="password" name="password" type="password" className="input text-base" autoComplete="current-password" required />
+      </div>
+      <SubmitButton className="btn-primary w-full" pendingText="Signing in…">Sign in with password</SubmitButton>
+    </ActionForm>
+  )
+}
+
+export function SetPasswordForm({ token }: { token: string }) {
+  return (
+    <ActionForm action={setPasswordAction.bind(null, token)}>
+      {(s) => (
+        <>
+          <div><label htmlFor="password" className="label">New password</label>
+            <input id="password" name="password" type="password" className="input text-base" autoComplete="new-password" required minLength={12} />
+            <FieldError state={s} name="password" /></div>
+          <div><label htmlFor="confirm" className="label">Repeat the password</label>
+            <input id="confirm" name="confirm" type="password" className="input text-base" autoComplete="new-password" required minLength={12} />
+            <FieldError state={s} name="confirm" /></div>
+          <p className="hint">At least 12 characters, using three of: lowercase, uppercase, numbers, symbols.</p>
+          <SubmitButton className="btn-primary w-full" pendingText="Saving…">Save password</SubmitButton>
+        </>
+      )}
+    </ActionForm>
+  )
+}
+
+export function ForgotPasswordForm() {
+  return (
+    <ActionForm action={forgotPasswordAction} resetOnSuccess>
+      <div>
+        <label htmlFor="loginId" className="label">Student ID or verified email</label>
+        <input id="loginId" name="loginId" className="input text-base" autoComplete="username" required />
+      </div>
+      <SubmitButton className="btn-primary w-full" pendingText="Sending…">Email me a reset link</SubmitButton>
+    </ActionForm>
+  )
+}
+
+export function MarkReadButton() {
+  return <ActionForm action={markNoticesReadAction} className="inline"><SubmitButton className="btn-ghost btn-sm" pendingText="…">Mark all as read</SubmitButton></ActionForm>
 }
