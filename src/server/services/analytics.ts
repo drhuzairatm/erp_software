@@ -105,10 +105,11 @@ export async function staffOverview(ctx: Ctx, orgIds: string[]) {
              + (select count(*)::int from tasks t where t.assigned_to = ${me} and t.status not in ('completed', 'cancelled') and t.due_date = current_date) as followups_today,
              case when ${canPay} then (select count(distinct s.id)::int from v_students s where ${scopeCond} and s.status in ('active', 'on_hold') and app.student_has_outstanding_service_balance(s.id)) end as payment_followups`
     const myStudents = await tx<{ id: string; student_code: string; full_name: string; stage: string; stage_order: number; next_action: string | null; next_action_due: string | null
-      docs_required: number; docs_approved: number; passport_status: string | null; country: string | null; status: string }[]>`
+      docs_required: number; docs_approved: number; passport_status: string | null; country: string | null; status: string; photo_version: number | null }[]>`
       select s.id, s.student_code, s.full_name, st.name as stage, st.sort_order as stage_order, s.next_action, s.next_action_due::text, s.passport_status, c.name as country, s.status,
              (select count(*)::int from student_documents d where d.student_id = s.id and d.is_required) as docs_required,
-             (select count(*)::int from student_documents d where d.student_id = s.id and d.is_required and d.status = 'approved') as docs_approved
+             (select count(*)::int from student_documents d where d.student_id = s.id and d.is_required and d.status = 'approved') as docs_approved,
+             (select ph.version from student_photos ph where ph.student_id = s.id and ph.is_current) as photo_version
         from v_students s join stages st on st.key = s.current_stage_key left join countries c on c.id = s.destination_country_id
        where ${scopeCond} and s.status in ('active', 'on_hold')
          and exists (select 1 from student_assignments a where a.student_id = s.id and a.is_active and a.user_id = ${me})

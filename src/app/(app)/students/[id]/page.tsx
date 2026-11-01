@@ -20,6 +20,8 @@ import { PassportStatusBadge, PassportTab } from './passport-tab'
 import { AcademicTab } from './academic-tab'
 import { AttentionPanel } from './attention'
 import { CourierPanel } from './courier-panel'
+import { StudentPhoto } from './photo-controls'
+import { currentPhoto } from '@/server/services/photos'
 import { PortalAccountCard, PublicationsCard } from './portal-panel'
 import { VerifyEmailButton } from './passport-forms'
 import { AdmissionForm, ArchiveForm, AssignmentForm, FollowupForm, MergeForm, NoteForm, StageChangeForm, VisaForm } from './panels'
@@ -39,13 +41,14 @@ const TABS = [
   { key: 'timeline', label: 'Timeline' },
 ] as const
 
-export default async function StudentPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; created?: string; updated?: string }> }) {
+export default async function StudentPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; created?: string; updated?: string; photoerror?: string }> }) {
   const { id } = await params
   const sp = await searchParams
   const ctx = await requireUser()
   const profile = await getStudent(ctx, id)
   if (!profile) notFound()
   const { student: s, permissions: p } = profile
+  const photo = await currentPhoto(ctx, s.id)
   const tabs = TABS.filter((t) => !('perm' in t) || p[t.perm as keyof typeof p])
   const tab = tabs.find((t) => t.key === sp.tab)?.key ?? 'overview'
 
@@ -57,8 +60,8 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
         <div className="relative px-5 pb-5 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-4">
-              <span aria-hidden className="-mt-10 inline-flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-gradient-to-br from-brand-500 to-teal-brand text-2xl font-bold text-white shadow-lg">
-                {s.full_name.replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}</span>
+              <StudentPhoto studentId={s.id} name={s.full_name} version={photo?.version ?? null} canEdit={p.update && !s.archived_at && s.status !== 'merged'}
+                initials={s.full_name.replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()} />
               <div className="min-w-0 pt-3">
                 <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">{s.full_name} {s.is_demo && <DemoBadge />}</h1>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600"><span className="font-mono">{s.student_code}</span>·<Badge tone={s.org_code === 'GRD' ? 'purple' : 'blue'}>{s.org_name}</Badge>
@@ -89,6 +92,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
       </section>
       <div className="space-y-3">
         {sp.created && <Alert tone="green">Student registered with ID {s.student_code}.</Alert>}
+        {sp.photoerror && <Alert tone="amber">The photo could not be saved (it must be a readable JPG or PNG, up to 5 MB). Upload it again from the profile.</Alert>}
         {sp.updated && <Alert tone="green">Details saved.</Alert>}
         {s.status === 'merged' && <Alert tone="amber" title="Merged record">This record was merged into <Link href={`/students/${s.merged_into_id}`}>{s.merged_into_code ?? 'another record'}</Link>. It is kept for history only.</Alert>}
         {s.archived_at && <Alert tone="amber" title="Archived">{s.archive_reason}</Alert>}

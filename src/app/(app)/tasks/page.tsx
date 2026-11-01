@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fmtDate, label } from '@/components/format'
 import { Icon } from '@/components/icons'
-import { Avatar, Card, EmptyState, FilterBar, PageHeader, Pagination, PriorityBadge, StatCard, StatusBadge, ViewTabs } from '@/components/ui'
+import { Avatar, Card, EmptyState, FilterBar, PageHeader, Pagination, PriorityBadge, StatCard, StatusBadge, ViewTabs, studentPhotoUrl } from '@/components/ui'
 import { can, canAny } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
 import { listTasks, type TaskFilters, type TaskRow, taskAssignees, taskCounts } from '@/server/services/tasks'
@@ -35,7 +35,7 @@ function Due({ t }: { t: TaskRow }) {
 function StudentRef({ t }: { t: TaskRow }) {
   if (!t.student_id) return <span className="text-slate-400">—</span>
   if (!t.student_code) return <span className="text-slate-400">Restricted</span>
-  return <Link href={`/students/${t.student_id}`} className="text-slate-700">{t.student_name} <span className="font-mono text-xs text-slate-500">{t.student_code}</span></Link>
+  return <Link href={`/students/${t.student_id}`} className="inline-flex items-center gap-1.5 text-slate-700"><Avatar name={t.student_name} size="sm" src={studentPhotoUrl(t.student_id, t.student_photo_version)} />{t.student_name} <span className="font-mono text-xs text-slate-500">{t.student_code}</span></Link>
 }
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -131,7 +131,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                 <tr key={t.id}>
                   <td className={`border-l-4 ${PRIORITY_BAR[t.priority] ?? 'border-l-transparent'}`}>
                     <Link href={`/tasks/${t.id}`} className="font-medium">{t.title}</Link><div className="text-xs text-slate-500">{label(t.task_type)} · {t.org_name}</div></td>
-                  <td>{t.student_id && t.student_code ? <Link href={`/students/${t.student_id}`}>{t.student_name}</Link> : t.student_id ? <span className="text-slate-400">Restricted</span> : '—'}
+                  <td>{t.student_id && t.student_code ? <Link href={`/students/${t.student_id}`} className="inline-flex items-center gap-2"><Avatar name={t.student_name} size="sm" src={studentPhotoUrl(t.student_id, t.student_photo_version)} />{t.student_name}</Link> : t.student_id ? <span className="text-slate-400">Restricted</span> : '—'}
                     {t.student_code && <div className="font-mono text-xs text-slate-500">{t.student_code}</div>}</td>
                   <td>{t.assignee_name ? <span className="flex items-center gap-2"><Avatar name={t.assignee_name} size="sm" />{t.assignee_name}</span> : <span className="text-amber-700">Unassigned</span>}</td>
                   <td><StatusBadge status={t.status} />{t.status === 'waiting_external' && t.delay_reason && <div className="text-xs text-slate-500">on {label(t.delay_reason)}</div>}</td>

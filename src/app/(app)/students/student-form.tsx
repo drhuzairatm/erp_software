@@ -6,6 +6,7 @@ import type { ActionResult } from '@/components/action-types'
 import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
 import { DISPLAY, NoticeCard } from '@/components/notice'
 import { PhoneField } from '@/components/phone-field'
+import { PhotoPicker } from '@/components/photo-picker'
 import type { DuplicateCandidate } from '@/server/services/students'
 
 interface Opt { id: string; name: string }
@@ -142,6 +143,12 @@ export function StudentForm(p: StudentFormProps) {
                   <input className="input" id="preferredLanguage" name="preferredLanguage" defaultValue={v('preferredLanguage')} list="languages" maxLength={50} />
                   <datalist id="languages"><option value="English" /><option value="Malayalam" /><option value="Hindi" /><option value="Tamil" /><option value="Arabic" /></datalist>
                 </div>
+                {p.mode === 'create' && (
+                  <div className="md:col-span-3">
+                    <p className="label">Student Passport Photo (optional)</p>
+                    <PhotoPicker />
+                  </div>
+                )}
                 {p.contactEditable ? (
                   <>
                     <div>

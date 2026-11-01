@@ -18,7 +18,7 @@ export interface TaskRow {
   id: string; org_id: string; org_name: string; student_id: string | null; student_code: string | null; student_name: string | null
   title: string; task_type: string; assigned_to: string | null; assignee_name: string | null; creator_name: string | null; priority: string
   status: string; due_date: string | null; delay_reason: string | null; completed_at: Date | null; created_at: Date
-  is_overdue: boolean; total: string
+  is_overdue: boolean; total: string; student_photo_version: number | null
 }
 
 const UUID_RE = /^[0-9a-f-]{36}$/i
@@ -48,6 +48,7 @@ export async function listTasks(ctx: Ctx, orgIds: string[], f: TaskFilters) {
              t.assigned_to, au.full_name as assignee_name, cu.full_name as creator_name, t.priority, t.status, t.due_date,
              t.delay_reason, t.completed_at, t.created_at,
              (t.status not in ('completed', 'cancelled') and t.due_date < current_date) as is_overdue,
+             (select ph.version from student_photos ph where ph.student_id = s.id and ph.is_current) as student_photo_version,
              count(*) over () as total
         from tasks t
         join organizations o on o.id = t.org_id

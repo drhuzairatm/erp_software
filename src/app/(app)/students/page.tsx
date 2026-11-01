@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fmtDate } from '@/components/format'
-import { Badge, Card, DemoBadge, EmptyState, PageHeader, Pagination, StatusBadge } from '@/components/ui'
+import { Avatar, Badge, Card, DemoBadge, EmptyState, PageHeader, Pagination, StatusBadge, studentPhotoUrl } from '@/components/ui'
 import { can, canAny } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
 import { getLookups } from '@/server/services/lookups'
@@ -63,6 +63,10 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
           <select className="input" id="nextDue" name="nextDue" defaultValue={sp.nextDue ?? ''}>
             <option value="">Any</option><option value="overdue">Overdue</option><option value="today">Due today</option><option value="week">Due within 7 days</option>
           </select></div>
+        <div><label className="label" htmlFor="photo">Photo Status</label>
+          <select className="input" id="photo" name="photo" defaultValue={sp.photo ?? ''}>
+            <option value="">All Students</option><option value="yes">Photo Available</option><option value="no">Photo Missing</option>
+          </select></div>
         <div><label className="label" htmlFor="sort">Sort by</label>
           <select className="input" id="sort" name="sort" defaultValue={sp.sort ?? 'newest'}>
             <option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name">Name</option>
@@ -89,8 +93,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                   <tr key={s.id}>
                     <td>
                       <div className="flex items-center gap-3">
-                        <span aria-hidden className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-white ${s.org_code === 'GRD' ? 'bg-gradient-to-br from-cyan-500 to-teal-500' : 'bg-gradient-to-br from-blue-500 to-indigo-600'}`}>
-                          {s.full_name.replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}</span>
+                        <Avatar name={s.full_name} src={studentPhotoUrl(s.id, s.photo_version)} />
                         <div className="min-w-0">
                           <Link href={`/students/${s.id}`} className="font-semibold">{s.full_name}</Link>
                           <div className="flex flex-wrap items-center gap-1 text-xs text-slate-500">

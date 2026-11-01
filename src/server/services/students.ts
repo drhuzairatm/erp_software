@@ -18,6 +18,7 @@ export interface StudentFilters {
   status?: string
   assignee?: string
   nextDue?: 'overdue' | 'today' | 'week'
+  photo?: 'yes' | 'no'
   archived?: 'yes'
   page?: string | number
   sort?: string
@@ -58,6 +59,8 @@ export async function listStudents(ctx: Ctx, orgIds: string[], f: StudentFilters
     if (f.assignee === 'me') conds.push(tx`exists (select 1 from student_assignments x where x.student_id = s.id and x.is_active and x.user_id = ${ctx.userId})`)
     else if (f.assignee === 'none') conds.push(tx`not exists (select 1 from student_assignments x where x.student_id = s.id and x.is_active and x.assignment_type <> 'counsellor')`)
     else if (uuidOrNull(f.assignee)) conds.push(tx`exists (select 1 from student_assignments x where x.student_id = s.id and x.is_active and x.user_id = ${f.assignee!})`)
+    if (f.photo === 'yes') conds.push(tx`exists (select 1 from student_photos ph where ph.student_id = s.id and ph.is_current)`)
+    if (f.photo === 'no') conds.push(tx`not exists (select 1 from student_photos ph where ph.student_id = s.id and ph.is_current)`)
     if (f.nextDue === 'overdue') conds.push(tx`s.next_action_due < current_date and s.status = 'active'`)
     if (f.nextDue === 'today') conds.push(tx`s.next_action_due = current_date`)
     if (f.nextDue === 'week') conds.push(tx`s.next_action_due between current_date and current_date + 7`)
@@ -69,6 +72,7 @@ export async function listStudents(ctx: Ctx, orgIds: string[], f: StudentFilters
              o.name as org_name, o.code as org_code, c.name as country_name, co.name as course_name, un.name as university_name,
              (select u.full_name from student_assignments x join user_profiles u on u.id = x.user_id
                where x.student_id = s.id and x.is_active and x.assignment_type = 'counsellor' limit 1) as counsellor_name,
+             (select ph.version from student_photos ph where ph.student_id = s.id and ph.is_current) as photo_version,
              count(*) over () as total
         from v_students s
         join stages st on st.key = s.current_stage_key
@@ -85,6 +89,7 @@ export async function listStudents(ctx: Ctx, orgIds: string[], f: StudentFilters
 
 export interface StudentListRow {
   id: string; student_code: string; full_name: string; phone: string | null; phone_masked: string | null; contact_visible: boolean
+  photo_version: number | null
   status: string; current_stage_key: string; stage_name: string; next_action: string | null; next_action_due: string | null
   created_at: Date; archived_at: Date | null; is_demo: boolean; org_name: string; org_code: string; country_name: string | null
   course_name: string | null; university_name: string | null; counsellor_name: string | null; total: string

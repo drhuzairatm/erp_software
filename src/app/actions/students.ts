@@ -7,6 +7,7 @@ import { requireUser } from '@/server/auth/session'
 import * as students from '@/server/services/students'
 import { formObject } from '@/server/validation'
 import { runAction } from './run-action'
+import { parseCrop, removeStudentPhoto, saveStudentPhoto } from '@/server/services/photos'
 
 const path = (id: string) => `/students/${id}`
 
@@ -20,8 +21,29 @@ export async function createStudentAction(_: ActionResult, fd: FormData): Promis
     }
     id = r.id
   })
-  if (id) redirect(`${path(id)}?created=1`)
+  if (id) {
+    // optional photo: the student is registered even if the photo cannot be processed
+    const photo = fd.getAll('photo').find((f): f is File => f instanceof File && f.size > 0)
+    let photoError = false
+    if (photo) await saveStudentPhoto(ctx, id, photo, parseCrop(fd.get('photoCrop'))).catch(() => { photoError = true })
+    redirect(`${path(id)}?created=1${photoError ? '&photoerror=1' : ''}`)
+  }
   return res
+}
+
+export async function uploadStudentPhotoAction(id: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => {
+    const photo = fd.getAll('photo').find((f): f is File => f instanceof File && f.size > 0)
+    if (!photo) return { ok: false, message: 'Choose a photo first.' }
+    await saveStudentPhoto(ctx, id, photo, parseCrop(fd.get('photoCrop')))
+    revalidatePath(path(id)); revalidatePath('/students')
+  }, 'Photo saved. It now appears wherever this student is shown.')
+}
+
+export async function removeStudentPhotoAction(id: string, _: ActionResult): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => { await removeStudentPhoto(ctx, id); revalidatePath(path(id)); revalidatePath('/students') }, 'Photo removed.')
 }
 
 export async function updateStudentAction(id: string, _: ActionResult, fd: FormData): Promise<ActionResult> {

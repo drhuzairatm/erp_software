@@ -4,7 +4,7 @@ import { BarChart, DonutChart, HBarList, LineChart, PALETTE, RadialProgress, Spa
 import { PriorityAttention } from '@/components/dashboard/priority-attention'
 import { fmtDate, fmtDateTime, fmtMoney, label } from '@/components/format'
 import { Icon } from '@/components/icons'
-import { Alert, Badge, Card, EmptyState, StatCard } from '@/components/ui'
+import { Alert, Avatar, Badge, Card, EmptyState, StatCard, studentPhotoUrl } from '@/components/ui'
 import { BRANDS, brandOf } from '@/lib/brands'
 import { can } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
@@ -111,8 +111,8 @@ async function Operations({ ctx, orgIds, sp }: { ctx: Ctx; orgIds: string[]; sp:
                 const pct = s.docs_required ? Math.round((s.docs_approved / s.docs_required) * 100) : 0
                 return (
                   <tr key={s.id}>
-                    <td><Link href={`/students/${s.id}`} className="font-semibold">{s.full_name}</Link>
-                      <div className="text-xs text-slate-500">{s.student_code}{s.country && ` · ${s.country}`}</div></td>
+                    <td><div className="flex items-center gap-2.5"><Avatar name={s.full_name} size="sm" src={studentPhotoUrl(s.id, s.photo_version)} /><div><Link href={`/students/${s.id}`} className="font-semibold">{s.full_name}</Link>
+                      <div className="text-xs text-slate-500">{s.student_code}{s.country && ` · ${s.country}`}</div></div></div></td>
                     <td><span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-800">{s.stage}</span>
                       {(s.passport_status === 'expired' || s.passport_status === 'critical') && <div className="mt-1"><Badge tone="red">Passport {s.passport_status}</Badge></div>}</td>
                     <td className="min-w-32"><div className="flex items-center gap-2"><div className="h-1.5 flex-1 rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-gradient-to-r from-brand-500 to-teal-brand" style={{ width: `${pct}%` }} /></div>

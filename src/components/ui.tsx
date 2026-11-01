@@ -191,14 +191,22 @@ export function ViewTabs({ label, items }: { label: string; items: { href: strin
 }
 
 const AVATAR_COLORS = ['from-sky-400 to-blue-600', 'from-teal-300 to-emerald-600', 'from-violet-400 to-purple-600', 'from-amber-300 to-orange-500', 'from-rose-300 to-pink-600', 'from-cyan-300 to-sky-600']
-/** Initials avatar (no photos are stored). */
-export function Avatar({ name, size = 'md' }: { name: string | null | undefined; size?: 'sm' | 'md' }) {
+/** Round avatar: the photo when one exists (served by an authorised route), otherwise initials. */
+export function Avatar({ name, size = 'md', src }: { name: string | null | undefined; size?: 'sm' | 'md' | 'lg' | 'xl'; src?: string | null }) {
   const n = (name ?? '?').replace(/\(.*?\)/g, '').trim()
+  const dim = { sm: 'h-7 w-7 text-[11px]', md: 'h-9 w-9 text-xs', lg: 'h-12 w-12 text-sm', xl: 'h-20 w-20 text-2xl' }[size]
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt="" aria-hidden className={`${dim} shrink-0 rounded-full bg-slate-100 object-cover ring-1 ring-black/5`} loading="lazy" />
+  }
   const initials = n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?'
   const c = AVATAR_COLORS[[...n].reduce((a, ch) => a + ch.charCodeAt(0), 0) % AVATAR_COLORS.length]
-  return <span aria-hidden className={`inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br font-semibold text-white ${c} ${
-    size === 'sm' ? 'h-7 w-7 text-[11px]' : 'h-9 w-9 text-xs'}`}>{initials}</span>
+  return <span aria-hidden className={`inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br font-semibold text-white ${c} ${dim}`}>{initials}</span>
 }
+
+/** URL of a student's avatar thumbnail (authorised, private; the version busts the cache after a change). */
+export const studentPhotoUrl = (studentId: string, version: number | null | undefined) =>
+  version ? `/api/students/${studentId}/photo?size=thumb&v=${version}` : null
 
 /** Filter bar wrapper for GET forms. */
 export function FilterBar({ children }: { children: ReactNode }) {
