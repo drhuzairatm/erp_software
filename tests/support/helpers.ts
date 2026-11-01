@@ -60,3 +60,12 @@ export async function delegateToSystemAdmin(perms: string[]) {
   await adminSql()`insert into role_permissions (role_id, permission_key)
     select r.id, p from roles r cross join unnest(${perms}::text[]) p where r.key = 'system_admin' on conflict do nothing`
 }
+
+/**
+ * No virus scanner runs in the test environment, so – exactly as in production without a scanner – an authorised
+ * person (the demo MD) gives MANUAL security clearance to the current file before it can be approved.
+ */
+export async function securityClear(documentId: string) {
+  await as('md@demo.test', (tx) => tx`select app.clear_file_manually((select current_file_id from student_documents where id = ${documentId}),
+    'Fictional test file – manual clearance (no scanner in tests)')`)
+}

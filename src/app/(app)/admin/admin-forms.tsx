@@ -80,12 +80,17 @@ export function MembershipForm({ id, roleId, active, roles, departments, departm
   )
 }
 
-export function UserButtons({ userId, status, mfaEnabled }: { userId: string; status: string; mfaEnabled: boolean }) {
+export function UserButtons({ userId, status, mfaEnabled, canResetMfa = false }: { userId: string; status: string; mfaEnabled: boolean; canResetMfa?: boolean }) {
   return (
     <div className="flex flex-col items-end gap-2">
-      {mfaEnabled && (
+      {mfaEnabled && canResetMfa && (
         <ActionForm action={adminResetMfaAction.bind(null, userId)} className="flex flex-col items-end gap-1">
-          <ConfirmSubmit className="btn-secondary btn-sm" confirmText="Reset their two-factor login?">Reset 2FA</ConfirmSubmit>
+          {(s) => (<>
+            <label className="sr-only" htmlFor={`mfa-reason-${userId}`}>How was their identity verified?</label>
+            <input id={`mfa-reason-${userId}`} name="reason" className="input py-1 text-xs" minLength={10} maxLength={500} required placeholder="How was their identity verified?" />
+            <FieldError state={s} name="reason" />
+            <ConfirmSubmit className="btn-secondary btn-sm" confirmText="Reset their two-factor login?">Reset 2FA</ConfirmSubmit>
+          </>)}
         </ActionForm>
       )}
       {status === 'active' && (

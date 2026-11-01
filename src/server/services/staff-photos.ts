@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { invalid } from '../errors'
+import { refuseIfInfected } from '../security/file-scan'
 import { getStorage } from '../storage'
 import { type Ctx, run } from './base'
 import { type Crop, processPhoto } from './photos'
@@ -11,6 +12,7 @@ export async function saveStaffPhoto(ctx: Ctx, userId: string, file: File, crop:
   if (!UUID.test(userId)) throw invalid('Unknown staff member.')
   const [p] = await run(ctx, (tx) => tx<{ ok: boolean }[]>`select app.can_change_staff_photo(${userId}) as ok`)
   if (!p?.ok) throw invalid('You cannot change this person\'s photo.')
+  await refuseIfInfected(ctx, Buffer.from(await file.arrayBuffer()), `staff photo ${userId}`)
   const img = await processPhoto(file, crop, 1)
   const storage = await getStorage()
   const base = `staff/${userId}/${randomUUID()}`

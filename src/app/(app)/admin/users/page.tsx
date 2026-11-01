@@ -68,7 +68,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                 </td>
                 <td className="whitespace-nowrap text-xs">{login ? fmtDateTime(login.last_login) : 'Never'}
                   <div className="mt-1">{data.mfa.find((x) => x.user_id === u.id)?.enabled ? <Badge tone="green">2FA on</Badge> : <Badge>2FA off</Badge>}</div></td>
-                <td>{data.administerable.includes(u.id) && <UserButtons userId={u.id} status={u.account_status} mfaEnabled={!!data.mfa.find((x) => x.user_id === u.id)?.enabled} />}</td>
+                <td>{data.administerable.includes(u.id) && <UserButtons userId={u.id} status={u.account_status} mfaEnabled={!!data.mfa.find((x) => x.user_id === u.id)?.enabled} canResetMfa={can(ctx, 'users.mfa_reset')} />}</td>
               </tr>
             )
           })}</tbody>

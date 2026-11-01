@@ -5,7 +5,7 @@ import { ServiceError } from '@/server/errors'
 import * as att from '@/server/services/attestation'
 import * as documents from '@/server/services/documents'
 import * as students from '@/server/services/students'
-import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
+import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin, securityClear } from '../support/helpers'
 beforeAll(async () => { await delegateToSystemAdmin(['attestation.routes.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 
 let EDX: string
@@ -35,6 +35,7 @@ async function approvedDoc(dest = 'BG', edu = 'IN', issued: string | null = 'IN'
   }
   await documents.documentAction(docs, doc.id, 'verify')
   await documents.documentAction(docs, doc.id, 'submit')
+  await securityClear(doc.id)
   await documents.documentAction(mgr, doc.id, 'approve')
   if (issued) await documents.updateDocumentDetails(mgr, doc.id, undefined, undefined, await country(issued))
   return { mgr, docs, studentId: r.id, docId: doc.id }

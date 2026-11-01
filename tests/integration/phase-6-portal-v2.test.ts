@@ -8,7 +8,7 @@ import { checkPasswordLink, setPasswordWithLink } from '@/server/portal'
 import * as documents from '@/server/services/documents'
 import * as pa from '@/server/services/portal-accounts'
 import * as students from '@/server/services/students'
-import { adminSql, as, ctxFor, orgId } from '../support/helpers'
+import { adminSql, as, ctxFor, orgId, securityClear } from '../support/helpers'
 
 let EDX: string
 const rand = () => String(Math.floor(Math.random() * 90000) + 10000)
@@ -111,7 +111,7 @@ describe('publication, notices and payments', () => {
     await documents.uploadDocument(docs, item.id, pdf())
     await expectServiceError(pa.publishDocument(s.mgr, item.id)) // not approved
     for (const q of (await documents.getDocumentReview(docs, item.id))!.requirements.filter((x) => x.is_mandatory)) await documents.recordVerification(docs, item.id, q.id, 'present')
-    await documents.documentAction(docs, item.id, 'verify'); await documents.documentAction(docs, item.id, 'submit'); await documents.documentAction(s.mgr, item.id, 'approve')
+    await documents.documentAction(docs, item.id, 'verify'); await documents.documentAction(docs, item.id, 'submit'); await securityClear(item.id); await documents.documentAction(s.mgr, item.id, 'approve')
     await expectServiceError(pa.publishDocument(await ctxFor('edx.counsellor@demo.test'), item.id)) // no documents.publish
     const pub = await pa.publishDocument(s.mgr, item.id, 'Plus Two (approved copy)')
     const token = `t-${rand()}`

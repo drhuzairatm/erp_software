@@ -54,7 +54,7 @@ describe('MD is the master super-admin and the MD role is locked', () => {
   it('administrators cannot reset the MD\'s password or 2FA, or deactivate the MD', async () => {
     const mdId = await userId('md@demo.test')
     await expectDbError(as('admin@demo.test', (tx) => tx`select app.auth_admin_issue_reset(${mdId}, ${'x'.repeat(64)})`), '42501')
-    await expectDbError(as('admin@demo.test', (tx) => tx`select app.mfa_admin_reset(${mdId})`), '42501')
+    await expectDbError(as('admin@demo.test', (tx) => tx`select app.mfa_admin_reset(${mdId}, 'Identity check attempted (fictional)')`), '42501')
     const r = await as('admin@demo.test', (tx) => tx`update user_profiles set is_active = false where id = ${mdId}`)
     expect(r.count).toBe(0)
     const ceo = await ctxFor('ceo@demo.test')
@@ -224,7 +224,7 @@ describe('two-factor sign-in', () => {
     const md = await ctxFor('md@demo.test')
     await admin.issueResetLink(md, uid) // sanity: MD can administer finance staff
     const { adminResetMfa } = await import('@/server/auth/mfa-service')
-    await adminResetMfa(md, uid)
+    await adminResetMfa(md, uid, 'Identity verified by video call (fictional)')
     const rows = await adminSql()`select 1 from auth_private.mfa where user_id = ${uid}`
     expect(rows).toHaveLength(0)
     const [open] = await adminSql()`select count(*)::int as n from auth_private.sessions where user_id = ${uid} and revoked_at is null`

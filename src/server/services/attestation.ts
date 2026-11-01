@@ -1,5 +1,6 @@
 import { can } from '../auth/context'
 import { forbidden, invalid, notFound } from '../errors'
+import { refuseIfInfected } from '../security/file-scan'
 import { getStorage, MAX_UPLOAD_BYTES, newStorageKey, safeFilename, sha256, sniffMime } from '../storage'
 import { type Ctx, run } from './base'
 import { conditionsFromForm } from './rules'
@@ -224,6 +225,7 @@ export async function uploadStepFile(ctx: Ctx, stepId: string, file: File) {
   if (!mime) throw invalid('Only PDF, JPEG, PNG or WebP files are accepted.')
   const [t] = await run(ctx, (tx) => tx<{ student_id: string; org_id: string }[]>`select * from app.attestation_file_target(${stepId})`)
   if (!t) throw forbidden()
+  await refuseIfInfected(ctx, buf, `attestation step ${stepId}`)
   const storage = await getStorage()
   const key = newStorageKey(t.org_id, t.student_id)
   await storage.put(key, buf, mime)

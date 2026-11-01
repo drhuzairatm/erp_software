@@ -1,4 +1,5 @@
 import { invalid, notFound } from '../errors'
+import { QUARANTINE_MESSAGE, scanAndRecord } from '../security/file-scan'
 import { getStorage, MAX_UPLOAD_BYTES, newStorageKey, safeFilename, sha256, SIGNED_URL_TTL_SECONDS, sniffMime } from '../storage'
 import { CUSTODY_LOCATIONS } from '../validation'
 import { type Ctx, run } from './base'
@@ -11,7 +12,7 @@ export interface ChecklistItem {
   issuing_country_id: string | null; issuing_country: string | null; requirement_source: string
   verifier_name: string | null; approver_name: string | null; approved_at: Date | null; current_mime: string | null
   attestation_state: string | null; attestation_done: number | null; attestation_total: number | null
-  current_filename: string | null; uploaded_at: Date | null; uploader_name: string | null
+  current_filename: string | null; uploaded_at: Date | null; uploader_name: string | null; scan_status: string | null
 }
 
 export async function getChecklist(ctx: Ctx, studentId: string) {
@@ -22,7 +23,7 @@ export async function getChecklist(ctx: Ctx, studentId: string) {
              case when d.status = 'approved' and d.expiry_date is not null and d.expiry_date < current_date then 'expired' else d.status end as effective_status,
              d.expiry_date, d.rejection_reason, d.reviewed_at, ru.full_name as reviewer_name, d.original_location, d.location_note,
              d.third_party_ref, d.notes, d.current_file_id, f.version as current_version, f.original_filename as current_filename,
-             f.uploaded_at, coalesce(uu.full_name, case when f.id is not null then 'Student (portal)' end) as uploader_name, d.issuing_country_id, ic.name as issuing_country, d.requirement_source,
+             f.uploaded_at, f.scan_status, coalesce(uu.full_name, case when f.id is not null then 'Student (portal)' end) as uploader_name, d.issuing_country_id, ic.name as issuing_country, d.requirement_source,
              vu.full_name as verifier_name, au.full_name as approver_name, d.approved_at, f.mime_type as current_mime,
              att.state as attestation_state, att.done as attestation_done, att.total as attestation_total
         from student_documents d
@@ -96,6 +97,9 @@ export async function uploadDocument(ctx: Ctx, documentId: string, file: File) {
     await storage.remove(key).catch(() => {})
     throw e
   }
+  // 4) virus scan (when configured); an infected file stays stored for evidence but is quarantined
+  const scan = await scanAndRecord(key, buf)
+  if (scan?.status === 'infected') throw invalid(QUARANTINE_MESSAGE)
 }
 
 export const DOCUMENT_ACTIONS = ['start_review', 'verify', 'submit', 'approve', 'request_changes', 'reject', 'expire'] as const
@@ -135,9 +139,14 @@ export async function getDocumentReview(ctx: Ctx, documentId: string, fileId?: s
         left join user_profiles au on au.id = d.approved_by
        where d.id = ${documentId}`
     if (!doc) return null
-    const files = await tx<{ id: string; version: number; original_filename: string; mime_type: string; size_bytes: number; uploaded_at: Date; uploader: string | null }[]>`
-      select f.id, f.version, f.original_filename, f.mime_type, f.size_bytes, f.uploaded_at, coalesce(u.full_name, 'Student (portal)') as uploader
-        from document_files f left join user_profiles u on u.id = f.uploaded_by where f.student_document_id = ${documentId} order by f.version desc`
+    const files = await tx<{ id: string; version: number; original_filename: string; mime_type: string; size_bytes: number; uploaded_at: Date; uploader: string | null
+      uploaded_by: string | null; scan_status: string; scan_engine: string | null; scan_detail: string | null; scanned_at: Date | null
+      cleared_at: Date | null; cleared_by_name: string | null; clearance_reason: string | null }[]>`
+      select f.id, f.version, f.original_filename, f.mime_type, f.size_bytes, f.uploaded_at, coalesce(u.full_name, 'Student (portal)') as uploader,
+             f.uploaded_by, f.scan_status, f.scan_engine, f.scan_detail, f.scanned_at, f.cleared_at, cu.full_name as cleared_by_name, f.clearance_reason
+        from document_files f left join user_profiles u on u.id = f.uploaded_by left join user_profiles cu on cu.id = f.cleared_by
+       where f.student_document_id = ${documentId} order by f.version desc`
+    const [{ can_clear }] = await tx<{ can_clear: boolean }[]>`select app.can_on_student(${doc.student_id}, 'documents.security_clear') as can_clear`
     const viewFile = files.find((f) => f.id === fileId) ?? files[0] ?? null
     const requirements = await tx<ReviewRequirement[]>`
       select q.id, q.rule_id, r.name as rule_name, r.version as rule_version, q.kind, q.text, q.keywords, q.is_mandatory, q.guidance,
@@ -169,7 +178,7 @@ export async function getDocumentReview(ctx: Ctx, documentId: string, fileId?: s
                app.can_on_student(${doc.student_id}, 'documents.download') as download`,
     ])
     const unmet = requirements.filter((r) => r.is_mandatory && r.latest_result !== 'present').length
-    return { doc, destination: (doc as unknown as { destination: string | null }).destination, files, viewFile, requirements, unmet, verifications, reviews, annotations, perms: perms[0], me: ctx.userId }
+    return { doc, destination: (doc as unknown as { destination: string | null }).destination, files, viewFile, canClear: can_clear, requirements, unmet, verifications, reviews, annotations, perms: perms[0], me: ctx.userId }
   })
 }
 

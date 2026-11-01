@@ -75,9 +75,9 @@ export async function finishMfaAction(_: ActionResult, fd: FormData): Promise<Ac
   return runAction(async () => ({ ok: true, message: 'Two-factor login is now on.', data: { codes: await finishEnrolment(ctx, String(fd.get('code') ?? '')) } }))
 }
 
-export async function adminResetMfaAction(userId: string, _: ActionResult): Promise<ActionResult> {
+export async function adminResetMfaAction(userId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
   const ctx = await requireUser()
-  return runAction(async () => { await adminResetMfa(ctx, userId) }, 'Two-factor login reset. The person must set it up again at their next sign-in; their sessions were ended.')
+  return runAction(async () => { await adminResetMfa(ctx, userId, String(fd.get('reason') ?? '')) }, 'Two-factor login reset. The person must set it up again at their next sign-in; their sessions were ended.')
 }
 
 export async function acceptInvitationAction(_: ActionResult, fd: FormData): Promise<ActionResult> {

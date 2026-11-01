@@ -1,4 +1,5 @@
 import 'server-only'
+import { QUARANTINE_MESSAGE, scanAndRecord } from './security/file-scan'
 import { createHmac, randomBytes, randomInt } from 'node:crypto'
 import { cookies, headers } from 'next/headers'
 import { anonymous } from './db'
@@ -121,6 +122,8 @@ export async function portalUpload(documentId: string, file: File) {
     await storage.remove(key).catch(() => {})
     throw e
   }
+  const scan = await scanAndRecord(key, buf)
+  if (scan?.status === 'infected') throw invalid(QUARANTINE_MESSAGE)
 }
 
 // ---------------------------------------------------------------- originals by courier

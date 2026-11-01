@@ -55,9 +55,15 @@ describe('enforcement setting', () => {
     process.env.MFA_ENFORCE = 'off'
     expect(mfaRequired([true])).toBe(false)
   })
-  it('"off" is ignored in production builds', () => {
-    process.env.MFA_ENFORCE = 'off'
+  it('default is every user; production always requires it for everyone, whatever the setting', () => {
+    delete process.env.MFA_ENFORCE
+    expect(mfaRequired([false])).toBe(true)
     ;(process.env as Record<string, string>).NODE_ENV = 'production'
-    expect(mfaRequired([true])).toBe(true)
+    for (const mode of ['off', 'roles', 'all', 'anything']) {
+      process.env.MFA_ENFORCE = mode
+      process.env.ALLOW_MFA_OFF_IN_PRODUCTION = 'true' // the old escape hatch no longer exists
+      expect(mfaRequired([false])).toBe(true)
+      expect(mfaRequired([true])).toBe(true)
+    }
   })
 })

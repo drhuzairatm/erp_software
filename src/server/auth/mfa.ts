@@ -129,12 +129,15 @@ export function hashRecoveryCode(code: string) {
   return createHash('sha256').update(normaliseRecoveryCode(code)).digest('hex')
 }
 
-/** Is two-factor login required for a user with these roles? (MFA_ENFORCE: roles | all | off) */
+/**
+ * Is two-factor login required? MD decision (1 Nov 2026): YES for every staff user.
+ * Production builds always require it – no setting, flag or role can switch it off.
+ * Only local development/automated-test environments may relax it with MFA_ENFORCE=roles|off.
+ */
 export function mfaRequired(roleFlags: boolean[]): boolean {
-  let mode = process.env.MFA_ENFORCE ?? 'roles'
-  // "off" is only honoured outside production builds (local demo/testing).
-  if (mode === 'off' && process.env.NODE_ENV === 'production' && process.env.ALLOW_MFA_OFF_IN_PRODUCTION !== 'true') mode = 'roles'
+  if (process.env.NODE_ENV === 'production') return true
+  const mode = process.env.MFA_ENFORCE ?? 'all'
   if (mode === 'off') return false
-  if (mode === 'all') return true
-  return roleFlags.some(Boolean)
+  if (mode === 'roles') return roleFlags.some(Boolean)
+  return true
 }

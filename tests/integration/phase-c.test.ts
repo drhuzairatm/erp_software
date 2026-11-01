@@ -5,7 +5,7 @@ import { ServiceError } from '@/server/errors'
 import * as documents from '@/server/services/documents'
 import * as students from '@/server/services/students'
 import * as rules from '@/server/services/verification-rules'
-import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
+import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin, securityClear } from '../support/helpers'
 beforeAll(async () => { await delegateToSystemAdmin(['verification.rules.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 
 let EDX: string
@@ -88,6 +88,7 @@ describe('verify → submit → approval by a different person', () => {
     }
     await documents.documentAction(ctx.docs, ctx.docId, 'verify')
     await documents.documentAction(ctx.docs, ctx.docId, 'submit')
+    await securityClear(ctx.docId)
     return ctx
   }
 
@@ -101,6 +102,7 @@ describe('verify → submit → approval by a different person', () => {
     }
     await documents.documentAction(mgr, other.docId, 'verify')
     await documents.documentAction(mgr, other.docId, 'submit')
+    await securityClear(other.docId)
     await expectServiceError(documents.documentAction(mgr, other.docId, 'approve'), 'forbidden')
     // the other demo approver (MD) can
     await documents.documentAction(await ctxFor('md@demo.test'), other.docId, 'approve')

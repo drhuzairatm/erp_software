@@ -57,6 +57,7 @@ try {
       const key = newStorageKey(orgs[p.org], id)
       await storage.put(key, buf, 'application/pdf')
       await as(docsUser, (tx) => tx`select app.register_document_file(${d.id}, ${key}, ${d.key + '.pdf'}, 'application/pdf', ${buf.length}, ${sha256(buf)})`)
+      await as(md, (tx) => tx`select app.clear_file_manually((select current_file_id from student_documents where id = ${d.id}), 'Fictional demo file created by the demo script – NOT virus-scanned (demo data only)')`)
       for (const q of await as(docsUser, (tx) => tx<{ requirement_id: string }[]>`select requirement_id from app.unmet_requirements(${d.id})`)) {
         await as(docsUser, (tx) => tx`select app.record_verification(${d.id}, ${q.requirement_id}, 'present', null, null)`)
       }

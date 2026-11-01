@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { processQueue } from '@/server/notifications/dispatcher'
+import { emailSecurityAlerts } from '@/server/security/jobs'
 
 /**
  * Scheduled sender (e.g. Vercel Cron every minute). Requires
@@ -12,5 +13,6 @@ export async function GET(req: Request) {
     return new NextResponse('Not found', { status: 404 })
   }
   const result = await processQueue(100)
-  return NextResponse.json(result, { headers: { 'Cache-Control': 'no-store' } })
+  const securityAlerts = await emailSecurityAlerts().catch(() => ({ emailed: 0, reason: 'error' }))
+  return NextResponse.json({ ...result, securityAlerts }, { headers: { 'Cache-Control': 'no-store' } })
 }

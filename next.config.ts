@@ -2,26 +2,9 @@ import type { NextConfig } from 'next'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
-// Content Security Policy. 'unsafe-inline' for scripts is required by Next.js
-// hydration without a nonce setup; everything else is locked to our own origin.
-const csp = [
-  "default-src 'self'",
-  // 'wasm-unsafe-eval' lets the in-app PDF viewer use its bundled image decoders (served from our own origin)
-  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  // live camera preview (MediaStream) and captured image previews
-  "media-src 'self' blob: mediastream:",
-  "font-src 'self' data:",
-  "connect-src 'self'" + (isDev ? ' ws: wss:' : ''),
-  "frame-ancestors 'none'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join('; ')
-
+// Content-Security-Policy: pages get a strict, nonce-based policy from src/proxy.ts (no inline scripts);
+// API routes that serve files set their own restrictive policy (default-src 'none', sandbox).
 const securityHeaders = [
-  { key: 'Content-Security-Policy', value: csp },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

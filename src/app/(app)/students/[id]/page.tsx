@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { fmtDate, fmtDateTime, fmtMoney, label, todayISO } from '@/components/format'
 import { Alert, Avatar, Badge, Card, DL, DemoBadge, EmptyState, PriorityBadge, StatusBadge, staffPhotoUrl } from '@/components/ui'
 import { can } from '@/server/auth/context'
+import { ScanBadge } from '@/components/scan-badge'
 import { requireUser } from '@/server/auth/session'
 import { staffPhotoVersions } from '@/server/services/staff-photos'
 import { getChecklist } from '@/server/services/documents'
@@ -335,6 +336,7 @@ async function Documents({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }
                         {d.requirement_source === 'university' && <> <Badge tone="purple">University requirement</Badge></>}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
                         <StatusBadge status={d.effective_status} />
+                        {d.current_version && d.scan_status !== 'clean' && <ScanBadge status={d.scan_status} />}
                         {d.current_version && <span>v{d.current_version} · uploaded {fmtDateTime(d.uploaded_at)} by {d.uploader_name}</span>}
                         {d.reviewed_at && <span>· reviewed by {d.reviewer_name} {fmtDateTime(d.reviewed_at)}</span>}
                         {d.expiry_date && <span>· expires {fmtDate(d.expiry_date)}</span>}

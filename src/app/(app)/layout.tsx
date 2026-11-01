@@ -5,6 +5,7 @@ import { BrandMark } from '@/components/brand-mark'
 import { Icon } from '@/components/icons'
 import { BRANDS, brandOf } from '@/lib/brands'
 import { can, canAny } from '@/server/auth/context'
+import { openAlertCounts } from '@/server/services/security'
 import { requireUser } from '@/server/auth/session'
 import { staffPhotoVersions } from '@/server/services/staff-photos'
 import { getNotifications } from '@/server/services/dashboard'
@@ -42,6 +43,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (canAny(ctx, ['verification.rules.manage', 'verification.rules.approve', 'attestation.routes.manage', 'attestation.routes.approve', 'passport.rules.manage', 'academic.rules.manage', 'universities.manage'])) add('Rules & compliance', '/admin/rule-tester', 'Rule tester', 'check')
   if (can(ctx, 'notifications.manage')) add('Administration', '/admin/notifications', 'Notification settings', 'bell')
   if (can(ctx, 'audit.read')) add('Administration', '/audit', 'Audit log', 'audit')
+  const alerts = await openAlertCounts(ctx).catch(() => null)
+  if (alerts) add('Administration', '/admin/security', alerts.total ? `Security alerts (${alerts.total})` : 'Security alerts', 'shield')
 
   const scopeOptions = [
     ...(ctx.memberships.length > 1 ? [{ value: 'all', label: 'All my companies' }] : []),
@@ -115,7 +118,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <main id="main" className="mx-auto max-w-[1400px] px-4 py-6 lg:px-8 lg:py-8">
           {ctx.mfaSetupRequired && (
             <p role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
-              Two-factor login is required for your role. <Link href="/account/security?required=1">Set it up now</Link> to continue.
+              Two-factor login is required for every staff account. <Link href="/account/security?required=1">Set it up now</Link> to continue.
+            </p>
+          )}
+          {alerts && alerts.urgent > 0 && (
+            <p role="alert" className="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-900">
+              {alerts.urgent} high or critical security alert{alerts.urgent === 1 ? '' : 's'} need{alerts.urgent === 1 ? 's' : ''} review. <Link href="/admin/security">Open security alerts</Link>
             </p>
           )}
           {ctx.memberships.length === 0 ? (

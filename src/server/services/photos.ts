@@ -1,5 +1,6 @@
 import sharp from 'sharp'
 import { invalid } from '../errors'
+import { refuseIfInfected } from '../security/file-scan'
 import { getStorage, newStorageKey, safeFilename, sniffMime, SIGNED_URL_TTL_SECONDS } from '../storage'
 import { type Ctx, run } from './base'
 
@@ -68,6 +69,7 @@ export async function saveStudentPhoto(ctx: Ctx, studentId: string, file: File, 
   const [s] = await run(ctx, (tx) => tx<{ org: string; can: boolean }[]>`
     select originating_org_id as org, app.can_on_student(${studentId}, 'students.update') as can from v_students where id = ${studentId}`)
   if (!s?.can) throw invalid('You cannot change this student\'s photo.')
+  await refuseIfInfected(ctx, Buffer.from(await file.arrayBuffer()), `student photo ${studentId}`)
   const p = await processPhoto(file, crop)
   const storage = await getStorage()
   const base = newStorageKey(s.org, studentId)

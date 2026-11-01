@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { adminDb, login } from './helpers'
+import { adminDb, login, securityClearAsMd } from './helpers'
 
 const admin = adminDb()
 test.afterAll(async () => { await admin.end() })
@@ -16,6 +16,7 @@ test('scan → approval → courier: address released only after approval; stude
   test.skip(!s, 'no demo student with an approved scan left (dev database is not reset)')
   const [addr] = await admin`select 1 from courier_addresses where is_active and org_id = (select id from organizations where code = 'EDX')`
   test.skip(!addr, 'no delivery address configured (run npm run demo:courier)')
+  await securityClearAsMd(admin, s.doc_id) // courier release needs a clean scan or manual clearance
 
   await login(page, 'edx.manager@demo.test')
   await page.getByLabel('Company').selectOption({ label: 'Dr.Expert Edulinks' })

@@ -5,6 +5,8 @@ import { fmtDate, fmtDateTime, label } from '@/components/format'
 import { Avatar, Badge, Card, DL, PageHeader, staffPhotoUrl } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { getStaffMember } from '@/server/services/admin'
+import { loginActivity } from '@/server/services/security'
+import { LoginActivity } from '@/components/login-activity'
 import { InvitationButtons, ReassignTasksForm, ReportingManagerForm, SignOutEverywhereButton, StaffDetailsForm, StaffPhotoForm, StaffStatusForm } from '../../admin-forms'
 import { StatusBadge } from '../status-badge'
 
@@ -15,6 +17,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
   const ctx = await requireUser()
   const data = await getStaffMember(ctx, id)
   if (!data) notFound()
+  const activity = await loginActivity(ctx, id, 50)
   const { user: u } = data
   const big = u.photo_version ? `/api/staff/${u.id}/photo?size=display&v=${u.photo_version}` : null
   return (
@@ -63,6 +66,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
               <p className="hint mt-2">Each task keeps its history, including the previous owner and who reassigned it. <Link href={`/tasks?assignee=${u.id}`}>View tasks</Link></p>
             </Card>
           )}
+          {activity && <LoginActivity data={activity} />}
           <Card title="Company access and role" padded={false}>
             <div className="table-wrap"><table>
               <thead><tr><th>Company</th><th>Role</th><th>Department</th><th>Status</th></tr></thead>

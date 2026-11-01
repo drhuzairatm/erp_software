@@ -347,6 +347,8 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
         fileCount++
         const uploader = s.plan.org === 'GRD' && j % 2 ? s.counsellor : reviewer
         await as(sql, U(uploader), (tx) => tx`select app.register_document_file(${d.id}, ${key}, ${d.key + '.pdf'}, 'application/pdf', ${buf.length}, ${sha256(buf)})`)
+        // demo only: no virus scanner here, so the demo MD records a MANUAL clearance (shown as "Manually cleared", never as scanned)
+        await as(sql, U('md@demo.test'), (tx) => tx`select app.clear_file_manually((select current_file_id from student_documents where id = ${d.id}), 'Fictional demo file created by the seed script – NOT virus-scanned (demo data only)')`)
         const roll = rand()
         const approver = managers.EDX // central processing manager approves (never the verifier)
         if (stageIndex >= 4 || roll < 0.5) {

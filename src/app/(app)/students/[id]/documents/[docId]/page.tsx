@@ -7,6 +7,7 @@ import { requireUser } from '@/server/auth/session'
 import { getDocumentReview } from '@/server/services/documents'
 import { AttestationPanel } from './attestation-panel'
 import { ReviewWorkspace } from './review-workspace'
+import { ScanPanel } from './scan-panel'
 
 export const metadata: Metadata = { title: 'Document review' }
 
@@ -55,7 +56,7 @@ export default async function DocumentReviewPage({ params, searchParams }: { par
           {doc.approver_name && doc.status === 'approved' && <span>Approved by {doc.approver_name}</span>}
           {doc.rejection_reason && <span className="text-red-700">Reason: {doc.rejection_reason}</span>}
         </span>}
-        actions={r.perms.download && r.viewFile && <a className="btn-secondary" href={`/api/files/${r.viewFile.id}`} target="_blank" rel="noopener noreferrer">Download original</a>} />
+        actions={r.perms.download && r.viewFile && r.viewFile.scan_status !== 'infected' && <a className="btn-secondary" href={`/api/files/${r.viewFile.id}`} target="_blank" rel="noopener noreferrer">Download original</a>} />
 
       <ReviewFlow status={doc.status} />
 
@@ -74,11 +75,14 @@ export default async function DocumentReviewPage({ params, searchParams }: { par
               ))}
             </nav>
           )}
-          <ReviewWorkspace studentId={id} docId={docId} status={doc.status}
+          {r.viewFile && <ScanPanel file={r.viewFile} canClear={r.canClear} me={ctx.userId} />}
+          {r.viewFile?.scan_status === 'infected' ? (
+            <Card><p className="text-sm text-red-800">This file is quarantined: the virus scanner found a threat. It cannot be opened, downloaded, approved or sent by courier. Ask for a clean copy.</p></Card>
+          ) : <ReviewWorkspace studentId={id} docId={docId} status={doc.status}
             file={r.viewFile && { id: r.viewFile.id, version: r.viewFile.version, mime_type: r.viewFile.mime_type, original_filename: r.viewFile.original_filename }}
             isCurrentFile={!!r.viewFile && r.viewFile.id === doc.current_file_id}
             requirements={r.requirements} annotations={r.annotations} perms={r.perms} me={r.me}
-            verifiedBy={doc.verified_by} submittedBy={doc.submitted_by} unmet={r.unmet} />
+            verifiedBy={doc.verified_by} submittedBy={doc.submitted_by} unmet={r.unmet} />}
         </>
       )}
 

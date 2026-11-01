@@ -5,7 +5,7 @@ import { ServiceError } from '@/server/errors'
 import * as courier from '@/server/services/courier'
 import * as documents from '@/server/services/documents'
 import * as students from '@/server/services/students'
-import { adminSql, ctxFor, expectDbError, orgId } from '../support/helpers'
+import { adminSql, ctxFor, expectDbError, orgId, securityClear } from '../support/helpers'
 
 let EDX: string; let GRD: string
 const rand = () => String(Math.floor(Math.random() * 90000) + 10000)
@@ -40,6 +40,7 @@ async function setup() {
   }
   await documents.documentAction(docs, plusTwo.id, 'verify')
   await documents.documentAction(docs, plusTwo.id, 'submit')
+  await securityClear(plusTwo.id)
   await documents.documentAction(mgr, plusTwo.id, 'approve')
   return { mgr, docs, studentId: r.id, approved: plusTwo.id, notApproved: passport.id }
 }

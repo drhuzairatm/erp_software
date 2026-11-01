@@ -60,6 +60,8 @@ export async function finishEnrolment(ctx: Ctx, code: string): Promise<string[]>
   }, { ip: ctx.ip })
 }
 
-export async function adminResetMfa(ctx: Ctx, userId: string) {
-  return run(ctx, (tx) => tx`select app.mfa_admin_reset(${userId})`)
+/** Reset someone's 2FA (lost phone): needs users.mfa_reset (MD by default) and a note of how their identity was verified. */
+export async function adminResetMfa(ctx: Ctx, userId: string, reason: string) {
+  if ((reason ?? '').trim().length < 10) throw invalid('Record how the person\'s identity was verified (at least 10 characters).', { reason: ['At least 10 characters.'] })
+  return run(ctx, (tx) => tx`select app.mfa_admin_reset(${userId}, ${reason.trim()})`)
 }

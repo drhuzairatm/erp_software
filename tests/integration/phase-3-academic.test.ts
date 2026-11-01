@@ -6,7 +6,7 @@ import * as ac from '@/server/services/academic'
 import * as documents from '@/server/services/documents'
 import * as pp from '@/server/services/passport'
 import * as students from '@/server/services/students'
-import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
+import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin, securityClear } from '../support/helpers'
 beforeAll(async () => { await delegateToSystemAdmin(['academic.rules.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 
 let EDX: string
@@ -176,6 +176,7 @@ describe('One and Same workflow', () => {
     await documents.documentAction(docs, item.id, 'verify')
     expect((await ac.getAcademic(ctx, id))!.checks[0].case_status).toBe('verified')
     await documents.documentAction(docs, item.id, 'submit')
+    await securityClear(item.id)
     await documents.documentAction(mgr, item.id, 'approve')
     expect((await ac.getAcademic(ctx, id))!.checks[0].case_status).toBe('approved')
     await adminSql()`update one_and_same_rules set is_active = false where name like 'Test mandatory surname%'`
