@@ -57,6 +57,51 @@ close to your users and compliant with your requirements (e.g. Mumbai `ap-south-
 4. Deploy, then add your domain (e.g. `staff.yourcompany.com`) and confirm HTTPS.
 5. Optional: enable Vercel Firewall rate limiting for `/login` and `/forgot-password`.
 
+## 3a. Client address and reverse proxy (`TRUST_PROXY`)
+
+**Why it matters:** the client address feeds the per-address sign-in limit (30 failures in 15 minutes), the portal-code limit (20 per hour), the "many failed sign-ins from one address" alert and the audit log. Headers like `X-Forwarded-For` can be typed by anyone, so the app believes **only** the header that **your own proxy sets**, and only when `TRUST_PROXY` says so (`src/lib/client-ip.ts`). Values that are not valid IPv4/IPv6 addresses are discarded.
+
+**If `TRUST_PROXY` is not set (or the app is reached directly):**
+- No forwarding header is trusted, and the address is **unknown**.
+- Per-address limits are skipped.
+- Per-email and per-identifier limits (5 failures / 5 codes) still apply.
+- Audit records store no address. An address is never invented.
+
+### Hostinger VPS (Nginx or Caddy in front of `next start` on 127.0.0.1:3000)
+1. **Bind the app to localhost only** (`next start -H 127.0.0.1 -p 3000`) and block port 3000 in the firewall. Otherwise someone could bypass the proxy and send any header.
+2. **Make the proxy overwrite the header with the real connecting address:**
+   - **Nginx:**
+     ```nginx
+     location / {
+       proxy_pass http://127.0.0.1:3000;
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;      # replaces anything the client sent
+       proxy_set_header X-Forwarded-For $remote_addr; # do NOT use $proxy_add_x_forwarded_for here
+       proxy_set_header X-Forwarded-Proto $scheme;
+     }
+     ```
+   - **Caddy:**
+     ```caddy
+     erp.example.com {
+       reverse_proxy 127.0.0.1:3000 {
+         header_up X-Real-IP {remote_host}
+       }
+     }
+     ```
+3. **Set** `TRUST_PROXY=x-real-ip`.
+4. **If a CDN or WAF** (e.g. Cloudflare) sits in front of the VPS:
+   - **Nginx:** use its real-IP module, restricted to the CDN's published address ranges, so `$remote_addr` becomes the visitor's address.
+   - **Otherwise:** keep `TRUST_PROXY=none`.
+5. **Verify on staging:** sign in once with a wrong password, then check *Sign-in activity* or the audit log. It must show your real public address. Sending a fake `X-Forwarded-For` / `X-Real-IP` header from your computer must **not** change it. **(Not yet verified: no VPS exists.)**
+
+### Vercel
+- **Setting:** `TRUST_PROXY=vercel` (reads `X-Real-IP`, which the platform sets).
+- **Verification:** **requires external validation** on the real deployment, with the same test as step 5 above.
+
+### Own proxy that appends to X-Forwarded-For
+- **Setting:** `TRUST_PROXY=xff-last` with `TRUSTED_PROXY_HOPS` = the number of your own proxies.
+- **Which entry is used:** the right-most entry, the one your proxy added. The client-supplied left part is never used.
+
 ## 4. First administrator
 
 From your computer, with `DATABASE_ADMIN_URL` and `APP_URL` pointing at the target environment:

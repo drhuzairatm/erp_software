@@ -72,7 +72,7 @@
   | **Virus-scanned: clean** | Checked by the scanner. |
   | **Not virus-scanned** / **Virus scan failed** | Cannot be approved or sent by courier until scanned or manually cleared. |
   | **Manually cleared (not scanned)** | An authorised person released it after checking. This is **not** a virus scan. |
-  | **Infected – quarantined** | Blocked. Nobody can open, download, approve or send it. Ask the student for a clean copy. |
+  | **Infected – quarantined** | Blocked everywhere: the viewer, downloads, the student portal, approval and courier all refuse it, even for the MD. Ask the student for a clean copy. |
 
 - **Manual clearance is restricted:** only people the MD has authorised (the MD by default) can give it. Never the person who uploaded the file. A reason is always required, and every clearance is reported to the MD. Do not ask anyone to clear a file to "save time".
 - Open documents in the **built-in viewer**. Do not download files unless your work requires it; downloads are recorded, and unusual volumes alert the MD.

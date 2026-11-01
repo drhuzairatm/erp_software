@@ -94,7 +94,7 @@
 **Detect:**
 - a complaint
 - audit log: a person viewing or downloading students outside their work
-- alerts: bulk downloads, large export, role/company access changed
+- alerts: bulk document views/downloads, bulk portal downloads, large export, role/company access changed
 
 **Contain:**
 - suspend the account if misuse is likely
@@ -132,7 +132,7 @@
 **Note:** without a scanner there is no automatic detection. This is why manual clearance is restricted and alerted.
 
 ### 4.5 Unauthorised or excessive document downloads
-**Detect:** high alert "Unusually many document downloads by one person"; audit log of file downloads.
+**Detect:** high alert "Unusually many document views or downloads by one person", or "Unusually many document downloads through one student portal account"; audit log of file views (`file_access`), downloads (`file_download`) and portal downloads (`portal_download`).
 
 **Contain:** suspend the account if the activity is not explained by work (ask the manager first if possible).
 

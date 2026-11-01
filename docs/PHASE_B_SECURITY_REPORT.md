@@ -26,7 +26,7 @@ Phase C has not started.
   - **Permission:** only with the new permission `documents.security_clear` (MD by default; delegable).
   - **Rules:** a reason is required (10+ characters); the clearer cannot be the uploader; infected files can never be cleared.
   - **Record:** the audit log stores who, when and the reason, plus the note "MANUAL clearance – not an automated virus scan", and an alert is raised.
-- **Quarantine:** an infected file is kept for evidence but can never be downloaded, previewed, merged, published to the portal, approved, cleared or sent by courier. Every blocked attempt is audited, and a **critical** alert is raised. A later scan cannot turn "infected" back into "clean".
+- **Quarantine:** an infected file is kept for evidence but can never be downloaded, previewed, merged, published to the portal, approved, cleared or sent by courier. **Correction:** when this report was written, the in-app viewer (`/api/files/{id}/content` → `app.authorize_file_access`) did **not** check the scan status, so this sentence was overstated (audit finding H-1). The viewer was fixed in the audit remediation of 1 Nov 2026 (migration 0034, not yet committed) and is tested in `tests/integration/audit-remediation.test.ts`.. Every blocked attempt is audited, and a **critical** alert is raised. A later scan cannot turn "infected" back into "clean".
 - **Daily re-scan:** once a scanner is configured, the daily job scans files stored earlier, including manually cleared ones.
 - **Staff/student photos and attestation evidence:** scanned on upload when a scanner is configured; an infected file is refused and never stored (audited and alerted). Photos are always re-encoded before display.
 - **Screens:** the document review page shows the scan status panel and the manual-clearance form (only for permitted users). The student's document checklist shows a badge for any file that is not scanned-clean. Quarantined files are not shown in the viewer.
@@ -48,7 +48,8 @@ Phase C has not started.
 | Large export | 500+ rows | high |
 | Frequent exports | 10+ in an hour by one person | warning |
 | Export refused | every refusal | warning |
-| Bulk document downloads | 100+ in an hour by one person | high |
+| Bulk document access | 100+ views **or** downloads in an hour by one person (views added in the audit remediation of 1 Nov 2026 (migration 0034, not yet committed); originally downloads only, finding M-2) | high |
+| Bulk portal downloads | 100+ downloads in an hour through one student portal account (added in the same remediation) | high |
 | Malware detected | every infected upload | critical |
 | Manual security clearance | grouped per person | info |
 | Staff account status changed | every change | info |
@@ -166,3 +167,9 @@ Together with the existing log, these cover sign-ins, exports, downloads, permis
 - **Rate limits:** login rate limiting is per database, not at the network edge (a WAF at the host is recommended).
 - **Recovery codes:** users cannot regenerate them themselves; when they run out, the MD-verified reset is the path.
 - **Not done:** backup restore not yet tested (Phase C); no independent penetration test; legal (DPDP) review pending.
+
+## Post-audit corrections (audit remediation of 1 Nov 2026 (migration 0034, not yet committed))
+- **H-1:** quarantine was not enforced by the in-app viewer. It is now enforced there too (migration 0034).
+- **M-2:** the bulk-access alert now counts in-app views and portal downloads, not only staff downloads.
+- **M-1:** client addresses came from the client-controlled first `X-Forwarded-For` entry. They are now taken only from the trusted proxy configured in `TRUST_PROXY` (see DEPLOYMENT.md §3a). An unknown address no longer shares one rate-limit bucket.
+- **Evidence:** the tests are listed in SECURITY_EVIDENCE_REGISTER.md (E-X1…X4).

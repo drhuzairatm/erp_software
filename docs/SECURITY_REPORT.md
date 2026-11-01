@@ -25,7 +25,7 @@
 
 - **Passwords**: Argon2id (19 MiB, t=2); min 12 chars with 3 character classes; hashes live in
   `auth_private` and are only reachable through narrow functions.
-- **Login protection**: 5 failed attempts per email / 30 per IP in 15 minutes → temporary block; generic
+- **Login protection**: 5 failed attempts per email / 30 per IP in 15 minutes → temporary block (the IP comes only from the trusted proxy set in `TRUST_PROXY`; unknown IP = per-IP limit skipped, see DEPLOYMENT.md §3a); generic
   error messages; constant-time-ish verification for unknown accounts; all attempts audited.
 - **Two-factor login**: TOTP (RFC 6238) via authenticator apps; secrets encrypted with AES-256-GCM using a key held outside the database (`MFA_ENCRYPTION_KEY`); codes cannot be replayed; 10 single-use recovery codes stored hashed; 5 wrong codes cancel the sign-in; a password-only session cannot use any page or API until the code is entered. **Required for every user** (MD decision, Phase B); production builds always enforce it. Resets only with `users.mfa_reset` (MD by default) and a note of how identity was verified.
 - **Sessions**: random 256-bit tokens, only SHA-256 hash stored; httpOnly + SameSite=Lax (+ Secure and

@@ -7,6 +7,7 @@ import { type AuthContext, loadMemberships } from './context'
 import { mfaRequired } from './mfa'
 import { getDummyHash, verifyPassword } from './password'
 import { hashToken, newTokenValue } from './tokens'
+import { resolveClientIp } from '@/lib/client-ip'
 
 const SESSION_TTL_HOURS = 12
 const MAX_FAILURES_PER_EMAIL = 5
@@ -16,10 +17,9 @@ export const SESSION_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-er
 
 export { hashToken }
 
+/** Client address from a header set by the TRUSTED proxy only (TRUST_PROXY; see src/lib/client-ip.ts). null = unknown. */
 export async function clientIp(): Promise<string | null> {
-  const h = await headers()
-  const fwd = h.get('x-forwarded-for')
-  return (fwd ? fwd.split(',')[0].trim() : h.get('x-real-ip')) || null
+  return resolveClientIp(await headers())
 }
 
 export type LoginResult = { ok: true; mustChangePassword: boolean; mfaPending: boolean } | { ok: false; message: string }
@@ -29,22 +29,22 @@ export async function login(email: string, password: string): Promise<LoginResul
   const h = await headers()
   const generic = { ok: false as const, message: 'Incorrect email or password.' }
   return anonymous(async (tx) => {
-    const [rate] = await tx<{ email_failures: number; ip_failures: number }[]>`select * from app.auth_recent_failures(${email}, ${ip ?? ''})`
+    const [rate] = await tx<{ email_failures: number; ip_failures: number }[]>`select * from app.auth_recent_failures(${email}, ${ip})`
     if (rate.email_failures >= MAX_FAILURES_PER_EMAIL || rate.ip_failures >= MAX_FAILURES_PER_IP) {
-      await tx`select app.auth_record_attempt(${email}, ${ip ?? ''}, false, null)`
+      await tx`select app.auth_record_attempt(${email}, ${ip}, false, null)`
       return { ok: false as const, message: 'Too many failed attempts. Please wait 15 minutes and try again, or ask an administrator to reset your password.' }
     }
     const [user] = await tx<{ user_id: string; password_hash: string; must_change_password: boolean }[]>`select * from app.auth_login_lookup(${email})`
     const ok = await verifyPassword(user?.password_hash ?? (await getDummyHash()), password)
     if (!user || !ok) {
-      await tx`select app.auth_record_attempt(${email}, ${ip ?? ''}, false, ${user?.user_id ?? null})`
+      await tx`select app.auth_record_attempt(${email}, ${ip}, false, ${user?.user_id ?? null})`
       return generic
     }
     const token = newTokenValue()
     const [{ mfa }] = await tx<{ mfa: boolean }[]>`select app.auth_mfa_enabled(${user.user_id}) as mfa`
     // With 2FA enabled the session starts "pending" (10 minutes) until the code is entered.
     await tx`select app.auth_create_session(${user.user_id}, ${hashToken(token)}, ${SESSION_TTL_HOURS}, ${ip}, ${h.get('user-agent') ?? ''}, ${mfa})`
-    await tx`select app.auth_record_attempt(${email}, ${ip ?? ''}, true, ${user.user_id})`
+    await tx`select app.auth_record_attempt(${email}, ${ip}, true, ${user.user_id})`
     const jar = await cookies()
     jar.set(SESSION_COOKIE, token, {
       httpOnly: true,

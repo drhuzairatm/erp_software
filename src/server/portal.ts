@@ -1,5 +1,6 @@
 import 'server-only'
 import { QUARANTINE_MESSAGE, scanAndRecord } from './security/file-scan'
+import { resolveClientIp } from '@/lib/client-ip'
 import { createHmac, randomBytes, randomInt } from 'node:crypto'
 import { cookies, headers } from 'next/headers'
 import { anonymous } from './db'
@@ -25,8 +26,7 @@ const hmac = (v: string) => createHmac('sha256', secret()).update(v).digest('hex
 
 async function ipAndAgent() {
   const h = await headers()
-  const fwd = h.get('x-forwarded-for')
-  return { ip: (fwd ? fwd.split(',')[0].trim() : h.get('x-real-ip')) || null, ua: h.get('user-agent') ?? '' }
+  return { ip: resolveClientIp(h), ua: h.get('user-agent') ?? '' }
 }
 
 /** Ask for a sign-in code. Always returns a challenge id (never reveals whether the identifier exists). */

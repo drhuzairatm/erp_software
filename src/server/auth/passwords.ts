@@ -15,12 +15,12 @@ export async function requestPasswordReset(email: string) {
   const cleaned = email.trim().toLowerCase().slice(0, 200)
   if (!cleaned.includes('@')) return
   await anonymous(async (tx) => {
-    const [rate] = await tx<{ email_failures: number; ip_failures: number }[]>`select * from app.auth_recent_failures(${cleaned}, ${ip ?? ''})`
+    const [rate] = await tx<{ email_failures: number; ip_failures: number }[]>`select * from app.auth_recent_failures(${cleaned}, ${ip})`
     if (rate.ip_failures >= 30) return
     const token = newTokenValue()
     const [user] = await tx<{ user_id: string; email: string; full_name: string }[]>`select * from app.auth_request_reset(${cleaned}, ${hashToken(token)})`
     // Count requests towards the rate limit like failed logins
-    await tx`select app.auth_record_attempt(${cleaned}, ${ip ?? ''}, false, null)`
+    await tx`select app.auth_record_attempt(${cleaned}, ${ip}, false, null)`
     if (user && emailConfigured()) {
       await sendEmail(user.email, 'Reset your password',
         `Hello ${user.full_name},\n\nUse this link within 1 hour to set a new password:\n${appUrl('/reset-password/' + token)}\n\nIf you did not ask for this, ignore this email.`)

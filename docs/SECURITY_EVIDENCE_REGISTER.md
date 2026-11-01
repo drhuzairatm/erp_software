@@ -87,9 +87,17 @@ Each test was run on 2026-11-01. Columns: evidence ID, control, test or source (
 | E-R3 | Security objects, application role, row-level security, unreadable storage keys and append-only audit log all survive restore | same | Pass | `eab9075` |
 | E-R4 | 395/395 live files present and SHA-256 identical; replaced photo versions deleted by design (reported separately) | same | Pass | `eab9075` |
 
+### Audit remediation (H-1, M-1, M-2): audit remediation of 1 Nov 2026 (migration 0034, not yet committed)
+| ID | Control | Test / source | Result | Commit |
+|---|---|---|---|---|
+| E-X1 | **H-1:** infected files refused by the in-app viewer: service, database function, **direct request to the real `/api/files/{id}/content` handler** (404), even for the MD; denial audited "quarantined". Clean and manually cleared files still viewable by authorised staff; unauthorised users and signed-out requests refused; download, merge, clearance and approval stay closed; portal download of a later-infected publication refused. | `tests/integration/audit-remediation.test.ts` (5 tests) | Pass | audit remediation (commit after f3e8ce3) |
+| E-X2 | **M-2:** 100 viewer accesses → alert; 50 views + 50 downloads → combined alert; 100 portal downloads → portal alert; 5 accesses → no alert; alerts and audit log immutable | same file (4 tests) | Pass | audit remediation (commit after f3e8ce3) |
+| E-X3 | **M-1:** forged `X-Forwarded-For` ignored in all modes; trusted `X-Real-IP` / right-most `X-Forwarded-For` used only when configured; invalid values discarded | `tests/unit/client-ip.test.ts` (5 tests) | Pass | audit remediation (commit after f3e8ce3) |
+| E-X4 | **M-1 + lockout:** the real `login()` with forged headers: per-email lockout after 5 failures, nothing fake stored; unknown addresses never lock out others (shared-bucket bug fixed); trusted proxy: per-address lockout at 30 and the address recorded; portal codes limited to 5 per identifier, forged address not stored | `tests/integration/client-ip-lockout.test.ts` (4 tests) | Pass | audit remediation (commit after f3e8ce3) |
+
 ## Controls without test evidence
 These are implemented or documented, but **no automated test proves them**:
-- **Password lockout:** the per-email and per-IP thresholds themselves (the alert is tested).
+- **Real reverse proxy:** the `TRUST_PROXY` behaviour on an actual VPS proxy or on Vercel (requires external validation).
 - **Session cookie flags:** HttpOnly, SameSite, Secure, `__Host-` (Secure and `__Host-` apply in production only).
 - **Cross-site request protection:** the framework's Origin check.
 - **Logging hygiene:** no secrets in logs; generic error messages beyond the tested cases.

@@ -4,6 +4,8 @@
 
 **Code assessed:** commit `eab9075` (Phases A–C).
 
+**Revised:** audit remediation of 1 Nov 2026 (migration 0034, not yet committed): findings H-1 (viewer quarantine), M-1 (client address) and M-2 (bulk-access alerts) from the read-only audit of `f3e8ce3`. The affected statements below are marked.
+
 **Scope:**
 - the staff web application, the student/parent portal, the PostgreSQL database and private file storage
 - as built and tested **on the development Mac with fictional data**
@@ -54,7 +56,8 @@ This is an internal assessment by the developer, **not an independent audit or c
   - **T:** strong hashing (Argon2id), minimum 12 characters with 3 character types
   - **T:** passwords never visible to administrators; invitations replace shared or default passwords
 - **Brute force:**
-  - **I:** 5 failed sign-ins per email and 30 per address in 15 minutes trigger a temporary block
+  - **T:** 5 failed sign-ins per email in 15 minutes trigger a temporary block, even with forged forwarding headers (tested in the audit remediation, `client-ip-lockout.test.ts`)
+  - **T:** 30 failures per **address** in 15 minutes, applied only when the address comes from the trusted proxy (`TRUST_PROXY`). With an unknown address the per-address limit is skipped, and no shared bucket can lock everyone out.
   - **T:** the error message is generic (browser test)
   - **T:** repeated failures raise a security alert to the MD
   - **T:** 5 wrong 2-step codes cancel a sign-in
@@ -67,7 +70,7 @@ This is an internal assessment by the developer, **not an independent audit or c
 - **T:** Login history is visible to the person, their administrators and the MD.
 
 **Remaining gaps:**
-- The password lockout itself has no automated test yet (recommended for the pilot test plan).
+- **Per-address protection depends on configuration:** set `TRUST_PROXY` correctly behind the VPS proxy (DEPLOYMENT.md §3a). This is not yet verified on a real proxy (no VPS exists).
 - **P:** edge rate limiting or bot protection at the host (WAF).
 - **P:** alert emails (need an email provider).
 - **I/P:** no detection of unusual sign-in location or device.
@@ -171,6 +174,7 @@ This is an internal assessment by the developer, **not an independent audit or c
 - **Scanner integration:**
   - **T:** ClamAV scanning is built and tested against a simulated scanner speaking the real ClamAV protocol
   - **T:** an infected file is quarantined: it can never be opened, downloaded, merged, published, approved, cleared or sent by courier, and a critical alert is raised
+    - **Correction:** before the audit remediation, the in-app viewer route did not enforce this (H-1). It now does, and is tested by `audit-remediation.test.ts`, including a direct request to the route.
 - **Gates:**
   - **T:** unscanned files cannot be approved or released for courier without manual clearance
   - **T:** photos and attestation evidence that the scanner flags are refused outright
@@ -273,7 +277,8 @@ This is an internal assessment by the developer, **not an independent audit or c
 - **Alerts:**
   - **T:** 500+ rows → high alert
   - **T:** 10+ exports in an hour → warning
-  - **T:** 100+ document downloads in an hour → high alert
+  - **T:** 100+ document **views or downloads** in an hour by one person → high alert (views added in the audit remediation, M-2)
+  - **T:** 100+ downloads in an hour through one student portal account → high alert (audit remediation, M-2)
   - **T:** refused export → warning
 
 **Remaining gaps:**

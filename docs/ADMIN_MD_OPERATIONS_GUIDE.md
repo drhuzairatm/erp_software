@@ -93,9 +93,9 @@ By default **both are members of both companies**. This is intentional, but the 
 
   | Category | Events |
   |---|---|
-  | Sign-in | Repeated failed sign-ins (per email; per address); wrong 2-step codes |
+  | Sign-in | Repeated failed sign-ins (per email; per address when `TRUST_PROXY` is configured, see DEPLOYMENT.md §3a); wrong 2-step codes |
   | Access changes | Permission granted or removed; role or company access changed; **MD role granted** (critical); 2-step reset (high); staff status changed |
-  | Data | Large export (500+ rows); 10+ exports in an hour; refused export; 100+ document downloads in an hour |
+  | Data | Large export (500+ rows); 10+ exports in an hour; refused export; 100+ document **views or downloads** in an hour by one person; 100+ downloads in an hour through one student portal account |
   | Files | **Malware detected** (critical); manual security clearance |
 
 **Routine:**
@@ -126,7 +126,8 @@ By default **both are members of both companies**. This is intentional, but the 
 - **Later scanning:** when a scanner is configured, manually cleared files are re-scanned by the daily job. If one turns out infected, it becomes quarantined.
 
 **Infected files:**
-- **Effect:** quarantined automatically. They can never be opened, downloaded, merged, published, approved, cleared or couriered.
+- **Effect:** quarantined automatically. They can never be opened (including through the in-app viewer), downloaded, merged, published, approved, cleared or couriered. Every refused attempt is audited with the reason "quarantined".
+- **Correction:** until the audit remediation of 1 Nov 2026, the in-app viewer's direct address did not enforce this (finding H-1). Fixed in migration 0034 and tested.
 - **Records:** the record is kept for evidence.
 - **Action:** ask the student for a clean copy and follow INCIDENT_RESPONSE_PLAN.md §4.4.
 
