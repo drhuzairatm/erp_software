@@ -32,7 +32,7 @@ test('MD sees financial amounts', async ({ page }) => {
   await page.getByLabel('Company').selectOption({ label: 'All my companies' })
   await expect(page.getByText(/Outstanding \(INR\)/)).toBeVisible() // management analytics
   await page.goto('/?view=operations')
-  await expect(page.getByText(/Outstanding service fees/)).toBeVisible()
+  await expect(page.getByText(/Outstanding service fees/).first()).toBeVisible() // one card per currency
   await expect(page.getByRole('link', { name: 'Payment ledger' })).toBeVisible()
 })
 

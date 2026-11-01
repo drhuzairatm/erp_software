@@ -6,6 +6,7 @@ import { Icon } from '@/components/icons'
 import { BRANDS, brandOf } from '@/lib/brands'
 import { can, canAny } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
+import { staffPhotoVersions } from '@/server/services/staff-photos'
 import { getNotifications } from '@/server/services/dashboard'
 import { getScope } from '@/server/scope'
 import { type NavItem, ScopeSelect, Sidebar } from './nav'
@@ -46,6 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...ctx.memberships.map((m) => ({ value: m.orgId, label: m.orgName })),
   ]
   const roleSummary = ctx.memberships.map((m) => `${m.roleName}${m.departmentName ? ` (${m.departmentName})` : ''} · ${m.orgCode}`).join(', ')
+  const myPhoto = (await staffPhotoVersions(ctx, [ctx.userId]))[ctx.userId]
   const initials = ctx.fullName.replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
 
   return (
@@ -89,7 +91,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </details>
               <details className="relative">
                 <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm font-medium text-slate-700 hover:bg-slate-100">
-                  <span aria-hidden className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-teal-brand text-xs font-bold text-white">{initials}</span>
+                  {myPhoto
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={`/api/staff/${ctx.userId}/photo?size=thumb&v=${myPhoto}`} alt="" aria-hidden className="h-8 w-8 rounded-full object-cover" />
+                    : <span aria-hidden className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-teal-brand text-xs font-bold text-white">{initials}</span>}
                   <span className="hidden max-w-40 truncate md:inline">{ctx.fullName}</span>
                 </summary>
                 <div className="card absolute right-0 z-30 mt-2 w-72 p-4 text-sm">

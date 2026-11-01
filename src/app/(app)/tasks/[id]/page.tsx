@@ -3,8 +3,9 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { fmtDate, fmtDateTime, label } from '@/components/format'
 import { Icon } from '@/components/icons'
-import { Alert, Avatar, Card, DL, PageHeader, PriorityBadge, StatusBadge } from '@/components/ui'
+import { Alert, Avatar, Card, DL, PageHeader, PriorityBadge, StatusBadge, staffPhotoUrl } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
+import { staffPhotoVersions } from '@/server/services/staff-photos'
 import { getTask } from '@/server/services/tasks'
 import { CommentForm, UpdateTaskForm } from '../task-forms'
 
@@ -22,6 +23,7 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
   const data = await getTask(ctx, id)
   if (!data) notFound()
   const { task: t, permissions } = data
+  const photos = await staffPhotoVersions(ctx, [t.assigned_to, ...data.comments.map((c) => c.author_id)])
   return (
     <>
       <PageHeader title={t.title} back={{ href: '/tasks', label: 'Tasks' }}
@@ -29,7 +31,7 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
       {created && <div className="mb-4"><Alert tone="green">Task created.</Alert></div>}
       <section aria-label="Task summary" className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {([
-          ['Assigned to', t.assignee_name ? <span key="a" className="flex items-center gap-2"><Avatar name={t.assignee_name} size="sm" />{t.assignee_name}</span> : <span key="a" className="text-amber-700">Unassigned</span>, 'staff'],
+          ['Assigned to', t.assignee_name ? <span key="a" className="flex items-center gap-2"><Avatar name={t.assignee_name} size="sm" src={staffPhotoUrl(t.assigned_to, photos[t.assigned_to ?? ''])} />{t.assignee_name}</span> : <span key="a" className="text-amber-700">Unassigned</span>, 'staff'],
           ['Due', <span key="d" className={t.is_overdue ? 'text-red-700' : ''}>{t.due_date ? fmtDate(t.due_date) : 'No due date'}</span>, 'clock'],
           ['Type', label(t.task_type), 'tasks'],
           ['Student', t.student_id ? (t.student_code ? <Link key="s" href={`/students/${t.student_id}`}>{t.student_name}</Link> : 'Restricted') : '—', 'students'],
@@ -60,7 +62,7 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
           <Card title="Comments">
             {data.comments.length === 0 ? <p className="text-sm text-slate-500">No comments yet.</p> : (
               <ul className="mb-4 space-y-3">{data.comments.map((c) => (
-                <li key={c.id} className="flex gap-3 text-sm"><Avatar name={c.author} size="sm" />
+                <li key={c.id} className="flex gap-3 text-sm"><Avatar name={c.author} size="sm" src={staffPhotoUrl(c.author_id, photos[c.author_id ?? ''])} />
                   <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm bg-slate-50 px-4 py-2.5 ring-1 ring-slate-100">
                     <p className="text-xs text-slate-500"><span className="font-semibold text-slate-700">{c.author}</span> · {fmtDateTime(c.created_at)}</p>
                     <p className="mt-0.5 whitespace-pre-wrap">{c.body}</p></div></li>))}

@@ -3,9 +3,10 @@ import Link from 'next/link'
 import { HBarList } from '@/components/charts'
 import { fmtDate } from '@/components/format'
 import { Icon } from '@/components/icons'
-import { Avatar, Badge, Card, EmptyState, FilterBar, PageHeader, Pagination, StatCard, ViewTabs } from '@/components/ui'
+import { Avatar, Badge, Card, EmptyState, FilterBar, PageHeader, Pagination, StatCard, ViewTabs, staffPhotoUrl } from '@/components/ui'
 import { can } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
+import { staffPhotoVersions } from '@/server/services/staff-photos'
 import { canReviewLeads, canSeeLeads, LEAD_STATUSES, listLeads, PROGRAMMES, SOURCES } from '@/server/services/leads'
 import { getScope } from '@/server/scope'
 
@@ -19,6 +20,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const review = canReviewLeads(ctx)
   const view = sp.view ?? 'open'
   const data = await listLeads(ctx, scope.orgIds, { ...sp, view })
+  const photos = await staffPhotoVersions(ctx, data.rows.map((l) => l.assigned_to))
   const canManage = scope.orgIds.some((o) => can(ctx, 'leads.manage', o)) || review
   const qs = (over: Record<string, string | undefined>) => '?' + new URLSearchParams(Object.entries({ ...sp, page: undefined, ...over } as Record<string, string | undefined>)
     .filter((x): x is [string, string] => !!x[1])).toString()
@@ -65,7 +67,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     <td>{l.org_name ? <Badge tone={l.org_name.startsWith('GRAD') ? 'purple' : 'blue'}>{l.org_name}</Badge> : <Badge tone="orange">Central queue</Badge>}</td>
                     <td className="text-xs">{SOURCES[l.source as keyof typeof SOURCES]}</td>
                     <td><Badge tone={LEAD_STATUSES[l.status].tone}>{LEAD_STATUSES[l.status].label}</Badge></td>
-                    <td className="text-sm">{l.assignee ?? <span className="text-amber-700">Unassigned</span>}</td>
+                    <td className="text-sm">{l.assignee ? <span className="flex items-center gap-2"><Avatar name={l.assignee} size="sm" src={staffPhotoUrl(l.assigned_to, photos[l.assigned_to ?? ''])} />{l.assignee}</span> : <span className="text-amber-700">Unassigned</span>}</td>
                     <td className={`whitespace-nowrap text-sm ${l.overdue ? 'font-semibold text-red-700' : ''}`}>{l.next_followup_on ? fmtDate(l.next_followup_on) : '—'}{l.overdue && <div className="text-xs">Overdue</div>}</td>
                   </tr>))}
                 </tbody>

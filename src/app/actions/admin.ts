@@ -7,6 +7,8 @@ import { appUrl, emailConfigured, sendEmail } from '@/server/email'
 import * as admin from '@/server/services/admin'
 import { formObject } from '@/server/validation'
 import { runAction } from './run-action'
+import { parseCrop } from '@/server/services/photos'
+import { removeStaffPhoto, saveStaffPhoto } from '@/server/services/staff-photos'
 
 export async function createStaffAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
   const ctx = await requireUser()
@@ -14,6 +16,12 @@ export async function createStaffAction(_: ActionResult, fd: FormData): Promise<
   return runAction(async () => {
     const r = await admin.createStaff(ctx, v)
     revalidatePath('/admin/users')
+    // optional photo and reporting manager (the account exists even if these fail)
+    const photo = fd.getAll('photo').find((f): f is File => f instanceof File && f.size > 0)
+    const extra: string[] = []
+    if (photo) await saveStaffPhoto(ctx, r.userId, photo, parseCrop(fd.get('photoCrop'))).catch((e) => { extra.push(`Photo not saved: ${(e as Error).message}`) })
+    if (v.reportsTo) await admin.setReportingManager(ctx, r.userId, v.reportsTo).catch(() => { extra.push('Reporting manager not saved.') })
+    if (extra.length && !r.created) return { ok: true, message: `${r.existingName} was added to this company. ${extra.join(' ')}` }
     if (!r.created) return { ok: true, message: `${r.existingName} already had an account and has been added to this company.` }
     const link = appUrl(r.setupPath!)
     let emailed = false
@@ -101,4 +109,32 @@ export async function workflowAction(workflowId: string, _: ActionResult, fd: Fo
     await admin.setWorkflowDocuments(ctx, workflowId, fd.getAll('doc').map(String))
     revalidatePath('/admin/settings')
   }, 'Workflow saved. New requirements apply to students registered or re-assigned to this workflow from now on.')
+}
+
+export async function staffPhotoAction(userId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => {
+    const photo = fd.getAll('photo').find((f): f is File => f instanceof File && f.size > 0)
+    if (!photo) return { ok: false, message: 'Choose a photo first.' }
+    await saveStaffPhoto(ctx, userId, photo, parseCrop(fd.get('photoCrop')))
+    revalidatePath(`/admin/users/${userId}`); revalidatePath('/admin/users')
+  }, 'Photo saved. It is now shown wherever this person appears.')
+}
+
+export async function removeStaffPhotoAction(userId: string, _: ActionResult): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => { await removeStaffPhoto(ctx, userId); revalidatePath(`/admin/users/${userId}`); revalidatePath('/admin/users') }, 'Photo removed.')
+}
+
+export async function reportingManagerAction(userId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => { await admin.setReportingManager(ctx, userId, String(fd.get('reportsTo') ?? '') || null); revalidatePath(`/admin/users/${userId}`) }, 'Reporting manager saved.')
+}
+
+export async function roleStructureAction(roleId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => {
+    await admin.setRoleStructure(ctx, roleId, fd.get('isActive') === 'true', String(fd.get('parentRoleId') ?? '') || null)
+    revalidatePath('/admin/roles')
+  }, 'Role saved.')
 }

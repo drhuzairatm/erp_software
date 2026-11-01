@@ -24,7 +24,7 @@ test('select, order, check and download a combined PDF named after the student, 
   await expect(ordered.nth(0)).toContainText(second)
   await expect(ordered.nth(1)).toContainText(first)
   const expected = [s.full_name, s.passport_number, s.university].filter(Boolean).join(' - ') + '.pdf'
-  await expect(panel.getByText(expected)).toBeVisible()
+  await expect(panel.getByText(expected).first()).toBeVisible() // also listed in the history after earlier runs
   await panel.getByRole('button', { name: '1. Check documents' }).click()
   await expect(panel.getByText(/Ready: 2 document\(s\)/).first()).toBeVisible()
   const unapproved = panel.getByRole('checkbox', { name: /may be included/ })

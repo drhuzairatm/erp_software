@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fmtDateTime, label } from '@/components/format'
-import { Avatar, Card, EmptyState, PageHeader, Pagination, ViewTabs } from '@/components/ui'
+import { Avatar, Card, EmptyState, PageHeader, Pagination, ViewTabs, staffPhotoUrl } from '@/components/ui'
 import { can } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
+import { staffPhotoVersions } from '@/server/services/staff-photos'
 import { type AuditFilters, listAudit } from '@/server/services/admin'
 import { getScope } from '@/server/scope'
 
@@ -38,6 +39,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   if (!scope.orgIds.some((o) => can(ctx, 'audit.read', o))) return <PageHeader title="Audit log" description="You do not have access to the audit log." />
   const sp = await searchParams
   const data = await listAudit(ctx, scope.orgIds, sp as AuditFilters)
+  const photos = await staffPhotoVersions(ctx, data.rows.map((r) => r.actor_id))
   return (
     <>
       <PageHeader title="Audit log" description={`${scope.label} · append-only record of important actions. Entries cannot be edited or deleted.`} />
@@ -66,7 +68,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
                 <li key={r.id}>
                   {newDay && <p className="bg-slate-50/80 px-5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{new Date(r.occurred_at).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' })}</p>}
                   <div className="flex gap-3 px-5 py-3">
-                    <div className="relative mt-0.5 h-7 w-7 shrink-0 self-start"><Avatar name={r.actor ?? 'System'} size="sm" />
+                    <div className="relative mt-0.5 h-7 w-7 shrink-0 self-start"><Avatar name={r.actor ?? 'System'} size="sm" src={staffPhotoUrl(r.actor_id, photos[r.actor_id ?? ''])} />
                       <span aria-hidden className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ${OUTCOME_DOT[r.outcome] ?? 'bg-slate-400 ring-slate-100'}`} /></div>
                     <div className="min-w-0 flex-1 text-sm">
                       <p className="flex flex-wrap items-baseline gap-x-2">

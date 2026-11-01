@@ -12,9 +12,11 @@ export async function listStaff(ctx: Ctx) {
   const orgIds = orgsWith(ctx, 'users.manage')
   if (!orgIds.length) throw forbidden()
   return run(ctx, async (tx) => {
-    const users = await tx<{ id: string; email: string; full_name: string; job_title: string | null; is_active: boolean; created_at: Date }[]>`
-      select distinct u.id, u.email, u.full_name, u.job_title, u.is_active, u.created_at
-        from user_profiles u join organization_memberships m on m.user_id = u.id
+    const users = await tx<{ id: string; email: string; full_name: string; job_title: string | null; is_active: boolean; created_at: Date
+      employee_id: string; reports_to: string | null; manager_name: string | null; photo_version: number | null }[]>`
+      select distinct u.id, u.email, u.full_name, u.job_title, u.is_active, u.created_at, u.employee_id, u.reports_to, mg.full_name as manager_name,
+             (select p.version from staff_photos p where p.user_id = u.id and p.is_current) as photo_version
+        from user_profiles u join organization_memberships m on m.user_id = u.id left join user_profiles mg on mg.id = u.reports_to
        where m.org_id = any(${tx.array(orgIds)}::uuid[]) order by u.full_name`
     const memberships = await tx<{ id: string; user_id: string; org_id: string; org_name: string; role_id: string; role_name: string; is_active: boolean; department_id: string | null; editable: boolean }[]>`
       select m.id, m.user_id, m.org_id, o.name as org_name, m.role_id, r.name as role_name, m.is_active, m.department_id,
@@ -23,7 +25,7 @@ export async function listStaff(ctx: Ctx) {
        where m.org_id = any(${tx.array(orgIds)}::uuid[]) order by o.name`
     // Only roles the current user may assign (they hold all its permissions; privileged roles need users.create_admin)
     const roles = await tx<{ id: string; org_id: string; name: string; key: string }[]>`
-      select id, org_id, name, key from roles where org_id = any(${tx.array(orgIds)}::uuid[]) and app.can_assign_role(id) order by name`
+      select id, org_id, name, key from roles where org_id = any(${tx.array(orgIds)}::uuid[]) and is_active and app.can_assign_role(id) order by name`
     const departments = await tx<{ id: string; org_id: string; name: string }[]>`
       select id, org_id, name from departments where is_active and org_id = any(${tx.array(orgIds)}::uuid[]) order by name`
     const administerable = (await tx<{ id: string }[]>`
@@ -93,6 +95,41 @@ export async function issueResetLink(ctx: Ctx, userId: string) {
   return `/reset-password/${token}`
 }
 
+/** Staff profile (Admin → Staff → person). */
+export async function getStaffMember(ctx: Ctx, userId: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(userId) || !can(ctx, 'users.manage')) return null
+  return run(ctx, async (tx) => {
+    const [u] = await tx<{ id: string; email: string; full_name: string; job_title: string | null; is_active: boolean; created_at: Date; employee_id: string
+      reports_to: string | null; manager_name: string | null; photo_version: number | null; can_admin: boolean; can_photo: boolean }[]>`
+      select u.id, u.email, u.full_name, u.job_title, u.is_active, u.created_at, u.employee_id, u.reports_to, mg.full_name as manager_name,
+             (select p.version from staff_photos p where p.user_id = u.id and p.is_current) as photo_version,
+             app.can_administer_user(u.id) as can_admin, app.can_change_staff_photo(u.id) as can_photo
+        from user_profiles u left join user_profiles mg on mg.id = u.reports_to where u.id = ${userId}`
+    if (!u) return null
+    const memberships = await tx<{ org_name: string; role_name: string; department: string | null; is_active: boolean }[]>`
+      select o.name as org_name, r.name as role_name, d.name as department, m.is_active from organization_memberships m join organizations o on o.id = m.org_id
+        join roles r on r.id = m.role_id left join departments d on d.id = m.department_id where m.user_id = ${userId} order by o.name`
+    const reports = await tx<{ id: string; full_name: string; employee_id: string }[]>`select id, full_name, employee_id from user_profiles where reports_to = ${userId} order by full_name`
+    const managers = await tx<{ id: string; full_name: string; employee_id: string }[]>`
+      select distinct u.id, u.full_name, u.employee_id from user_profiles u join organization_memberships b on b.user_id = u.id and b.is_active
+        join organization_memberships a on a.org_id = b.org_id and a.user_id = ${userId}
+       where u.is_active and u.id <> ${userId} order by u.full_name`
+    const history = await tx<{ id: string; action: string; entity_type: string; occurred_at: Date; actor: string | null }[]>`
+      select l.id::text, l.action, l.entity_type, l.occurred_at, au.full_name as actor from audit_logs l left join user_profiles au on au.id = l.actor_user_id
+       where (l.entity_type in ('user_profiles', 'staff_photos', 'organization_memberships') and (l.entity_id = ${userId} or l.after_data ->> 'user_id' = ${userId} or l.before_data ->> 'user_id' = ${userId}))
+       order by l.occurred_at desc limit 30`.catch(() => [])
+    return { user: u, memberships, reports, managers, history }
+  })
+}
+
+export async function setReportingManager(ctx: Ctx, userId: string, managerId: string | null) {
+  return run(ctx, (tx) => tx`select app.set_reporting_manager(${userId}, ${managerId && /^[0-9a-f-]{36}$/i.test(managerId) ? managerId : null})`)
+}
+
+export async function setRoleStructure(ctx: Ctx, roleId: string, active: boolean, parentId: string | null) {
+  return run(ctx, (tx) => tx`select app.set_role_structure(${roleId}, ${active}, ${parentId && /^[0-9a-f-]{36}$/i.test(parentId) ? parentId : null})`)
+}
+
 // ---------------------------------------------------------------------------
 // Roles & permissions
 // ---------------------------------------------------------------------------
@@ -100,8 +137,11 @@ export async function listRoles(ctx: Ctx) {
   const orgIds = orgsWith(ctx, 'roles.manage')
   if (!orgIds.length) throw forbidden()
   return run(ctx, async (tx) => ({
-    roles: await tx<{ id: string; org_id: string; org_name: string; key: string; name: string; description: string | null; is_system: boolean; is_privileged: boolean; is_protected: boolean; requires_mfa: boolean; perms: string[]; members: number; held_by_me: boolean }[]>`
-      select r.id, r.org_id, o.name as org_name, r.key, r.name, r.description, r.is_system, r.is_privileged, r.is_protected, r.requires_mfa,
+    roles: await tx<{ id: string; org_id: string; org_name: string; key: string; name: string; description: string | null; is_system: boolean; is_privileged: boolean; is_protected: boolean; requires_mfa: boolean; perms: string[]; members: number; held_by_me: boolean
+      is_active: boolean; parent_role_id: string | null; member_names: { id: string; name: string }[] }[]>`
+      select r.id, r.org_id, o.name as org_name, r.key, r.name, r.description, r.is_system, r.is_privileged, r.is_protected, r.requires_mfa, r.is_active, r.parent_role_id,
+             coalesce((select json_agg(json_build_object('id', u.id, 'name', u.full_name) order by u.full_name) from organization_memberships m join user_profiles u on u.id = m.user_id
+                        where m.role_id = r.id and m.is_active), '[]') as member_names,
              array(select permission_key from role_permissions where role_id = r.id order by 1) as perms,
              (select count(*)::int from organization_memberships m where m.role_id = r.id and m.is_active) as members,
              app.holds_role(r.id) as held_by_me
@@ -270,8 +310,8 @@ export async function listAudit(ctx: Ctx, orgIds: string[], f: AuditFilters) {
     if (f.from && /^\d{4}-\d{2}-\d{2}$/.test(f.from)) conds.push(tx`a.occurred_at >= ${f.from}::date`)
     if (f.to && /^\d{4}-\d{2}-\d{2}$/.test(f.to)) conds.push(tx`a.occurred_at < ${f.to}::date + 1`)
     const where = conds.reduce((x, c) => tx`${x} and ${c}`)
-    const rows = await tx<{ id: string; occurred_at: Date; actor: string | null; org_name: string | null; student_code: string | null; action: string; entity_type: string; entity_id: string | null; before_data: unknown; after_data: unknown; outcome: string; metadata: unknown; request_ip: string | null; total: string }[]>`
-      select a.id, a.occurred_at, u.full_name as actor, o.name as org_name, s.student_code, a.action, a.entity_type, a.entity_id,
+    const rows = await tx<{ id: string; occurred_at: Date; actor: string | null; actor_id: string | null; org_name: string | null; student_code: string | null; action: string; entity_type: string; entity_id: string | null; before_data: unknown; after_data: unknown; outcome: string; metadata: unknown; request_ip: string | null; total: string }[]>`
+      select a.id, a.occurred_at, u.full_name as actor, a.actor_user_id as actor_id, o.name as org_name, s.student_code, a.action, a.entity_type, a.entity_id,
              a.before_data, a.after_data, a.outcome, a.metadata, a.request_ip, count(*) over () as total
         from audit_logs a left join user_profiles u on u.id = a.actor_user_id left join organizations o on o.id = a.org_id
         left join students s on s.id = a.student_id and app.can_read_student(s.id)

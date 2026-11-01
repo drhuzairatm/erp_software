@@ -77,8 +77,8 @@ export async function getTask(ctx: Ctx, id: string) {
        where t.id = ${id}`
     if (!task) return null
     const [comments, events, staff] = await Promise.all([
-      tx<{ id: string; body: string; created_at: Date; author: string | null }[]>`
-        select c.id, c.body, c.created_at, u.full_name as author from task_comments c left join user_profiles u on u.id = c.author_id
+      tx<{ id: string; body: string; created_at: Date; author: string | null; author_id: string | null }[]>`
+        select c.id, c.body, c.created_at, u.full_name as author, c.author_id from task_comments c left join user_profiles u on u.id = c.author_id
          where c.task_id = ${id} order by c.created_at`,
       tx<{ id: string; event_type: string; from_value: string | null; to_value: string | null; occurred_at: Date; actor: string | null }[]>`
         select e.id, e.event_type,

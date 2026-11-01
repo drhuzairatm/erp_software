@@ -2,9 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-const RATIO = 35 / 45
-const FRAME_W = 210
-const FRAME_H = Math.round(FRAME_W / RATIO)
 
 export const PHOTO_HELP = 'Upload a recent passport-size photograph with a plain white background, face centred and clearly visible. JPG or PNG, maximum 5 MB.'
 
@@ -12,7 +9,9 @@ export const PHOTO_HELP = 'Upload a recent passport-size photograph with a plain
  * Passport photo picker: camera or gallery, preview, drag to reposition, zoom. Submits the chosen file
  * (`name`) and the crop rectangle in image pixels (`${name}Crop`). The server re-checks and processes everything.
  */
-export function PhotoPicker({ name = 'photo', onChange }: { name?: string; onChange?: (chosen: boolean) => void }) {
+export function PhotoPicker({ name = 'photo', onChange, square = false, help = PHOTO_HELP }: { name?: string; onChange?: (chosen: boolean) => void; square?: boolean; help?: string }) {
+  const FRAME_W = square ? 220 : 210
+  const FRAME_H = square ? 220 : Math.round(210 / (35 / 45))
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [nat, setNat] = useState<{ w: number; h: number } | null>(null)
@@ -61,7 +60,7 @@ export function PhotoPicker({ name = 'photo', onChange }: { name?: string; onCha
         </label>
         {url && <button type="button" className="btn-ghost btn-sm" onClick={cancel}>Cancel / choose another</button>}
       </div>
-      <p className="hint">{PHOTO_HELP}</p>
+      <p className="hint">{help}</p>
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
       {url && (
         <div className="flex flex-wrap items-start gap-5">
@@ -80,7 +79,7 @@ export function PhotoPicker({ name = 'photo', onChange }: { name?: string; onCha
                   const s = Math.max(FRAME_W / w, FRAME_H / h)
                   setOff({ x: (FRAME_W - w * s) / 2, y: (FRAME_H - h * s) / 2 })
                 }} />
-              <div aria-hidden className="pointer-events-none absolute inset-x-[22%] top-[14%] h-[52%] rounded-[50%] border-2 border-dashed border-white/70" />
+              <div aria-hidden className={`pointer-events-none absolute border-2 border-dashed border-white/70 ${square ? 'inset-[6%] rounded-full' : 'inset-x-[22%] top-[14%] h-[52%] rounded-[50%]'}`} />
             </div>
             <label className="mt-2 flex items-center gap-2 text-xs text-slate-600">Zoom
               <input type="range" min={1} max={4} step={0.01} value={zoom} className="flex-1"
@@ -99,7 +98,7 @@ export function PhotoPicker({ name = 'photo', onChange }: { name?: string; onCha
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={url} alt="" aria-hidden className="max-w-none" style={{
                   width: nat.w * (64 / crop.width), height: nat.h * (64 / crop.width),
-                  transform: `translate(${-crop.x * (64 / crop.width)}px, ${-(crop.y + crop.height * 0.08) * (64 / crop.width)}px)` }} />
+                  transform: `translate(${-crop.x * (64 / crop.width)}px, ${-(crop.y + (square ? 0 : crop.height * 0.08)) * (64 / crop.width)}px)` }} />
               )}
             </div>
             <p className="mt-1">Avatar preview</p>

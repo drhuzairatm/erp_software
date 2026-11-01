@@ -204,6 +204,10 @@ export function Avatar({ name, size = 'md', src }: { name: string | null | undef
   return <span aria-hidden className={`inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br font-semibold text-white ${c} ${dim}`}>{initials}</span>
 }
 
+/** URL of a staff member's avatar thumbnail (colleagues only; the version busts the cache after a change). */
+export const staffPhotoUrl = (userId: string | null | undefined, version: number | null | undefined) =>
+  userId && version ? `/api/staff/${userId}/photo?size=thumb&v=${version}` : null
+
 /** URL of a student's avatar thumbnail (authorised, private; the version busts the cache after a change). */
 export const studentPhotoUrl = (studentId: string, version: number | null | undefined) =>
   version ? `/api/students/${studentId}/photo?size=thumb&v=${version}` : null

@@ -24,7 +24,7 @@ export function parseCrop(raw: unknown): Crop | null {
  * Validates and processes an uploaded photo. Checks the real file signature (not the name), decodes the image,
  * applies the EXIF orientation and then drops ALL metadata (EXIF, GPS, ICC comments) from every stored version.
  */
-export async function processPhoto(file: File, crop: Crop | null) {
+export async function processPhoto(file: File, crop: Crop | null, ratio = PORTRAIT_RATIO) {
   if (!file || file.size === 0) throw invalid('Choose a photo.', { photo: ['Required.'] })
   if (file.size > PHOTO_MAX_BYTES) throw invalid('The photo is larger than 5 MB.', { photo: ['Maximum 5 MB.'] })
   const buf = Buffer.from(await file.arrayBuffer())
@@ -42,14 +42,14 @@ export async function processPhoto(file: File, crop: Crop | null) {
   // crop: default = largest centred passport-format area
   let c = crop
   if (!c) {
-    const h = Math.min(meta.height, Math.round(meta.width / PORTRAIT_RATIO))
-    const w = Math.round(h * PORTRAIT_RATIO)
+    const h = Math.min(meta.height, Math.round(meta.width / ratio))
+    const w = Math.round(h * ratio)
     c = { x: Math.round((meta.width - w) / 2), y: Math.round((meta.height - h) / 2), width: w, height: h }
   }
   c = { x: Math.max(0, c.x), y: Math.max(0, c.y), width: Math.max(1, c.width), height: Math.max(1, c.height) }
   c.width = Math.min(c.width, meta.width - c.x); c.height = Math.min(c.height, meta.height - c.y)
   if (c.width < 150 || c.height < 150) throw invalid('The selected area is too small. Zoom out a little.', { photo: ['Crop too small.'] })
-  if (Math.abs(c.width / c.height - PORTRAIT_RATIO) > 0.05) throw invalid('The crop must be in passport (portrait) format.', { photo: ['Wrong format.'] })
+  if (Math.abs(c.width / c.height - ratio) > 0.05) throw invalid(ratio === 1 ? 'The crop must be square.' : 'The crop must be in passport (portrait) format.', { photo: ['Wrong format.'] })
   const original = mime === 'image/png'
     ? await sharp(upright).png({ compressionLevel: 9 }).toBuffer()
     : await sharp(upright).jpeg({ quality: 95, mozjpeg: true }).toBuffer()

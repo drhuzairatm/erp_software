@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { fmtDate, fmtDateTime, fmtMoney, label, todayISO } from '@/components/format'
-import { Alert, Badge, Card, DemoBadge, DL, EmptyState, PriorityBadge, StatusBadge } from '@/components/ui'
+import { Alert, Avatar, Badge, Card, DL, DemoBadge, EmptyState, PriorityBadge, StatusBadge, staffPhotoUrl } from '@/components/ui'
 import { can } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
+import { staffPhotoVersions } from '@/server/services/staff-photos'
 import { getChecklist } from '@/server/services/documents'
 import { getLookups } from '@/server/services/lookups'
 import { listCurrencies, studentLedger } from '@/server/services/payments'
@@ -160,6 +161,7 @@ async function ContactHistory({ ctx, studentId }: { ctx: Ctx; studentId: string 
 async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }) {
   const { student: s, permissions: p } = profile
   const staff = p.assign ? await assignableStaff(ctx, s.id) : []
+  const staffPhotos = await staffPhotoVersions(ctx, profile.assignments.map((a) => a.user_id))
   const today = todayISO()
   const ASSIGN_TYPES = [
     { type: 'manager', label: 'Manager', perm: 'students.assign' },
@@ -260,7 +262,8 @@ async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
           <ul className="mb-3 space-y-1 text-sm">
             {ASSIGN_TYPES.map((t) => {
               const a = profile.assignments.find((x) => x.assignment_type === t.type)
-              return <li key={t.type} className="flex justify-between gap-2"><span className="text-slate-600">{t.label}</span><span>{a?.full_name ?? '—'}</span></li>
+              return <li key={t.type} className="flex items-center justify-between gap-2"><span className="text-slate-600">{t.label}</span>
+                {a ? <span className="flex items-center gap-2"><Avatar name={a.full_name} size="sm" src={staffPhotoUrl(a.user_id, staffPhotos[a.user_id])} />{a.full_name}</span> : <span>—</span>}</li>
             })}
           </ul>
           {p.assign && (

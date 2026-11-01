@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fmtDate, label } from '@/components/format'
 import { Icon } from '@/components/icons'
-import { Avatar, Card, EmptyState, FilterBar, PageHeader, Pagination, PriorityBadge, StatCard, StatusBadge, ViewTabs, studentPhotoUrl } from '@/components/ui'
+import { Avatar, Card, EmptyState, FilterBar, PageHeader, Pagination, PriorityBadge, StatCard, StatusBadge, ViewTabs, staffPhotoUrl, studentPhotoUrl } from '@/components/ui'
 import { can, canAny } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
+import { staffPhotoVersions } from '@/server/services/staff-photos'
 import { listTasks, type TaskFilters, type TaskRow, taskAssignees, taskCounts } from '@/server/services/tasks'
 import { getScope } from '@/server/scope'
 import { DELAY_REASONS } from '@/server/validation'
@@ -48,6 +49,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const [data, staff, counts] = await Promise.all([
     listTasks(ctx, scope.orgIds, { ...sp, view } as TaskFilters), taskAssignees(ctx, scope.orgIds), taskCounts(ctx, scope.orgIds, sp.mine === 'yes'),
   ])
+  const photos = await staffPhotoVersions(ctx, data.rows.map((t) => t.assigned_to))
   const seesAll = scope.orgIds.some((o) => can(ctx, 'tasks.read.all', o))
   const canCreate = scope.orgIds.some((o) => can(ctx, 'tasks.create', o))
   const base = { mine: sp.mine, assignee: sp.assignee, delay: sp.delay, layout: sp.layout }
@@ -113,7 +115,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <Due t={t} />
                         <span className="flex items-center gap-1.5"><PriorityBadge priority={t.priority} />
-                          {t.assignee_name ? <span title={t.assignee_name}><Avatar name={t.assignee_name} size="sm" /></span> : <span className="font-medium text-amber-700">Unassigned</span>}</span>
+                          {t.assignee_name ? <span title={t.assignee_name}><Avatar name={t.assignee_name} size="sm" src={staffPhotoUrl(t.assigned_to, photos[t.assigned_to ?? ''])} /></span> : <span className="font-medium text-amber-700">Unassigned</span>}</span>
                       </div>
                       {t.status === 'waiting_external' && t.delay_reason && <p className="mt-1 text-xs text-amber-800">Waiting on {label(t.delay_reason)}</p>}
                     </li>))}
@@ -133,7 +135,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                     <Link href={`/tasks/${t.id}`} className="font-medium">{t.title}</Link><div className="text-xs text-slate-500">{label(t.task_type)} · {t.org_name}</div></td>
                   <td>{t.student_id && t.student_code ? <Link href={`/students/${t.student_id}`} className="inline-flex items-center gap-2"><Avatar name={t.student_name} size="sm" src={studentPhotoUrl(t.student_id, t.student_photo_version)} />{t.student_name}</Link> : t.student_id ? <span className="text-slate-400">Restricted</span> : '—'}
                     {t.student_code && <div className="font-mono text-xs text-slate-500">{t.student_code}</div>}</td>
-                  <td>{t.assignee_name ? <span className="flex items-center gap-2"><Avatar name={t.assignee_name} size="sm" />{t.assignee_name}</span> : <span className="text-amber-700">Unassigned</span>}</td>
+                  <td>{t.assignee_name ? <span className="flex items-center gap-2"><Avatar name={t.assignee_name} size="sm" src={staffPhotoUrl(t.assigned_to, photos[t.assigned_to ?? ''])} />{t.assignee_name}</span> : <span className="text-amber-700">Unassigned</span>}</td>
                   <td><StatusBadge status={t.status} />{t.status === 'waiting_external' && t.delay_reason && <div className="text-xs text-slate-500">on {label(t.delay_reason)}</div>}</td>
                   <td><PriorityBadge priority={t.priority} /></td>
                   <td className={`whitespace-nowrap ${t.is_overdue ? 'font-semibold text-red-700' : ''}`}>{fmtDate(t.due_date)}{t.is_overdue && <div className="text-xs">Overdue</div>}

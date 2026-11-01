@@ -1,6 +1,8 @@
 'use client'
 
-import { addReferenceAction, createRoleAction, createStaffAction, membershipAction, orgSettingsAction, resetLinkAction, rolePermissionsAction, toggleReferenceAction, userActiveAction, workflowAction } from '@/app/actions/admin'
+import { useState } from 'react'
+import { addReferenceAction, createRoleAction, createStaffAction, membershipAction, orgSettingsAction, removeStaffPhotoAction, reportingManagerAction, resetLinkAction, roleStructureAction, rolePermissionsAction, staffPhotoAction, toggleReferenceAction, userActiveAction, workflowAction } from '@/app/actions/admin'
+import { PhotoPicker } from '@/components/photo-picker'
 import { adminResetMfaAction } from '@/app/actions/auth'
 import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
 
@@ -11,9 +13,10 @@ function LinkBox({ link }: { link?: unknown }) {
   return <input readOnly className="input font-mono text-xs" value={link} onFocus={(e) => e.currentTarget.select()} aria-label="One-time link" />
 }
 
-export function CreateStaffForm({ orgs, roles }: { orgs: Opt[]; roles: { id: string; org_id: string; name: string }[] }) {
+export function CreateStaffForm({ orgs, roles, managers }: { orgs: Opt[]; roles: { id: string; org_id: string; name: string }[]; managers: Opt[] }) {
+  const [k, setK] = useState(0)
   return (
-    <ActionForm action={createStaffAction} resetOnSuccess>
+    <ActionForm action={createStaffAction} resetOnSuccess onSuccess={() => setK((x) => x + 1)}>
       {(s) => (
         <>
           <LinkBox link={s.data?.link} />
@@ -37,8 +40,12 @@ export function CreateStaffForm({ orgs, roles }: { orgs: Opt[]; roles: { id: str
               </select>
               <input type="hidden" name="roleId" /><input type="hidden" name="orgId" />
               <FieldError state={s} name="roleId" /></div>
-            <div className="flex items-end"><SubmitButton>Add staff</SubmitButton></div>
+            <div><label className="label" htmlFor="reportsTo">Reporting manager</label>
+              <select className="input" id="reportsTo" name="reportsTo" defaultValue=""><option value="">— none —</option>{managers.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></div>
           </div>
+          <div><p className="label">Staff Profile Photo (optional)</p>
+            <PhotoPicker key={k} square help="A clear, recent photo of the face. JPG or PNG, maximum 5 MB. Shown as this person's avatar to colleagues." /></div>
+          <div><SubmitButton>Add staff</SubmitButton></div>
           <p className="hint">If the email already has an account (e.g. in the other company), the person is added to this company with the chosen role. Roles in one company never grant access in the other.</p>
         </>
       )}
@@ -168,6 +175,48 @@ export function WorkflowForm({ id, stages, selected, docs, selectedDocs }: { id:
         </fieldset>
       </div>
       <SubmitButton className="btn-secondary">Save workflow</SubmitButton>
+    </ActionForm>
+  )
+}
+
+export function StaffPhotoForm({ userId, hasPhoto }: { userId: string; hasPhoto: boolean }) {
+  const [chosen, setChosen] = useState(false)
+  const [k, setK] = useState(0)
+  return (
+    <div className="space-y-3">
+      <ActionForm key={k} action={staffPhotoAction.bind(null, userId)} className="space-y-3" onSuccess={() => { setK((x) => x + 1); setChosen(false) }}>
+        <PhotoPicker square onChange={setChosen} help="A clear, recent photo of the face. JPG or PNG, maximum 5 MB." />
+        {chosen && <SubmitButton>{hasPhoto ? 'Confirm and replace photo' : 'Save photo'}</SubmitButton>}
+      </ActionForm>
+      {hasPhoto && (
+        <ActionForm action={removeStaffPhotoAction.bind(null, userId)}>
+          <ConfirmSubmit confirmText="Remove the photo? Initials will be shown instead." className="btn-ghost btn-sm text-red-700">Remove photo</ConfirmSubmit>
+        </ActionForm>
+      )}
+    </div>
+  )
+}
+
+export function ReportingManagerForm({ userId, current, managers }: { userId: string; current: string | null; managers: Opt[] }) {
+  return (
+    <ActionForm action={reportingManagerAction.bind(null, userId)} className="flex flex-wrap items-end gap-2">
+      <div><label className="label" htmlFor="rm">Reporting manager</label>
+        <select className="input" id="rm" name="reportsTo" defaultValue={current ?? ''}><option value="">— none —</option>{managers.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></div>
+      <SubmitButton className="btn-secondary">Save</SubmitButton>
+    </ActionForm>
+  )
+}
+
+export function RoleStructureForm({ roleId, active, parent, parents, disabled }: { roleId: string; active: boolean; parent: string | null; parents: Opt[]; disabled: boolean }) {
+  return (
+    <ActionForm action={roleStructureAction.bind(null, roleId)} className="flex flex-wrap items-end gap-3">
+      <div><label className="label text-xs" htmlFor={`rp-${roleId}`}>Reports to (role)</label>
+        <select className="input py-1.5 text-sm" id={`rp-${roleId}`} name="parentRoleId" defaultValue={parent ?? ''} disabled={disabled}>
+          <option value="">— top level —</option>{parents.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select></div>
+      <div><label className="label text-xs" htmlFor={`ra-${roleId}`}>Status</label>
+        <select className="input py-1.5 text-sm" id={`ra-${roleId}`} name="isActive" defaultValue={String(active)} disabled={disabled}>
+          <option value="true">Active</option><option value="false">Inactive (cannot be assigned)</option></select></div>
+      {!disabled && <SubmitButton className="btn-secondary btn-sm">Save</SubmitButton>}
     </ActionForm>
   )
 }
