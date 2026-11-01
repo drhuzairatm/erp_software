@@ -18,6 +18,7 @@ No staging or production environment exists yet.
 | `7ced178` | 2026-11-01 13:49 | Phase B: virus-scan status, quarantine, manual clearance, approval/courier gates, security alerts, login history, 2-step login for everyone, nonce browser policy |
 | `eab9075` | 2026-11-01 14:12 | Phase C: admissions scenarios A–L, security/isolation matrix, backup → restore drill |
 | `4612207` | 2026-11-01 | Audit remediation: H-1 viewer quarantine, M-1 trusted client address, M-2 bulk-access alerts |
+| `7569feb` | 2026-11-01 | N-1: per-browser sign-in lockout, rate-limited password reset, encrypted staff email queue (migration 0035) |
 
 **Naming note:** the older test files `phase-a.test.ts`, `phase-b.test.ts` and `phase-c.test.ts` belong to the **earlier development phases** (MD/CEO roles, passports, document verification), not to this remediation programme. The remediation tests are `staff-accounts`, `security-phase-b`, `scenarios-a-l` and `security-matrix`.
 
@@ -29,7 +30,8 @@ No staging or production environment exists yet.
 | Browser-policy test on the **production build** (`next start`) | 2026-11-01 | `7ced178` | passed | PHASE_B_SECURITY_REPORT.md |
 | Backup → isolated restore drill | 2026-11-01 | `eab9075` | **31/31 checks passed** | BACKUP_RESTORE_DRILL.md |
 | Phase D re-run (after the documentation changes and two test-reliability fixes) | 2026-11-01 | Phase D commit | **260 passed** (full check incl. build); **54 browser passed, 0 skipped** | PHASE_D_REPORT.md |
-| N-1 run (migration 0035 applied to the development database) | 2026-11-01 | uncommitted, on top of `4612207` | **315 passed, 0 failed** (36 files; full check incl. typecheck, lint, build); **56 browser passed, 0 failed, 0 skipped** | this register, section N-1 |
+| N-1 run (migration 0035 applied to the development database) | 2026-11-01 | `7569feb` | **315 passed, 0 failed** (36 files; full check incl. typecheck, lint, build); **56 browser passed, 0 failed, 0 skipped** | this register, section N-1 |
+| N-7 run (migration 0036 applied to the development database) | 2026-11-01 | uncommitted, on top of `7569feb` | **336 passed, 0 failed** (38 files; full check incl. typecheck, lint, build); **56 browser passed, 0 failed, 0 skipped** | this register, section N-7 |
 
 ## Evidence by area
 Each test was run on 2026-11-01. Columns: evidence ID, control, test or source (file), result, commit.
@@ -97,15 +99,15 @@ Each test was run on 2026-11-01. Columns: evidence ID, control, test or source (
 | E-X3 | **M-1:** forged `X-Forwarded-For` ignored in all modes; trusted `X-Real-IP` / right-most `X-Forwarded-For` used only when configured; invalid values discarded | `tests/unit/client-ip.test.ts` (5 tests) | Pass | `4612207` |
 | E-X4 | **M-1 + lockout:** the real `login()` with forged headers: per-email lockout after 5 failures, nothing fake stored; unknown addresses never lock out others (shared-bucket bug fixed); trusted proxy: per-address lockout at 30 and the address recorded; portal codes limited to 5 per identifier, forged address not stored | `tests/integration/client-ip-lockout.test.ts` (4 tests) | Pass | `4612207` |
 
-### N-1: sign-in lockout and password reset (migration 0035, **uncommitted**, 1 Nov 2026)
+### N-1: sign-in lockout and password reset (migration 0035, commit `7569feb`, 1 Nov 2026)
 | ID | Control | Test / source | Result | Commit |
 |---|---|---|---|---|
-| E-N1 | Database security of 0035: every new function SECURITY DEFINER with fixed `search_path`; PUBLIC executes none; `erp_app` executes exactly the 11 application functions and no internal or trigger function; `auth_private` closed to `erp_app` (no USAGE, no table privilege); public policies 149 and RLS tables 89 unchanged | `tests/integration/auth-db-security.test.ts` | Pass | uncommitted |
-| E-N2 | **Exact rollback** in the throwaway test database: the 3 replaced functions restored byte-for-byte (md5 of definition and access list match the pre-0035 development fingerprints); every new function, table, column and trigger removed; re-apply works. **The development database was not rolled back.** | same file | Pass | uncommitted |
-| E-N3 | Staff: resets never lock; 3 per hour per email plus supersede; identical answers and timing (median difference under 15 ms); 10 per hour per address; trusted vs unrecognised browsers with 2-step login still required; hash-only storage; trust only after 2-step login; trusted limit 10; stolen cookie on another account, expiry; revocation on 5 events; recovery on a new browser; 20 parallel → 5 counted; refused attempts do not extend; many-accounts and global alerts | `tests/integration/auth-rate-limits.test.ts` (16 tests) | Pass | uncommitted |
-| E-N4 | Reset-email queue: link encrypted, delivered once, then erased; retry with back-off → failed after 5 with audit and alert; not configured → skipped and erased; expired → erased; 3 parallel senders deliver exactly once; CHECK constraints; global cap; `erp_app` cannot read the queue; sender functions refuse MD, admin and manager contexts; **the MD's reset link appears in no audit log, alert or notification outbox** and the MD's sign-in is unaffected | `tests/integration/staff-email-outbox.test.ts` | Pass | uncommitted |
-| E-N5 | Portal: the usual browser survives a lockout; trusted limit 10; another student's cookie gives nothing; sticky re-lock fixed (new and legacy functions); 20 parallel → 5 counted; revocation on new password or disabling; recovery trust | `tests/integration/portal-rate-limits.test.ts` | Pass | uncommitted |
-| E-N6 | Real browser: staff reset in own browser → trusted; another browser locked after 5 failures, even with the right password; the employee's browser still signs in; same answer for unknown and known emails; HttpOnly device cookie. Portal: lockout from another browser while the usual browser still signs in | `tests/e2e/n1-lockout.spec.ts` (2 tests) | Pass | uncommitted |
+| E-N1 | Database security of 0035: every new function SECURITY DEFINER with fixed `search_path`; PUBLIC executes none; `erp_app` executes exactly the 11 application functions and no internal or trigger function; `auth_private` closed to `erp_app` (no USAGE, no table privilege); public policies 149 and RLS tables 89 unchanged | `tests/integration/auth-db-security.test.ts` | Pass | `7569feb` |
+| E-N2 | **Exact rollback** in the throwaway test database: the 3 replaced functions restored byte-for-byte (md5 of definition and access list match the pre-0035 development fingerprints); every new function, table, column and trigger removed; re-apply works. **The development database was not rolled back.** | same file | Pass | `7569feb` |
+| E-N3 | Staff: resets never lock; 3 per hour per email plus supersede; identical answers and timing (median difference under 15 ms); 10 per hour per address; trusted vs unrecognised browsers with 2-step login still required; hash-only storage; trust only after 2-step login; trusted limit 10; stolen cookie on another account, expiry; revocation on 5 events; recovery on a new browser; 20 parallel → 5 counted; refused attempts do not extend; many-accounts and global alerts | `tests/integration/auth-rate-limits.test.ts` (16 tests) | Pass | `7569feb` |
+| E-N4 | Reset-email queue: link encrypted, delivered once, then erased; retry with back-off → failed after 5 with audit and alert; not configured → skipped and erased; expired → erased; 3 parallel senders deliver exactly once; CHECK constraints; global cap; `erp_app` cannot read the queue; sender functions refuse MD, admin and manager contexts; **the MD's reset link appears in no audit log, alert or notification outbox** and the MD's sign-in is unaffected | `tests/integration/staff-email-outbox.test.ts` | Pass | `7569feb` |
+| E-N5 | Portal: the usual browser survives a lockout; trusted limit 10; another student's cookie gives nothing; sticky re-lock fixed (new and legacy functions); 20 parallel → 5 counted; revocation on new password or disabling; recovery trust | `tests/integration/portal-rate-limits.test.ts` | Pass | `7569feb` |
+| E-N6 | Real browser: staff reset in own browser → trusted; another browser locked after 5 failures, even with the right password; the employee's browser still signs in; same answer for unknown and known emails; HttpOnly device cookie. Portal: lockout from another browser while the usual browser still signs in | `tests/e2e/n1-lockout.spec.ts` (2 tests) | Pass | `7569feb` |
 
 **N-1 not tested / externally dependent (verified in development only; not production-ready):**
 - **Real email delivery** of reset emails: the queue is tested with a stub provider only.
@@ -115,7 +117,23 @@ Each test was run on 2026-11-01. Columns: evidence ID, control, test or source (
 
 **Known deviation (N-1):** the planned extra caps on portal sign-in codes (1 per minute, 5 per 15 minutes) were **not** built. They conflict with existing tested behaviour (`phase-i.test.ts`); the existing limit of 5 per hour per identifier stays.
 
-**Open finding N-7 (High, not fixed):** student-portal set-up and reset links can be read in the notification outbox while queued or in test mode. The remediation plan awaits approval.
+**Finding N-7:** fixed in development by migration 0036 (see the next section).
+
+### N-7: secure portal link queue (migration 0036, **uncommitted**, 1 Nov 2026)
+| ID | Control | Test / source | Result | Commit |
+|---|---|---|---|---|
+| E-P1 | Database security of 0036: new functions SECURITY DEFINER with fixed `search_path`; PUBLIC executes none; `erp_app` executes exactly the 4 application functions and no internal or trigger function; queue closed to `erp_app` (no USAGE, no privilege, no grant); public policies 149 and RLS tables 89 unchanged; `messages_select` hides both portal-link kinds from every branch | `tests/integration/portal-link-db-security.test.ts` | Pass | uncommitted |
+| E-P2 | **Exact rollback** in the throwaway test database: the 3 replaced functions (definition and access list) and the `messages_select` policy (qual, roles, command) match the pre-0036 development fingerprints; new objects removed. A real legacy exposure, created with the restored old function, is scrubbed on re-apply: link removed, message skipped, exposed link no longer valid, audited. **The development database was not rolled back.** | same file | Pass | uncommitted |
+| E-P3 | Set-up link stored encrypted, delivered once by the company sender, then wiped; it appears in no outbox, audit log, student event or alert, and not to the manager, the MD or a counsellor; the student completes set-up and signs in; staff see the delivery status only | `tests/integration/portal-link-queue.test.ts` | Pass | uncommitted |
+| E-P4 | Forgot password: the reset link reaches only the student; the reset works; replay is refused; neither contact-details nor outbox holders can read it | same file | Pass | uncommitted |
+| E-P5 | Test mode → status "test", link wiped, nothing sent (allow-listed addresses do receive it); email not configured → skipped and wiped; expired before sending → never sent; an expired delivered link cannot be used; re-issue revokes the older queued email and link; disabling revokes; claim-time re-check catches a revocation the trigger did not see | same file | Pass | uncommitted |
+| E-P6 | 3 parallel senders deliver each message exactly once; temporary failure → retry with back-off, link kept encrypted while pending, failed after 5 attempts, wiped and audited; permanent failure → failed at once | same file | Pass | uncommitted |
+| E-P7 | Direct access denied: `erp_app` and staff (MD, admin, manager, counsellor) cannot read the queue; sender functions refuse staff contexts; plain links refused (22023); the CHECK refuses plain or pending links in final states; portal-link messages cannot be inserted into the outbox; status function respects company isolation; legacy rows hidden and stripped in every status (test, queued, sent, failed, skipped) | same file | Pass | uncommitted |
+| E-P8 | Existing portal tests adapted to the secure queue (forgot password: one queue row, none in the outbox, queue unreadable to counsellor and manager) | `tests/integration/phase-6-portal-v2.test.ts` | Pass | uncommitted |
+
+**N-7 not tested / externally dependent:** real email delivery (stub provider only); the per-minute scheduled job on a real host; a browser test of an emailed link. Development has no email provider, so the emailed path is covered by the integration tests only.
+
+**Adjacent observation (not part of N-7, awaiting decision):** in test mode, portal sign-in codes and email-verification links remain readable to `notifications.view` holders.
 
 ## Controls without test evidence
 These are implemented or documented, but **no automated test proves them**:

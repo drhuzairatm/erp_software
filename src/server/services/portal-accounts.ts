@@ -1,3 +1,4 @@
+import { encryptSecret } from '../auth/mfa'
 import { appUrl } from '../email'
 import { hashToken, newTokenValue } from '../auth/tokens'
 import { invalid } from '../errors'
@@ -9,21 +10,31 @@ export interface PortalAccountInfo {
   status: 'invited' | 'active' | 'disabled'; created_at: Date; password_set_at: Date | null; last_login_at: Date | null
   locked: boolean; disabled_reason: string | null; open_link_expires: Date | null; can_manage: boolean
 }
+/** Delivery status of the latest portal link email (secure queue, finding N-7). Never contains the link. */
+export interface PortalLinkEmailStatus {
+  kind: 'portal_account_setup' | 'portal_password_reset'; status: 'queued' | 'sending' | 'sent' | 'failed' | 'skipped' | 'test' | 'expired' | 'revoked'
+  created_at: Date; finished_at: Date | null; attempts: number; last_error: string | null
+}
 
 export async function portalAccount(ctx: Ctx, studentId: string) {
-  if (!UUID.test(studentId)) return { account: null, canManage: false }
+  if (!UUID.test(studentId)) return { account: null, canManage: false, lastEmail: null }
   return run(ctx, async (tx) => {
     const [a] = await tx<PortalAccountInfo[]>`select * from app.portal_account_info(${studentId})`
     const [{ m }] = await tx<{ m: boolean }[]>`select app.can_on_student(${studentId}, 'portal.accounts.manage') as m`
-    return { account: a ?? null, canManage: m }
+    const [e] = await tx<PortalLinkEmailStatus[]>`select * from app.portal_email_status(${studentId})`
+    return { account: a ?? null, canManage: m, lastEmail: e ?? null }
   })
 }
 
-/** Creates the account if needed and issues a set-up/reset link. Returns the link only when it was NOT e-mailed (staff hand it over). */
+/**
+ * Creates the account if needed and issues a set-up/reset link. Returns the link only when it was NOT e-mailed (the
+ * issuing staff member hands it over personally). Emailed links go to the secure queue ENCRYPTED (finding N-7): no staff
+ * member, and not the application role, can read them there.
+ */
 export async function issuePortalLink(ctx: Ctx, studentId: string) {
   const token = newTokenValue()
   const link = appUrl(`/portal/password?token=${token}`)
-  const [r] = await run(ctx, (tx) => tx<{ mode: 'emailed' | 'link' }[]>`select app.issue_portal_account_link(${studentId}, ${hashToken(token)}, ${link}) as mode`)
+  const [r] = await run(ctx, (tx) => tx<{ mode: 'emailed' | 'link' }[]>`select app.issue_portal_account_link(${studentId}, ${hashToken(token)}, ${encryptSecret(link)}) as mode`)
   return r.mode === 'emailed' ? { mode: 'emailed' as const } : { mode: 'link' as const, link }
 }
 

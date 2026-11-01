@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { anonymous, db } from '@/server/db'
 import { ServiceError } from '@/server/errors'
+import { encryptSecret } from '@/server/auth/mfa'
 import { verifyPassword } from '@/server/auth/password'
 import { hashToken } from '@/server/auth/tokens'
 import { checkPasswordLink, setPasswordWithLink } from '@/server/portal'
@@ -88,15 +89,17 @@ describe('password accounts', () => {
     const s = await newStudent()
     const t = linkToken((await pa.issuePortalLink(s.mgr, s.id)).link!)
     await setPasswordWithLink(t, PASSWORD, PASSWORD)
-    await anonymous((tx) => tx`select app.portal_request_reset(${s.code}, ${hashToken('unverified-' + rand())}, 'http://x/portal/password?token=abc')`)
-    expect(await adminSql()`select 1 from notification_messages where student_id = ${s.id} and event_key = 'portal_password_reset'`).toHaveLength(0)
+    const link = encryptSecret('http://x/portal/password?token=abc') // the database accepts only encrypted links (N-7)
+    await anonymous((tx) => tx`select app.portal_request_reset(${s.code}, ${hashToken('unverified-' + rand())}, ${link})`)
+    expect(await adminSql()`select 1 from auth_private.portal_email_outbox where student_id = ${s.id}`).toHaveLength(0)
     await adminSql().begin(async (tx) => { await tx`select set_config('app.email_verify', 'on', true)`; await tx`update students set email_status = 'verified', email_verified_at = now() where id = ${s.id}` })
-    await anonymous((tx) => tx`select app.portal_request_reset(${s.email}, ${hashToken('verified-' + rand())}, 'http://x/portal/password?token=abc')`)
-    const msgs = await adminSql()`select id from notification_messages where student_id = ${s.id} and event_key = 'portal_password_reset'`
-    expect(msgs).toHaveLength(1)
-    // a counsellor (no outbox permission) cannot read the message with the link
-    const seen = await as('edx.counsellor@demo.test', (tx) => tx`select 1 from notification_messages where id = ${msgs[0].id}`)
-    expect(seen).toHaveLength(0)
+    await anonymous((tx) => tx`select app.portal_request_reset(${s.email}, ${hashToken('verified-' + rand())}, ${link})`)
+    // N-7: queued in the secure (encrypted) portal email queue, never in the staff-visible outbox
+    expect(await adminSql()`select 1 from auth_private.portal_email_outbox where student_id = ${s.id} and kind = 'portal_password_reset'`).toHaveLength(1)
+    expect(await adminSql()`select 1 from notification_messages where student_id = ${s.id} and event_key = 'portal_password_reset'`).toHaveLength(0)
+    // neither a counsellor nor a manager (outbox permission) can read the queue
+    await expect(as('edx.counsellor@demo.test', (tx) => tx`select 1 from auth_private.portal_email_outbox`)).rejects.toThrow()
+    await expect(as('edx.manager@demo.test', (tx) => tx`select 1 from auth_private.portal_email_outbox`)).rejects.toThrow()
     // verified email now works for sign-in
     expect(await login(s.email, PASSWORD)).toBeTruthy()
   })

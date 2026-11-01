@@ -4,11 +4,14 @@ import type { Ctx } from '@/server/services/base'
 import { portalAccount, studentPublications } from '@/server/services/portal-accounts'
 import { AccountStatusForm, IssueLinkButton, PublishForm, UnpublishForm } from './portal-forms'
 
+// delivery status of the secure portal link email (finding N-7); the link itself is never shown
+const EMAIL_STATUS = { queued: 'waiting to be sent', sending: 'being sent', sent: 'sent', failed: 'could not be sent – issue a new link',
+  skipped: 'not sent (email not configured)', test: 'not sent (test mode)', expired: 'expired before sending', revoked: 'replaced or cancelled' } as const
 const STATUS = { invited: ['Set-up link sent – no password yet', 'amber'], active: ['Active', 'green'], disabled: ['Disabled', 'red'] } as const
 
 /** Student portal password account (overview side column). */
 export async function PortalAccountCard({ ctx, studentId, emailVerified, editable }: { ctx: Ctx; studentId: string; emailVerified: boolean; editable: boolean }) {
-  const { account: a, canManage } = await portalAccount(ctx, studentId)
+  const { account: a, canManage, lastEmail } = await portalAccount(ctx, studentId)
   if (!a && !canManage) return null
   return (
     <Card title="Student portal account">
@@ -26,6 +29,7 @@ export async function PortalAccountCard({ ctx, studentId, emailVerified, editabl
             {a.password_set_at && <div>Password set {fmtDateTime(a.password_set_at)}</div>}
             <div>Last sign-in {a.last_login_at ? fmtDateTime(a.last_login_at) : 'never'}</div>
             {a.open_link_expires && <div>An unused link is valid until {fmtDateTime(a.open_link_expires)}</div>}
+            {lastEmail && <div>Last link email: {EMAIL_STATUS[lastEmail.status]} ({fmtDateTime(lastEmail.finished_at ?? lastEmail.created_at)}){lastEmail.last_error && lastEmail.status !== 'queued' ? ` – ${lastEmail.last_error}` : ''}</div>}
             {a.disabled_reason && <div className="text-red-700">Disabled: {a.disabled_reason}</div>}
           </dl>
           {canManage && editable && (

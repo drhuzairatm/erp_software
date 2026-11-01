@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { deliverStaffEmails } from '@/server/auth/staff-email'
 import { processQueue } from '@/server/notifications/dispatcher'
+import { deliverPortalEmails } from '@/server/notifications/portal-email'
 import { emailSecurityAlerts } from '@/server/security/jobs'
 
 /**
@@ -17,5 +18,7 @@ export async function GET(req: Request) {
   const securityAlerts = await emailSecurityAlerts().catch(() => ({ emailed: 0, reason: 'error' }))
   // staff password-reset emails (dedicated encrypted queue, finding N-1)
   const staffEmails = await deliverStaffEmails(50).catch(() => ({ error: true }))
-  return NextResponse.json({ ...result, securityAlerts, staffEmails }, { headers: { 'Cache-Control': 'no-store' } })
+  // student-portal set-up / reset link emails (dedicated encrypted queue, finding N-7)
+  const portalLinkEmails = await deliverPortalEmails(50).catch(() => ({ error: true }))
+  return NextResponse.json({ ...result, securityAlerts, staffEmails, portalLinkEmails }, { headers: { 'Cache-Control': 'no-store' } })
 }

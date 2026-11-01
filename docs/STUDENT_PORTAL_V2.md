@@ -3,7 +3,7 @@
 ## Password sign-in
 - **Accounts:** staff with `portal.accounts.manage` (Company Manager, Counsellor; MD always) create the account on the student profile → **Student portal account → Create account & issue set-up link**.
 - **How the link is delivered:**
-  - If the student's email is **verified**, the link is emailed using the "Portal account set-up" template.
+  - If the student's email is **verified**, the link is emailed using the "Portal account set-up" template, through the **secure portal email queue** (see Outbox below). Staff never see an emailed link.
   - Otherwise the one-time link is shown to the staff member once, to hand over personally.
   - Links are valid for 72 hours, work once, and replace any earlier link. At most 5 links can be issued per hour.
 - **Password:** the student chooses a password of at least 12 characters, using three character types. It is stored as Argon2id, like staff passwords.
@@ -13,7 +13,13 @@
 - **Forgot password:** emails a 1-hour reset link, but **only to a verified address**. The page never reveals whether an account exists.
 - **One-time code login is still available** on the same page, as before.
 - **Disable / enable** (a reason is required): disabling signs the student out at once and cancels open links.
-- **Outbox:** set-up and reset messages are visible only to staff with outbox permission, and the link is removed from the stored message once it is sent.
+- **Secure portal email queue (finding N-7, migration 0036):** set-up and reset emails no longer go through the staff-visible *Messages* outbox.
+  - **Storage:** the link is stored encrypted in `auth_private.portal_email_outbox`. No staff member can read it, the MD included, and neither can the application's database role.
+  - **Wiped:** the link is erased as soon as the email is sent, fails finally, is skipped (email not configured), is recorded in test mode, expires or is revoked.
+  - **Revoked:** a new link, a completed password change or a disabled account revokes a queued email at once. Every send re-checks that the link is still valid.
+  - **Delivery:** the company's own email sender, the same test mode and allow-list as other messages, and up to 5 attempts with back-off. Sent by the per-minute scheduled job; also tried right after the request.
+  - **What staff see:** the **Student portal account** card shows only the delivery status of the latest link email (for example "sent", "not sent (test mode)", "could not be sent – issue a new link").
+  - **Messages page:** set-up and reset messages no longer appear there, for any role.
 
 ## Documents from us (publication)
 - Staff with `documents.publish` (Company Manager, Documentation Staff) publish **approved** documents from the Documents tab.

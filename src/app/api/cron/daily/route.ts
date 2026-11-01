@@ -8,6 +8,7 @@ import { rescanPendingFiles } from '@/server/security/jobs'
  * - pending email verifications past their expiry become "expired"
  * - files stored while no virus scanner was available are scanned (when a scanner is configured)
  * - authentication housekeeping (trusted browsers, reset-request log, finished staff emails; never the audit log)
+ * - finished portal link emails older than 90 days (secure queue; the links were already wiped)
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET
@@ -18,6 +19,7 @@ export async function GET(req: Request) {
   const scan = await rescanPendingFiles(100)
   // authentication working data: expired/revoked trusted browsers, old reset-request log and finished staff emails
   const [{ auth }] = await anonymous((tx) => tx<{ auth: Record<string, number> }[]>`select app.auth_housekeeping() as auth`)
-  return NextResponse.json({ passportTasksCreated: r.tasks, emailVerificationsExpired: r.emails, virusScan: scan, authHousekeeping: auth },
+  const [{ portal }] = await anonymous((tx) => tx<{ portal: number }[]>`select app.portal_email_housekeeping() as portal`)
+  return NextResponse.json({ passportTasksCreated: r.tasks, emailVerificationsExpired: r.emails, virusScan: scan, authHousekeeping: auth, portalLinkEmailsRemoved: portal },
     { headers: { 'Cache-Control': 'no-store' } })
 }

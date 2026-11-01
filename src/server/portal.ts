@@ -5,6 +5,7 @@ import { createHmac, randomBytes, randomInt } from 'node:crypto'
 import { cookies, headers } from 'next/headers'
 import { anonymous } from './db'
 import { checkPasswordStrength, getDummyHash, hashPassword, verifyPassword } from './auth/password'
+import { encryptSecret } from './auth/mfa'
 import { hashToken, newTokenValue } from './auth/tokens'
 import { deviceHash, newDeviceToken, PORTAL_DEVICE_COOKIE, readDeviceToken, setDeviceCookie } from './auth/trusted-device'
 import { appUrl } from './email'
@@ -207,7 +208,8 @@ export async function requestPasswordReset(identifier: string) {
   const id = identifier.trim().slice(0, 200)
   if (id.length < 3) throw invalid('Enter your Student ID or verified email address.')
   const token = newTokenValue()
-  await anonymous((tx) => tx`select app.portal_request_reset(${id}, ${hashToken(token)}, ${appUrl(`/portal/password?token=${token}`)})`)
+  // the link is queued ENCRYPTED in the secure portal email queue (finding N-7)
+  await anonymous((tx) => tx`select app.portal_request_reset(${id}, ${hashToken(token)}, ${encryptSecret(appUrl(`/portal/password?token=${token}`))})`)
 }
 
 // ---------------------------------------------------------------- notices, publications, payments

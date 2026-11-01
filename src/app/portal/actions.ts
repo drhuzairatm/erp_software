@@ -2,8 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
+import { after } from 'next/server'
 import { redirect } from 'next/navigation'
 import { newDeviceToken, PORTAL_DEVICE_COOKIE, setDeviceCookie } from '@/server/auth/trusted-device'
+import { deliverPortalEmails } from '@/server/notifications/portal-email'
 import type { ActionResult } from '@/components/action-types'
 import { chooseStudent, markNoticesRead, portalSubmitReferral, publicSubmitReferral, passwordLogin, portalLogout, portalSubmitCourier, portalUpload, requestCode, requestPasswordReset, setPasswordWithLink, verifyCode } from '@/server/portal'
 import { runAction } from '../actions/run-action'
@@ -72,7 +74,11 @@ export async function setPasswordAction(token: string, _: ActionResult, fd: Form
 }
 
 export async function forgotPasswordAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
-  return runAction(async () => { await requestPasswordReset(String(fd.get('loginId') ?? '')) },
+  return runAction(async () => {
+    await requestPasswordReset(String(fd.get('loginId') ?? ''))
+    // always scheduled (whether or not an account matched), so the response reveals nothing; cron delivers anyway
+    after(() => deliverPortalEmails(10).then(() => undefined, () => undefined))
+  },
     'If an active account with a verified email address matches, we have emailed a reset link. It is valid for 1 hour.')
 }
 

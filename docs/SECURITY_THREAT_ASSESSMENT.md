@@ -133,7 +133,11 @@ This is an internal assessment by the developer, **not an independent audit or c
   - **T:** every file download is audited
 - **I:** error messages are generic, and request bodies, passwords and document contents are not logged.
 
-**Open finding N-7 (High, found 1 Nov 2026, not fixed):** while a student-portal **set-up or password-reset** message is queued (or in test mode), its one-time link can be read in the notification outbox by staff with `notifications.view`, and by staff who can see the student's contact details. A staff member could open the link and set the student's portal password. A separate remediation plan awaits the owner's approval; no change has been made.
+**Finding N-7 (High, found 1 Nov 2026; fixed in development by migration 0036, not yet committed or deployed):**
+- **Exposure before the fix:** while a student-portal **set-up or password-reset** message was queued or sending, and in test mode, staff with `notifications.view` (MD and Manager roles) could read its one-time link in the notification outbox. A staff member could open the link and set the student's portal password. Staff with only contact-details access were already excluded from these two message types (migration 0025). The first description of N-7 wrongly included them.
+- **Fix:** the links go only through an encrypted portal email queue that no staff member and not the application role can read. They are wiped when sent, failed, skipped, recorded in test mode, expired or revoked. The outbox policy hides the two message types from every role, and existing exposed links were invalidated by the migration (none existed in development).
+- **Tests:** `portal-link-queue.test.ts`, `portal-link-db-security.test.ts`.
+- **Still open (adjacent, not part of N-7):** in **test mode**, portal **sign-in codes** and **email-verification links** stay readable to `notifications.view` holders, because they are masked only once sent, failed or skipped. This awaits an owner decision.
 
 **Remaining gaps:**
 - Anyone allowed to view a document can screenshot or save it. There is no watermarking.

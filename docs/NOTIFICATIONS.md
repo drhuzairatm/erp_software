@@ -67,6 +67,8 @@ Production calls `GET /api/cron/notifications` every minute with `Authorization:
 On Vercel this is configured in `vercel.json` (per-minute cron needs the Pro plan) and Vercel adds the header
 automatically when `CRON_SECRET` is set. Without it, messages are still sent right after staff actions,
 but retries wait until the next action. Staff with outbox access can also click *Process queue now*.
+The same job also delivers staff password-reset emails (N-1) and student-portal set-up and reset emails (N-7) from their
+encrypted queues. Without it they wait until the next request, and they expire (staff: 1 hour; portal: 1 or 72 hours).
 
 ## Switching to live
 1. Wording of every enabled template approved (WhatsApp templates approved by Meta in Gallabox).
@@ -77,5 +79,9 @@ but retries wait until the next action. Staff with outbox access can also click 
 ## Who can see what
 - *Messages* (outbox) — `notifications.view` (managers, MD) and anyone who may see a student's contact
   details (the student's Messages tab). Finance and staff without contact permission see nothing.
+  **Student-portal set-up and password-reset emails are not in the outbox at all** (finding N-7). They go through the
+  encrypted portal email queue that no staff member can read, and staff see only their delivery status on the
+  student's portal account card (docs/STUDENT_PORTAL_V2.md). Portal sign-in codes and email-verification messages are
+  unchanged: they remain hidden from contact-details holders, and their code or link is removed once sent, failed or skipped.
 - *Notification settings* — `notifications.manage` (MD, system administrator).
 - Recording consent — `notifications.consent` (managers, counsellors, MD).
