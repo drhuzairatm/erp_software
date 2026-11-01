@@ -35,8 +35,8 @@ test('manager records education background and passport; finance sees it masked'
   expect(await page.locator('main').innerText()).not.toContain(`PQ${n}00`)
 })
 
-test('university configuration: system administrator adds a course, intake and document rule', async ({ page }) => {
-  await login(page, 'admin@demo.test')
+test('university configuration: the MD adds an intake and a document rule', async ({ page }) => {
+  await login(page, 'md@demo.test')
   await page.getByRole('link', { name: 'Universities' }).click()
   await page.getByRole('link', { name: 'Black Sea Medical University (Demo)' }).click()
   const intake = `February 2028 (e2e ${Date.now() % 100000})`

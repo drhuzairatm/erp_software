@@ -17,6 +17,7 @@ export interface StudentFormProps {
   organizations: Opt[]
   lookups: {
     countries: (Opt & { is_destination: boolean; is_education_origin: boolean })[]; courses: Opt[]; universities: (Opt & { country_id: string })[]
+    universityCourses?: { university_id: string; course_id: string }[]; courseCountries?: { country_id: string; course_id: string }[]
     campuses: (Opt & { university_id: string })[]
     intakes?: (Opt & { university_id: string })[]
     leadSources: (Opt & { org_id: string })[]; legalEntities: Opt[]
@@ -29,6 +30,8 @@ export interface StudentFormProps {
     items: { subject: string; min_percentage: number | null; min_marks: number | null }[] }[]
   canRecordConsent?: boolean
   initial?: Record<string, string | number | null | undefined>
+  /** the student's current selections, kept selectable even if since deactivated (history is never lost) */
+  currentSelections?: { country?: Opt | null; university?: (Opt & { country_id: string }) | null; course?: Opt | null }
   cancelHref: string
 }
 
@@ -37,13 +40,23 @@ export function StudentForm(p: StudentFormProps) {
   const [org, setOrg] = useState(String(init.originatingOrgId ?? p.registerOrgs[0]?.id ?? ''))
   const [country, setCountry] = useState(String(init.destinationCountryId ?? ''))
   const [university, setUniversity] = useState(String(init.preferredUniversityId ?? ''))
-  const destinations = p.lookups.countries.filter((c) => c.is_destination || c.id === init.destinationCountryId)
+  const curCountry = p.currentSelections?.country
+  const destinations = [...p.lookups.countries.filter((c) => c.is_destination || c.id === init.destinationCountryId),
+    ...(curCountry && !p.lookups.countries.some((c) => c.id === curCountry.id) ? [{ ...curCountry, name: `${curCountry.name} (inactive)`, is_destination: true, is_education_origin: false }] : [])]
   // Previous-education countries first, then all others
   const originsFirst = [...p.lookups.countries].sort((a, b) => Number(b.is_education_origin) - Number(a.is_education_origin) || a.name.localeCompare(b.name))
   const campuses = p.lookups.campuses.filter((c) => c.university_id === university)
   const intakes = (p.lookups.intakes ?? []).filter((c) => c.university_id === university)
   const v = (k: string) => (init[k] == null ? '' : String(init[k]))
-  const unis = p.lookups.universities.filter((u) => !country || u.country_id === country)
+  const cs = p.currentSelections ?? {}
+  const allUnis = cs.university && !p.lookups.universities.some((u) => u.id === cs.university!.id) ? [...p.lookups.universities, { ...cs.university, name: `${cs.university.name} (inactive)` }] : p.lookups.universities
+  const unis = allUnis.filter((u) => !country || u.country_id === country)
+  const [course, setCourse] = useState(String(init.courseId ?? ''))
+  const allCourses = cs.course && !p.lookups.courses.some((c) => c.id === cs.course!.id) ? [...p.lookups.courses, { ...cs.course, name: `${cs.course.name} (inactive)` }] : p.lookups.courses
+  const uniCourseIds = (p.lookups.universityCourses ?? []).filter((x) => x.university_id === university).map((x) => x.course_id)
+  const countryCourseIds = (p.lookups.courseCountries ?? []).filter((x) => x.country_id === country).map((x) => x.course_id)
+  const allowedCourses = allCourses.filter((c) => c.id === cs.course?.id
+    || (university && uniCourseIds.length ? uniCourseIds.includes(c.id) : !university && country && countryCourseIds.length ? countryCourseIds.includes(c.id) : true))
 
   return (
     <ActionForm action={p.action} className="space-y-6">
@@ -249,10 +262,12 @@ export function StudentForm(p: StudentFormProps) {
                 </div>
                 <div>
                   <label className="label" htmlFor="courseId">Course</label>
-                  <select className="input" id="courseId" name="courseId" defaultValue={v('courseId')}>
+                  <select className="input" id="courseId" name="courseId" value={allowedCourses.some((c) => c.id === course) ? course : ''} onChange={(e) => setCourse(e.target.value)} {...err('courseId')}>
                     <option value="">—</option>
-                    {p.lookups.courses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    {allowedCourses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
+                  {university && uniCourseIds.length > 0 && <p className="hint">Courses offered by the selected university.</p>}
+                  <FieldError state={s} name="courseId" />
                 </div>
                 <div>
                   <label className="label" htmlFor="preferredUniversityId">Preferred university</label>
@@ -262,6 +277,7 @@ export function StudentForm(p: StudentFormProps) {
                     {unis.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                   <FieldError state={s} name="preferredUniversityId" />
+                  <p className="hint"><Link href="/admin/master-data/requests" target="_blank">Can&apos;t find the country, university or course? Request it</Link></p>
                 </div>
                 {campuses.length > 0 && (
                   <div>

@@ -7,7 +7,8 @@ import { getChecklist } from '@/server/services/documents'
 import { previewImport } from '@/server/services/student-import'
 import * as students from '@/server/services/students'
 import * as uni from '@/server/services/universities'
-import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
+import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
+beforeAll(async () => { await delegateToSystemAdmin(['universities.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 
 let EDX: string, GRD: string
 const id = async (table: string, where: string) => (await adminSql().unsafe(`select id from ${table} where ${where} limit 1`))[0].id as string

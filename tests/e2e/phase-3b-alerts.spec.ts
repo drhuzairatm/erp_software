@@ -50,8 +50,8 @@ test('red alert for an expired passport, amber for less than 12 months — regis
   await expect(amber.getByText('Passport', { exact: true })).toBeVisible()
 })
 
-test('administrator adds a blue additional point for Romania; managers see pending acknowledgements; mobile layout shows the alerts', async ({ page }) => {
-  await login(page, 'admin@demo.test')
+test('MD adds a blue additional point for Romania; managers see pending acknowledgements; mobile layout shows the alerts', async ({ page }) => {
+  await login(page, 'md@demo.test')
   await page.getByRole('link', { name: 'Country-wise requirements' }).click()
   await page.getByRole('link', { name: 'New requirement' }).click()
   const t = `ROMANIA – ADDITIONAL UNIVERSITY REQUIREMENT ${Date.now().toString().slice(-4)}`

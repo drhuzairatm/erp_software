@@ -70,8 +70,8 @@ test('passport tab: renewal is verified before it becomes active; history kept; 
   await expect(page.locator('li').filter({ hasText: 'Renewed passport received' })).toBeVisible()
 })
 
-test('administrator configures a passport validity rule; dashboard shows passports needing renewal', async ({ page }) => {
-  await login(page, 'admin@demo.test')
+test('MD configures a passport validity rule; dashboard shows passports needing renewal', async ({ page }) => {
+  await login(page, 'md@demo.test')
   await page.getByRole('link', { name: 'Passport & contact rules' }).click()
   const name = `E2E rule ${Date.now().toString().slice(-5)}`
   await page.getByLabel('Rule name').fill(name)

@@ -59,15 +59,16 @@ test('academic tab: Plus Two with subjects, Bulgaria threshold flag, name differ
   await expect(page.getByText(/One and Same Certificate/).first()).toBeVisible()
 })
 
-test('administrator sees academic and name rules; MD sees the Bonafide draft and adds a destination country option', async ({ page }) => {
-  await login(page, 'admin@demo.test')
+test('MD sees academic and name rules, the Bonafide rule and the master-data country and course options', async ({ page }) => {
+  await login(page, 'md@demo.test')
   await page.getByRole('link', { name: 'Academic & name rules' }).click()
   await expect(page.getByRole('link', { name: 'advisory requirement notices' })).toBeVisible()
   await expect(page.getByText('One and Same templates')).toBeVisible()
   await login(page, 'md@demo.test')
   await page.goto('/admin/verification-rules')
   await expect(page.getByText(/Bonafide – Indian student at a Qatar school/)).toBeVisible()
-  await page.goto('/admin/settings')
-  await expect(page.getByLabel('Used as')).toBeVisible()
+  await page.goto('/admin/master-data/countries')
+  await expect(page.getByLabel('Used as').first()).toBeVisible()
+  await page.goto('/admin/master-data/courses')
   await expect(page.getByLabel('Academic details')).toBeVisible()
 })

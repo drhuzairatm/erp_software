@@ -4,7 +4,8 @@ import { db } from '@/server/db'
 import { ServiceError } from '@/server/errors'
 import * as pp from '@/server/services/passport'
 import * as students from '@/server/services/students'
-import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
+import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
+beforeAll(async () => { await delegateToSystemAdmin(['passport.rules.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 
 let EDX: string
 const rand = () => String(Math.floor(Math.random() * 90000) + 10000)

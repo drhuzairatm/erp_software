@@ -7,6 +7,7 @@ import { Alert, PageHeader } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { getLookups } from '@/server/services/lookups'
 import { getStudent } from '@/server/services/students'
+import { currentSelections } from '@/server/services/master-data'
 import { StudentForm } from '../../student-form'
 
 export const metadata: Metadata = { title: 'Edit student' }
@@ -20,12 +21,12 @@ export default async function EditStudentPage({ params }: { params: Promise<{ id
   if (!profile.permissions.update) {
     return <><PageHeader title="Edit student" back={{ href: `/students/${id}`, label: s.full_name }} /><Alert tone="amber">You cannot edit this record.</Alert></>
   }
-  const lookups = await getLookups(ctx)
+  const [lookups, current] = await Promise.all([getLookups(ctx), currentSelections(ctx, id)])
   return (
     <>
       <PageHeader title={`Edit ${s.full_name}`} description={s.student_code} back={{ href: `/students/${id}`, label: 'Back to profile' }} />
       <StudentForm contactRequiredFrom={(await contactRequiredStage(ctx))?.name} countryNotices={await noticesByCountry(ctx)} action={updateStudentAction.bind(null, id)} mode="edit" cancelHref={`/students/${id}`} contactEditable={s.contact_visible} passportEditable={s.passport_visible}
-        registerOrgs={[]} organizations={lookups.organizations} lookups={lookups}
+        registerOrgs={[]} organizations={lookups.organizations} lookups={lookups} currentSelections={current}
         initial={{
           originatingOrgId: s.originating_org_id, processingOrgId: s.processing_org_id, leadSourceId: s.lead_source_id, fullName: s.full_name,
           phone: s.phone, phoneCountry: s.phone_country, phone2: s.phone2, phone2Country: s.phone2_country, phone3: s.phone3,

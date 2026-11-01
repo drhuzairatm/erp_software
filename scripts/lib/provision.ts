@@ -84,7 +84,8 @@ export async function provision(adminUrl: string, log: (m: string) => void = con
                  on conflict (code) do nothing`
       }
       for (const [code, name, sort, profile] of COURSES) {
-        await tx`insert into courses (code, name, sort_order, academic_profile) values (${code}, ${name}, ${sort}, ${profile}) on conflict (code) do nothing`
+        await tx`insert into courses (code, name, sort_order, academic_profile, category) values (${code}, ${name}, ${sort}, ${profile},
+                   ${({ MBBS: 'MBBS', NURSING: 'Nursing', PG_MEDICAL: 'Postgraduate Medical' } as Record<string, string>)[code] ?? 'Other'}) on conflict (code) do nothing`
       }
       for (const [key, name, category, hasExpiry, sort] of DOCUMENT_TYPES) {
         await tx`insert into document_types (key, name, category, has_expiry, sort_order)

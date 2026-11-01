@@ -1,4 +1,6 @@
-# MD-controlled country, university and course management: inspection and plan (awaiting MD approval)
+# MD-controlled country, university and course management: inspection and plan
+
+**Approved by the MD on 1 Nov 2026 (decisions 1 yes, 2 yes, 3 refused, 4 yes) and implemented. See MASTER_DATA_FINAL_REPORT.md.**
 
 Inspected on 1 Nov 2026 against the code, database (migrations 0001–0026), permissions and admin screens.
 **Nothing has been changed for this requirement yet.** As the requirement says, migrations and implementation wait for the MD's approval.

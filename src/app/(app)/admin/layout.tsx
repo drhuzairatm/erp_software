@@ -1,6 +1,7 @@
 import { can, canAny } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
 import { canTestRules } from '@/server/services/rules'
+import { canSeeMasterData } from '@/server/services/master-data'
 import { type AdminSection, AdminTabs } from './admin-tabs'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -13,6 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   add(can(ctx, 'settings.manage'), 'Administration', '/admin/courier', 'Courier addresses', 'truck')
   add(can(ctx, 'notifications.manage'), 'Administration', '/admin/notifications', 'Notifications', 'bell')
   add(can(ctx, 'currencies.manage'), 'Administration', '/admin/currencies', 'Currencies', 'wallet')
+  add(canSeeMasterData(ctx), 'Rules', '/admin/master-data', 'Master data', 'university')
   add(can(ctx, 'requirements.manage'), 'Rules', '/admin/requirements', 'Country requirements', 'globe')
   add(canAny(ctx, ['academic.rules.manage', 'one_and_same.templates.approve']), 'Rules', '/admin/academic-rules', 'Academic & names', 'book')
   add(can(ctx, 'passport.rules.manage'), 'Rules', '/admin/passport-rules', 'Passport & contact', 'passport')

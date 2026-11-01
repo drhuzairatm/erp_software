@@ -33,6 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (can(ctx, 'roles.manage')) add('Administration', '/admin/roles', 'Roles & permissions', 'shield')
   if (canAny(ctx, ['settings.manage', 'reference.manage', 'workflow.manage', 'departments.manage'])) add('Administration', '/admin/settings', 'Company settings', 'settings')
   if (can(ctx, 'settings.manage')) add('Administration', '/admin/courier', 'Courier addresses', 'truck')
+  if (canAny(ctx, ['masterdata.view', 'countries.manage', 'universities.manage', 'courses.manage', 'masterdata.status'])) add('Rules & compliance', '/admin/master-data', 'Master data', 'university')
   if (canAny(ctx, ['requirements.manage'])) add('Rules & compliance', '/admin/requirements', 'Country-wise requirements', 'globe')
   if (canAny(ctx, ['academic.rules.manage', 'one_and_same.templates.approve'])) add('Rules & compliance', '/admin/academic-rules', 'Academic & name rules', 'book')
   if (canAny(ctx, ['passport.rules.manage'])) add('Rules & compliance', '/admin/passport-rules', 'Passport & contact rules', 'passport')

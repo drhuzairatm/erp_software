@@ -54,3 +54,9 @@ export async function ctxFor(email: string): Promise<Ctx> {
   const memberships = await withUser(id, (tx) => loadMemberships(tx, id))
   return { userId: id, memberships, ip: '127.0.0.1' }
 }
+
+/** Simulates the MD delegating master-data permissions to the System Administrator role (MD-only by default since 0031). */
+export async function delegateToSystemAdmin(perms: string[]) {
+  await adminSql()`insert into role_permissions (role_id, permission_key)
+    select r.id, p from roles r cross join unnest(${perms}::text[]) p where r.key = 'system_admin' on conflict do nothing`
+}

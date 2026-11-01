@@ -25,6 +25,7 @@ import { MergePanel } from './merge-panel'
 import { mergeCandidates } from '@/server/services/merge'
 import { StudentPhoto } from './photo-controls'
 import { currentPhoto } from '@/server/services/photos'
+import { selectionHistory } from '@/server/services/master-data'
 import { PortalAccountCard, PublicationsCard } from './portal-panel'
 import { VerifyEmailButton } from './passport-forms'
 import { AdmissionForm, ArchiveForm, AssignmentForm, FollowupForm, MergeForm, NoteForm, StageChangeForm, VisaForm } from './panels'
@@ -158,8 +159,16 @@ async function ContactHistory({ ctx, studentId }: { ctx: Ctx; studentId: string 
   )
 }
 
+/** Current master-data name, with the name at selection when it was renamed and a note when deactivated. */
+function hist(current: string | null, atSelection: string | null | undefined, active: boolean | null | undefined) {
+  if (!current) return null
+  return <>{current}{atSelection && atSelection !== current && <span className="text-xs text-slate-500"> (selected as {atSelection})</span>}
+    {active === false && <span className="ml-1 rounded bg-slate-100 px-1.5 text-[11px] text-slate-600">no longer offered</span>}</>
+}
+
 async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }) {
   const { student: s, permissions: p } = profile
+  const sel = await selectionHistory(ctx, s.id)
   const staff = p.assign ? await assignableStaff(ctx, s.id) : []
   const staffPhotos = await staffPhotoVersions(ctx, profile.assignments.map((a) => a.user_id))
   const today = todayISO()
@@ -187,8 +196,9 @@ async function Overview({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
             ['Date of birth', s.contact_visible ? fmtDate(s.date_of_birth) : <span className="text-slate-500">hidden</span>],
             ['Preferred language', s.preferred_language],
             ['Parent / guardian', s.parent_name ? <>{s.parent_name}{s.contact_visible && (s.parent_phone || s.parent_email) && <span className="block text-xs text-slate-500">{[s.parent_phone, s.parent_email].filter(Boolean).join(' · ')}</span>}</> : null],
-            ['Destination', s.country_name], ['Course', s.course_name], ['Visa application country', s.visa_application_country_name],
-            ['Preferred university', s.university_name ? <>{s.university_name}{s.campus_name ? ` · ${s.campus_name}` : ''}</> : null],
+            ['Destination', hist(s.country_name, sel?.country, sel?.country_active)], ['Course', hist(s.course_name, sel?.course, sel?.course_active)],
+            ['Visa application country', s.visa_application_country_name],
+            ['Preferred university', s.university_name ? <>{hist(s.university_name, sel?.university, sel?.university_active)}{s.campus_name ? ` · ${s.campus_name}` : ''}</> : null],
             ['Intake', s.intake_name],
             ['Lead source', s.lead_source_name], ['Registration date', fmtDate(s.registration_date)],
             ['Workflow', s.workflow_name],

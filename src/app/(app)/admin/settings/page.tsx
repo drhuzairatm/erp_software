@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { Metadata } from 'next'
 import { Badge, Card, PageHeader } from '@/components/ui'
 import { can, canAny } from '@/server/auth/context'
@@ -58,19 +59,8 @@ export default async function SettingsPage() {
             <ul className="divide-y divide-slate-100">{s.legalEntities.map((l) => <Row key={l.id} kind="legal_entity" id={l.id} name={l.name} extra={l.notes} active={l.is_active} editable={canRef} />)}</ul>
             {canRef && <div className="mt-2"><AddReferenceForm kind="legal_entity" fields={[{ name: 'name', label: 'Name', required: true }, { name: 'registrationRef', label: 'Registration ref.' }]} /></div>}
           </Card>
-          <Card title="Destination countries">
-            <ul className="divide-y divide-slate-100">{s.countries.map((c) => <Row key={c.id} kind="country" id={c.id} name={c.name} extra={c.code} active={c.is_active} editable={canRef} />)}</ul>
-            {canRef && <div className="mt-2"><AddReferenceForm kind="country" fields={[{ name: 'code', label: 'Code (2 letters)', required: true }, { name: 'name', label: 'Name', required: true },
-              { name: 'use', label: 'Used as', options: [{ value: 'destination', label: 'Destination' }, { value: 'origin', label: 'Previous education country' }, { value: 'both', label: 'Both' }] }]} /></div>}
-          </Card>
-          <Card title="Courses">
-            <ul className="divide-y divide-slate-100">{s.courses.map((c) => <Row key={c.id} kind="course" id={c.id} name={c.name} active={c.is_active} editable={canRef} />)}</ul>
-            {canRef && <div className="mt-2"><AddReferenceForm kind="course" fields={[{ name: 'name', label: 'Name', required: true },
-              { name: 'profile', label: 'Academic details', options: [{ value: 'school', label: 'Plus Two based (MBBS, nursing, bachelor)' }, { value: 'pg_medical', label: 'MBBS based (postgraduate medical)' }] }]} /></div>}
-          </Card>
-          <Card title="Universities" className="lg:col-span-2">
-            <ul className="grid grid-cols-1 divide-y divide-slate-100 md:grid-cols-2 md:divide-y-0">{s.universities.map((u) => <Row key={u.id} kind="university" id={u.id} name={u.name} extra={`${u.country}${u.city ? ', ' + u.city : ''}`} active={u.is_active} editable={canRef} />)}</ul>
-            {canRef && <div className="mt-2"><AddReferenceForm kind="university" fields={[{ name: 'countryId', label: 'Country', options: lookups.countries.map((c) => ({ value: c.id, label: c.name })) }, { name: 'name', label: 'Name', required: true }, { name: 'city', label: 'City' }]} /></div>}
+          <Card title="Countries, universities and courses" className="lg:col-span-2">
+            <p className="text-sm text-slate-600">These are now managed under <Link href="/admin/master-data">Master data</Link> (MD-controlled; delegated permissions only).</p>
           </Card>
         </div>
 

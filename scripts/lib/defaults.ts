@@ -120,13 +120,10 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'System Administrator',
     description: 'Manages users, roles and configuration. No access to student records by default.',
     permissions: [
-      'requirements.manage',
-      'academic.rules.manage',
-      'passport.rules.manage',
-      'attestation.routes.manage',
+      // Admission master data (countries, universities, courses, requirements, workflows, document and attestation rules)
+      // is MD-only by default (MD decision, Nov 2026); the MD delegates it through Roles when needed.
       'notifications.manage',
-      'verification.rules.manage',
-      'universities.manage','users.manage', 'roles.manage', 'settings.manage', 'reference.manage', 'workflow.manage', 'departments.manage', 'audit.read'],
+      'users.manage', 'roles.manage', 'settings.manage', 'reference.manage', 'departments.manage', 'audit.read'],
     privileged: true, mfa: true,
   },
 ]

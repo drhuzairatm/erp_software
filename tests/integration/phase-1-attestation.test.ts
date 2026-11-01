@@ -5,7 +5,8 @@ import { ServiceError } from '@/server/errors'
 import * as att from '@/server/services/attestation'
 import * as documents from '@/server/services/documents'
 import * as students from '@/server/services/students'
-import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
+import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
+beforeAll(async () => { await delegateToSystemAdmin(['attestation.routes.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 
 let EDX: string
 const country = async (code: string) => (await adminSql()`select id from countries where code = ${code}`)[0].id as string

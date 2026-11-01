@@ -10,7 +10,8 @@ import * as rules from '@/server/services/rules'
 import * as students from '@/server/services/students'
 import * as unis from '@/server/services/universities'
 import * as vr from '@/server/services/verification-rules'
-import { adminSql, ctxFor, expectDbError, orgId } from '../support/helpers'
+import { adminSql, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
+beforeAll(async () => { await delegateToSystemAdmin(['verification.rules.manage', 'attestation.routes.manage', 'passport.rules.manage', 'universities.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 
 let EDX: string
 const rand = () => String(Math.floor(Math.random() * 90000) + 10000)
@@ -102,7 +103,7 @@ describe('conditions on rules', () => {
 
   it('university document requirement only for students who match (checklist)', async () => {
     const admin = await ctxFor('md@demo.test')
-    const [u] = await adminSql()`select id from universities where is_active order by name limit 1`
+    const [u] = await adminSql()`select id, country_id from universities where is_active order by name limit 1`
     const [t] = await adminSql()`select id from document_types where key = 'medical_certificate' or key like 'medical%' order by key limit 1`
     if (!t) return
     await adminSql()`delete from university_document_requirements where university_id = ${u.id} and document_type_id = ${t.id} and conditions is not null`
@@ -110,8 +111,8 @@ describe('conditions on rules', () => {
     if (exists) return // already required for everyone at this university
     await unis.addUniversityPart(admin, u.id, 'requirement', { documentTypeId: t.id,
       conditions: JSON.stringify({ all: [{ field: 'nationality', op: 'in', values: [await country('AE')] }] }) })
-    const a = await studentWithNationality('AE', { preferredUniversityId: u.id })
-    const b = await studentWithNationality('IN', { preferredUniversityId: u.id })
+    const a = await studentWithNationality('AE', { preferredUniversityId: u.id, destinationCountryId: u.country_id })
+    const b = await studentWithNationality('IN', { preferredUniversityId: u.id, destinationCountryId: u.country_id })
     const has = async (sid: string) => (await adminSql()`select 1 from student_documents where student_id = ${sid} and document_type_id = ${t.id} and requirement_source = 'university'`).length > 0
     expect(await has(a.id)).toBe(true)
     expect(await has(b.id)).toBe(false)

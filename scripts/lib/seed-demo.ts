@@ -191,6 +191,9 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
       const phone = `+91 90000 ${String(10000 + i * 37).padStart(5, '0')}`
       const registeredDaysAgo = 5 + Math.floor(rand() * 150)
       const eduCountry = i % 7 === 3 ? 'QA' : i % 7 === 5 ? 'AE' : i % 11 === 6 ? 'SA' : 'IN'
+      // the student's course must be offered by the chosen university (master-data rule): offer it at the fictional university
+      const uni = pick(unis[p.country])
+      if (uni) await sql`insert into university_courses (university_id, course_id) values (${uni}, ${courses[p.course]}) on conflict do nothing`
       await as(sql, U(counsellor), async (tx) => {
         await tx`insert into students (id, originating_org_id, processing_org_id, lead_source_id, full_name, phone, email,
                    preferred_language, destination_country_id, course_id, preferred_university_id, highest_qualification,
@@ -201,7 +204,7 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
                  values (${id}, ${orgs[p.org]}, ${p.org === 'GRD' ? orgs.EDX : null}, ${pick(sources[p.org])},
                    ${`${first} ${last}`}, ${phone}, ${`${first.toLowerCase()}.${i}@example.test`},
                    ${pick(['English', 'Malayalam', 'Hindi', 'Tamil', 'Arabic'])}, ${countries[p.country]}, ${courses[p.course]},
-                   ${pick(unis[p.country])}, ${p.course === 'NURSING' ? 'B.Sc Nursing' : 'Plus Two (Science)'},
+                   ${uni ?? null}, ${p.course === 'NURSING' ? 'B.Sc Nursing' : 'Plus Two (Science)'},
                    ${pick(['CBSE', 'State Board', 'ICSE'])}, ${2023 + Math.floor(rand() * 3)}, ${`${70 + Math.floor(rand() * 28)}%`},
                    ${p.course === 'NURSING' ? 'German A2' : 'NEET-UG (fictional)'}, ${p.course === 'NURSING' ? 'Pass' : String(300 + Math.floor(rand() * 300))},
                    ${daysFromNow(-registeredDaysAgo)}, ${'Call student to confirm next step'}, ${daysFromNow(Math.floor(rand() * 10) - 4)},

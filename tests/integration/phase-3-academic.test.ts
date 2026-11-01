@@ -6,7 +6,8 @@ import * as ac from '@/server/services/academic'
 import * as documents from '@/server/services/documents'
 import * as pp from '@/server/services/passport'
 import * as students from '@/server/services/students'
-import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
+import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
+beforeAll(async () => { await delegateToSystemAdmin(['academic.rules.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 
 let EDX: string
 const rand = () => String(Math.floor(Math.random() * 90000) + 10000)
