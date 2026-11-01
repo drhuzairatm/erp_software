@@ -58,13 +58,15 @@
 
 ### 4.1 Suspected account compromise (staff)
 **Detect:**
-- alerts: "Repeated failed sign-ins", "Wrong two-factor codes", "Staff role or company access changed"
+- alerts: "Repeated failed sign-ins", "Failed sign-ins across many accounts" (high), "Password reset requests limited", "Wrong two-factor codes", "Staff role or company access changed"
 - unusual login history (unknown address or browser, odd hours)
 - the person reports it
 
 **Contain:** an administrator within authority, or the MD:
-1. Staff → person → **Suspend** (reason: "Suspected compromise"). This ends all sessions immediately and blocks sign-in and password links.
+1. Staff → person → **Suspend** (reason: "Suspected compromise"). This ends all sessions and **trusted browsers** immediately and blocks sign-in and password links.
 2. If 2-step login may be compromised: MD (`users.mfa_reset`) resets it **only after** identity is verified (see 4.2).
+
+**Password guessing only (no successful sign-in):** suspension is not needed. The person's usual browser keeps working; others are blocked for 15 minutes. If they are locked out on a new device, help them reset (ADMIN_MD_OPERATIONS_GUIDE.md §6). For "many accounts" alerts, consider host firewall or bot protection.
 
 **Investigate:**
 - the person's login history and active sessions

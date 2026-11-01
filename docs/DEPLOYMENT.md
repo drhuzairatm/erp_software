@@ -56,6 +56,7 @@ close to your users and compliant with your requirements (e.g. Mumbai `ap-south-
    **Never** add `DATABASE_ADMIN_URL`, `APP_DB_PASSWORD` or `SEED_DEMO_PASSWORD` to Vercel.
 4. Deploy, then add your domain (e.g. `staff.yourcompany.com`) and confirm HTTPS.
 5. Optional: enable Vercel Firewall rate limiting for `/login` and `/forgot-password`.
+6. **Scheduled jobs (required):** `/api/cron/notifications` must run **every minute**. It also delivers staff password-reset emails from the encrypted queue (`auth_private.staff_email_outbox`); the sign-in action only tries a faster delivery. `/api/cron/daily` runs once a day and also removes expired trusted-browser and reset-request records. On Vercel, `vercel.json` sets both (per-minute needs Pro). On a **Hostinger VPS**, add a system cron (or systemd timer), for example `* * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/notifications`, plus a daily call to `/api/cron/daily`. Without it, reset emails are never sent and expire after 1 hour.
 
 ## 3a. Client address and reverse proxy (`TRUST_PROXY`)
 

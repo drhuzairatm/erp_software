@@ -60,8 +60,10 @@
 - two-step login became mandatory for all
 - the browser policy became nonce-based (no inline scripts)
 - virus-scan status, quarantine and security alerts were added
+- **N-1 (migration 0035):** password resets no longer lock people out; trusted browsers keep their own sign-in limit; reset requests are rate-limited; reset links go through an encrypted queue that staff cannot read (SECURITY_THREAT_ASSESSMENT.md T1)
 
 Still open:
+- **N-7 (High):** student-portal set-up and reset links can be read in the notification outbox while queued (SECURITY_THREAT_ASSESSMENT.md T3); a remediation plan awaits approval
 - edge rate limiting
 - a real virus scanner
 - watermarking

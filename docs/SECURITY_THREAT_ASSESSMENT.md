@@ -56,7 +56,12 @@ This is an internal assessment by the developer, **not an independent audit or c
   - **T:** strong hashing (Argon2id), minimum 12 characters with 3 character types
   - **T:** passwords never visible to administrators; invitations replace shared or default passwords
 - **Brute force:**
-  - **T:** 5 failed sign-ins per email in 15 minutes trigger a temporary block, even with forged forwarding headers (tested in the audit remediation, `client-ip-lockout.test.ts`)
+  - **T:** 5 failed sign-ins per email in 15 minutes block that email on **unrecognised browsers**, even with forged forwarding headers (`client-ip-lockout.test.ts`, `auth-rate-limits.test.ts`)
+  - **T (N-1, migration 0035):** a browser in which the person completed 2-step login (or a password reset) is **trusted** for 90 days and has its own limit (10 failures). Someone who only knows an email address therefore cannot lock the employee out of their usual browser. Only a SHA-256 hash of the browser cookie is stored. Trust ends on password change, 2-step reset or removal, suspension or termination, and **Sign out everywhere**. It never skips 2-step login (`auth-rate-limits.test.ts`, browser test `n1-lockout.spec.ts`)
+  - **T (N-1):** a password-reset request no longer counts as a failed sign-in. Completing a reset clears the lockout and trusts that browser
+  - **T (N-1):** reset requests are limited: 3 per hour per email (at most 1 every 2 minutes), 10 per hour per address, and 100 reset emails per hour for the whole system (high alert). The answer and the timing are the same whether or not the account exists
+  - **T (N-1):** parallel guessing is serialised: 20 simultaneous wrong passwords count as 5, and refused attempts do not extend the block
+  - **T (N-1):** many failed sign-ins across 20+ accounts in 15 minutes raise a **high** alert
   - **T:** 30 failures per **address** in 15 minutes, applied only when the address comes from the trusted proxy (`TRUST_PROXY`). With an unknown address the per-address limit is skipped, and no shared bucket can lock everyone out.
   - **T:** the error message is generic (browser test)
   - **T:** repeated failures raise a security alert to the MD
@@ -70,6 +75,8 @@ This is an internal assessment by the developer, **not an independent audit or c
 - **T:** Login history is visible to the person, their administrators and the MD.
 
 **Remaining gaps:**
+- **New-browser limitation (N-1 trade-off):** while someone is guessing an employee's password, the employee cannot sign in from a browser they have **never used before** (for example a new laptop) until the 15 minutes pass. The way in is **Forgot your password?** or an administrator-issued reset link; completing the reset restores access in that browser.
+- **Reset emails depend on the email provider:** without one, reset requests are recorded but skipped, and an administrator must issue the link.
 - **Per-address protection depends on configuration:** set `TRUST_PROXY` correctly behind the VPS proxy (DEPLOYMENT.md §3a). This is not yet verified on a real proxy (no VPS exists).
 - **P:** edge rate limiting or bot protection at the host (WAF).
 - **P:** alert emails (need an email provider).
@@ -125,6 +132,8 @@ This is an internal assessment by the developer, **not an independent audit or c
   - **T:** files sit in private storage under random names and open only through a 60-second link after a permission check; storage locations are unreadable to the app
   - **T:** every file download is audited
 - **I:** error messages are generic, and request bodies, passwords and document contents are not logged.
+
+**Open finding N-7 (High, found 1 Nov 2026, not fixed):** while a student-portal **set-up or password-reset** message is queued (or in test mode), its one-time link can be read in the notification outbox by staff with `notifications.view`, and by staff who can see the student's contact details. A staff member could open the link and set the student's portal password. A separate remediation plan awaits the owner's approval; no change has been made.
 
 **Remaining gaps:**
 - Anyone allowed to view a document can screenshot or save it. There is no watermarking.

@@ -93,7 +93,8 @@ By default **both are members of both companies**. This is intentional, but the 
 
   | Category | Events |
   |---|---|
-  | Sign-in | Repeated failed sign-ins (per email; per address when `TRUST_PROXY` is configured, see DEPLOYMENT.md §3a); wrong 2-step codes |
+  | Sign-in | Repeated failed sign-ins (per email; per address when `TRUST_PROXY` is configured, see DEPLOYMENT.md §3a); failed sign-ins across **many accounts** (high: 100+ failures on 20+ accounts in 15 minutes); wrong 2-step codes |
+  | Password reset | Reset requests limited for an email or address (warning); **system-wide** reset limit reached (high); a reset email could not be delivered after 5 attempts (warning) |
   | Access changes | Permission granted or removed; role or company access changed; **MD role granted** (critical); 2-step reset (high); staff status changed |
   | Data | Large export (500+ rows); 10+ exports in an hour; refused export; 100+ document **views or downloads** in an hour by one person; 100+ downloads in an hour through one student portal account |
   | Files | **Malware detected** (critical); manual security clearance |
@@ -108,7 +109,16 @@ By default **both are members of both companies**. This is intentional, but the 
   - **One person:** their profile → **Sign-in activity** (active sessions plus recent events).
   - **Your own:** your name → *Two-factor login*.
 - **What to look for:** unknown addresses or browsers; sign-ins at odd hours; many failures followed by a success; recovery-code use; 2-step resets.
-- **Action:** use **Sign out everywhere** on the profile to end someone's sessions without suspending them.
+- **Action:** use **Sign out everywhere** on the profile to end someone's sessions without suspending them. This also ends their trusted browsers.
+
+**Helping someone who is locked out:**
+- **What they see:** "Too many failed attempts from this browser". The block applies only to browsers they have not used before; their usual browser (where they completed 2-step login) keeps working.
+- **What to do:**
+  - Ask them to use their usual computer or phone, or to wait 15 minutes.
+  - Or they use **Forgot your password?**. A reset request never locks the account.
+  - Or you issue a reset link (Staff → **Issue reset link**) and hand it over through a channel you trust. Completing the reset clears the block and trusts that browser.
+- **Check:** many failures they did not cause mean someone is guessing. Look at the login history and follow INCIDENT_RESPONSE_PLAN.md §4.1.
+- **Reset links are private:** reset emails go through an encrypted queue that no staff member can read, the MD included, and the link is erased once sent, failed or expired.
 
 ## 7. Manual document clearance and quarantine
 **While no virus scanner is configured,** every uploaded file is *Not virus-scanned*. Approval and courier release need **manual clearance**.

@@ -1,31 +1,29 @@
 import 'server-only'
 import { anonymous, withUser } from '../db'
-import { appUrl, emailConfigured, sendEmail } from '../email'
+import { appUrl } from '../email'
 import { invalid } from '../errors'
+import { encryptSecret } from './mfa'
 import { checkPasswordStrength, hashPassword, verifyPassword } from './password'
 import { clientIp } from './session'
 import { hashToken, newTokenValue } from './tokens'
 
 /**
- * Self-service reset request. Always returns the same neutral response so the
- * form cannot be used to discover which emails have accounts.
+ * Self-service reset request (finding N-1). Always returns nothing, so the form cannot reveal which emails have
+ * accounts, and it does the same work for every address:
+ *   - one database call records the request and applies the limits (3 per hour and 1 per 2 minutes per email,
+ *     10 per hour per address when known, 100 reset emails per hour system-wide);
+ *   - for an existing account within the limits it stores the token hash and queues the email in the dedicated
+ *     staff email queue, with the link ENCRYPTED; no email is ever sent during the request itself;
+ *   - a reset request is NEVER counted as a failed sign-in, so it cannot lock anyone out.
+ * Delivery: deliverStaffEmails() (cron every minute; also triggered right after the request).
  */
 export async function requestPasswordReset(email: string) {
   const ip = await clientIp()
   const cleaned = email.trim().toLowerCase().slice(0, 200)
   if (!cleaned.includes('@')) return
-  await anonymous(async (tx) => {
-    const [rate] = await tx<{ email_failures: number; ip_failures: number }[]>`select * from app.auth_recent_failures(${cleaned}, ${ip})`
-    if (rate.ip_failures >= 30) return
-    const token = newTokenValue()
-    const [user] = await tx<{ user_id: string; email: string; full_name: string }[]>`select * from app.auth_request_reset(${cleaned}, ${hashToken(token)})`
-    // Count requests towards the rate limit like failed logins
-    await tx`select app.auth_record_attempt(${cleaned}, ${ip}, false, null)`
-    if (user && emailConfigured()) {
-      await sendEmail(user.email, 'Reset your password',
-        `Hello ${user.full_name},\n\nUse this link within 1 hour to set a new password:\n${appUrl('/reset-password/' + token)}\n\nIf you did not ask for this, ignore this email.`)
-    }
-  }, { ip })
+  const token = newTokenValue()
+  const link = encryptSecret(appUrl('/reset-password/' + token))
+  await anonymous((tx) => tx`select app.auth_request_reset_limited(${cleaned}, ${ip}, ${hashToken(token)}, ${link})`, { ip })
 }
 
 export async function resetTokenValid(token: string) {
@@ -34,13 +32,18 @@ export async function resetTokenValid(token: string) {
   return r.ok
 }
 
-export async function completePasswordReset(token: string, password: string, confirm: string) {
+/**
+ * Complete a reset. Recovery (finding N-1): this proves control of the mailbox, so it also clears the email's
+ * failed-sign-in count for unrecognised browsers and, when `deviceTokenHash` is given, trusts this browser.
+ * Two-step login is still required at the next sign-in.
+ */
+export async function completePasswordReset(token: string, password: string, confirm: string, deviceTokenHash: string | null = null) {
   if (password !== confirm) throw invalid('Passwords do not match.', { confirm: ['Passwords do not match.'] })
   const weak = checkPasswordStrength(password)
   if (weak) throw invalid(weak, { password: [weak] })
   if (!/^[A-Za-z0-9_-]{30,60}$/.test(token)) throw invalid('This link is invalid or has expired.')
   const hash = await hashPassword(password)
-  const [r] = await anonymous((tx) => tx<{ user_id: string | null }[]>`select app.auth_complete_reset(${hashToken(token)}, ${hash}) as user_id`)
+  const [r] = await anonymous((tx) => tx<{ user_id: string | null }[]>`select app.auth_complete_reset_trusted(${hashToken(token)}, ${hash}, ${deviceTokenHash}) as user_id`)
   if (!r.user_id) throw invalid('This link is invalid or has expired. Ask an administrator for a new one.')
 }
 

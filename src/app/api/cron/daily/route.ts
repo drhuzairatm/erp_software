@@ -7,6 +7,7 @@ import { rescanPendingFiles } from '@/server/security/jobs'
  * - passport expiry monitoring: follow-up/escalation tasks (deduplicated)
  * - pending email verifications past their expiry become "expired"
  * - files stored while no virus scanner was available are scanned (when a scanner is configured)
+ * - authentication housekeeping (trusted browsers, reset-request log, finished staff emails; never the audit log)
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET
@@ -15,5 +16,8 @@ export async function GET(req: Request) {
   }
   const [r] = await anonymous((tx) => tx<{ tasks: number; emails: number }[]>`select app.passport_monitor() as tasks, app.expire_email_verifications() as emails`)
   const scan = await rescanPendingFiles(100)
-  return NextResponse.json({ passportTasksCreated: r.tasks, emailVerificationsExpired: r.emails, virusScan: scan }, { headers: { 'Cache-Control': 'no-store' } })
+  // authentication working data: expired/revoked trusted browsers, old reset-request log and finished staff emails
+  const [{ auth }] = await anonymous((tx) => tx<{ auth: Record<string, number> }[]>`select app.auth_housekeeping() as auth`)
+  return NextResponse.json({ passportTasksCreated: r.tasks, emailVerificationsExpired: r.emails, virusScan: scan, authHousekeeping: auth },
+    { headers: { 'Cache-Control': 'no-store' } })
 }

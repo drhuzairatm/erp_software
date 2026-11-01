@@ -37,7 +37,9 @@
 
 ## 3. Password and session safety
 - **Change your password:** your name (top right) → **Change password**. Other sessions are signed out.
-- **Forgot it:** use **Forgot your password?** on the sign-in page, or ask an administrator for a reset link.
+- **Forgot it:** use **Forgot your password?** on the sign-in page, or ask an administrator for a reset link. The link is valid for 1 hour, and only the newest link works.
+- **"Too many failed attempts from this browser":** someone, perhaps you, typed a wrong password 5 times. The browser you normally use (where you completed 2-step login) still works. On a new computer, wait 15 minutes or reset your password there. If you did not cause the failures, tell your administrator at once.
+- **Trusted browsers:** the browser where you complete 2-step login is remembered for 90 days. This never skips 2-step login. Changing your password or using **Sign out everywhere** forgets every browser.
 - **Sessions:**
   - Sessions end after 12 hours, or after 8 hours without activity.
   - Lock your screen when you step away.

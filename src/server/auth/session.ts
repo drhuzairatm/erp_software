@@ -7,11 +7,10 @@ import { type AuthContext, loadMemberships } from './context'
 import { mfaRequired } from './mfa'
 import { getDummyHash, verifyPassword } from './password'
 import { hashToken, newTokenValue } from './tokens'
+import { deviceHash, readDeviceToken, STAFF_DEVICE_COOKIE } from './trusted-device'
 import { resolveClientIp } from '@/lib/client-ip'
 
 const SESSION_TTL_HOURS = 12
-const MAX_FAILURES_PER_EMAIL = 5
-const MAX_FAILURES_PER_IP = 30
 
 export const SESSION_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-erp_session' : 'erp_session'
 
@@ -24,37 +23,43 @@ export async function clientIp(): Promise<string | null> {
 
 export type LoginResult = { ok: true; mustChangePassword: boolean; mfaPending: boolean } | { ok: false; message: string }
 
+export const LOCKED_MESSAGE =
+  'Too many failed attempts from this browser. Wait 15 minutes, sign in from a computer or phone you have used before, or use "Forgot your password?".'
+
+/**
+ * Password sign-in (finding N-1):
+ *   1. one short database step takes a per-email lock, counts recent failures and RESERVES this attempt (it counts as a
+ *      failure until the password is confirmed), so parallel attempts can never exceed the limit;
+ *   2. the password is checked here, outside any lock;
+ *   3. the attempt is finished (session created, or failure recorded in the audit log).
+ * Limits: unrecognised browsers 5 failures per email per 15 minutes (shared), a trusted browser 10 of its own,
+ * 30 per address when the address is known (TRUST_PROXY). Two-step login is unaffected.
+ */
 export async function login(email: string, password: string): Promise<LoginResult> {
   const ip = await clientIp()
   const h = await headers()
+  const jar = await cookies()
   const generic = { ok: false as const, message: 'Incorrect email or password.' }
-  return anonymous(async (tx) => {
-    const [rate] = await tx<{ email_failures: number; ip_failures: number }[]>`select * from app.auth_recent_failures(${email}, ${ip})`
-    if (rate.email_failures >= MAX_FAILURES_PER_EMAIL || rate.ip_failures >= MAX_FAILURES_PER_IP) {
-      await tx`select app.auth_record_attempt(${email}, ${ip}, false, null)`
-      return { ok: false as const, message: 'Too many failed attempts. Please wait 15 minutes and try again, or ask an administrator to reset your password.' }
-    }
-    const [user] = await tx<{ user_id: string; password_hash: string; must_change_password: boolean }[]>`select * from app.auth_login_lookup(${email})`
-    const ok = await verifyPassword(user?.password_hash ?? (await getDummyHash()), password)
-    if (!user || !ok) {
-      await tx`select app.auth_record_attempt(${email}, ${ip}, false, ${user?.user_id ?? null})`
-      return generic
-    }
-    const token = newTokenValue()
-    const [{ mfa }] = await tx<{ mfa: boolean }[]>`select app.auth_mfa_enabled(${user.user_id}) as mfa`
-    // With 2FA enabled the session starts "pending" (10 minutes) until the code is entered.
-    await tx`select app.auth_create_session(${user.user_id}, ${hashToken(token)}, ${SESSION_TTL_HOURS}, ${ip}, ${h.get('user-agent') ?? ''}, ${mfa})`
-    await tx`select app.auth_record_attempt(${email}, ${ip}, true, ${user.user_id})`
-    const jar = await cookies()
-    jar.set(SESSION_COOKIE, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: SESSION_TTL_HOURS * 3600,
-    })
-    return { ok: true as const, mustChangePassword: user.must_change_password, mfaPending: mfa }
-  }, { ip })
+  const device = deviceHash(readDeviceToken(jar, STAFF_DEVICE_COOKIE))
+  const [a] = await anonymous((tx) => tx<{ attempt_id: string | null; allowed: boolean; user_id: string | null; password_hash: string | null; trusted: boolean }[]>`
+    select * from app.auth_begin_attempt(${email}, ${ip}, ${device})`, { ip })
+  if (!a?.allowed) return { ok: false as const, message: LOCKED_MESSAGE }
+  // unknown accounts are checked against a dummy hash, so both cases take the same time
+  const passwordOk = await verifyPassword(a.password_hash ?? (await getDummyHash()), password)
+  const ok = passwordOk && !!a.user_id
+  const token = newTokenValue()
+  const [r] = await anonymous((tx) => tx<{ ok: boolean; mfa_pending: boolean; must_change_password: boolean }[]>`
+    select * from app.auth_finish_attempt(${a.attempt_id}, ${ok}, ${ok ? hashToken(token) : null}, ${SESSION_TTL_HOURS}, ${ip}, ${h.get('user-agent') ?? ''})`, { ip })
+  if (!r?.ok) return generic
+  // With 2FA enabled the session starts "pending" (10 minutes) until the code is entered.
+  jar.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: SESSION_TTL_HOURS * 3600,
+  })
+  return { ok: true as const, mustChangePassword: r.must_change_password, mfaPending: r.mfa_pending }
 }
 
 export async function logout() {

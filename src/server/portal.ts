@@ -6,6 +6,7 @@ import { cookies, headers } from 'next/headers'
 import { anonymous } from './db'
 import { checkPasswordStrength, getDummyHash, hashPassword, verifyPassword } from './auth/password'
 import { hashToken, newTokenValue } from './auth/tokens'
+import { deviceHash, newDeviceToken, PORTAL_DEVICE_COOKIE, readDeviceToken, setDeviceCookie } from './auth/trusted-device'
 import { appUrl } from './email'
 import { invalid, ServiceError } from './errors'
 import { getStorage, MAX_UPLOAD_BYTES, newStorageKey, safeFilename, sha256, sniffMime } from './storage'
@@ -150,12 +151,19 @@ export async function portalSubmitCourier(shipmentId: string, company: string, t
 }
 
 // ---------------------------------------------------------------- password login (portal v2)
-/** Student ID or verified email + password. Same answer for unknown, wrong or locked (no enumeration). */
+/**
+ * Student ID or verified email + password. Same answer for unknown, wrong or locked (no enumeration).
+ * Finding N-1: each attempt is RESERVED in the database before the password is checked (no parallel guessing beyond the
+ * limit). Unrecognised browsers: 5 failures per account, then 15 minutes; a browser that signed in successfully before
+ * (trusted, cookie hash only) has its own limit of 10, so knowing a Student ID is not enough to lock the student out.
+ */
 export async function passwordLogin(identifier: string, password: string) {
   const id = identifier.trim().slice(0, 200)
   if (!id || !password || password.length > 200) return false
-  const candidates = await anonymous((tx) => tx<{ account_id: string; password_hash: string | null; locked: boolean }[]>`
-    select * from app.portal_password_candidates(${id})`)
+  const jar = await cookies()
+  const device = deviceHash(readDeviceToken(jar, PORTAL_DEVICE_COOKIE))
+  const candidates = await anonymous((tx) => tx<{ account_id: string; password_hash: string | null; trusted: boolean }[]>`
+    select * from app.portal_password_begin(${id}, ${device})`)
   const ok: string[] = []; const failed: string[] = []
   if (!candidates.length) await verifyPassword(await getDummyHash(), password) // equal timing
   for (const c of candidates) {
@@ -163,13 +171,15 @@ export async function passwordLogin(identifier: string, password: string) {
     if (await verifyPassword(c.password_hash, password)) ok.push(c.account_id); else failed.push(c.account_id)
   }
   const token = randomBytes(32).toString('base64url')
+  const fresh = newDeviceToken()
   const { ip, ua } = await ipAndAgent()
-  const [r] = await anonymous((tx) => tx<{ ok: boolean }[]>`
-    select app.portal_password_result(${id}, ${ok}::uuid[], ${failed}::uuid[], ${hmac(token)}, ${ip}, ${ua}) as ok`)
+  const [r] = await anonymous((tx) => tx<{ ok: boolean; device_added: boolean }[]>`
+    select * from app.portal_password_finish(${id}, ${ok}::uuid[], ${failed}::uuid[], ${device}, ${hmac(token)}, ${ip}, ${ua}, ${fresh.hash})`)
   if (r.ok) {
-    ;(await cookies()).set(PORTAL_COOKIE, token, {
+    jar.set(PORTAL_COOKIE, token, {
       httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/portal', maxAge: 4 * 3600,
     })
+    if (r.device_added) setDeviceCookie(jar, PORTAL_DEVICE_COOKIE, fresh.token, '/portal')
   }
   return r.ok
 }
@@ -181,12 +191,14 @@ export async function checkPasswordLink(token: string) {
   return r?.code ?? null
 }
 
-export async function setPasswordWithLink(token: string, password: string, confirm: string) {
+/** Set or reset the portal password with a link. With `deviceTokenHash`, the browser that did it becomes trusted (recovery). */
+export async function setPasswordWithLink(token: string, password: string, confirm: string, deviceTokenHash: string | null = null) {
   if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) throw invalid('This link is not valid. Ask us for a new one.')
   if (password !== confirm) throw invalid('The two passwords are different.', { confirm: ['Does not match.'] })
   const weak = checkPasswordStrength(password)
   if (weak) throw invalid(weak, { password: [weak] })
-  const [r] = await anonymous(async (tx) => tx<{ code: string | null }[]>`select app.portal_set_password(${hashToken(token)}, ${await hashPassword(password)}) as code`)
+  const [r] = await anonymous(async (tx) => tx<{ code: string | null }[]>`
+    select app.portal_set_password_trusted(${hashToken(token)}, ${await hashPassword(password)}, ${deviceTokenHash}) as code`)
   if (!r?.code) throw invalid('This link has expired or was already used. Ask us for a new one, or use "Forgot password".')
   return r.code
 }

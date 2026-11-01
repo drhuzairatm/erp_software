@@ -1,8 +1,12 @@
 'use server'
 
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import type { ActionResult } from '@/components/action-types'
 import { acceptInvitation, changeOwnPassword, completePasswordReset, requestPasswordReset } from '@/server/auth/passwords'
+import { deliverStaffEmails } from '@/server/auth/staff-email'
+import { newDeviceToken, setDeviceCookie, STAFF_DEVICE_COOKIE, trustStaffBrowserAfterMfa } from '@/server/auth/trusted-device'
 import { revokeSessions } from '@/server/services/admin'
 import { adminResetMfa, finishEnrolment, startEnrolment, verifyLoginCode } from '@/server/auth/mfa-service'
 import { getPendingMfaToken, login, logout, requireUser } from '@/server/auth/session'
@@ -28,6 +32,8 @@ export async function forgotPasswordAction(_: ActionResult, fd: FormData): Promi
   const { email } = formObject(fd)
   if (!email) return { ok: false, message: 'Enter your email address.' }
   await requestPasswordReset(email)
+  // Faster delivery only: the scheduled sender (every minute) delivers anything still queued.
+  after(() => deliverStaffEmails(10).then(() => undefined, () => undefined))
   return {
     ok: true,
     message: emailConfigured()
@@ -39,7 +45,10 @@ export async function forgotPasswordAction(_: ActionResult, fd: FormData): Promi
 export async function resetPasswordAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
   const token = String(fd.get('token') ?? '')
   return runAction(async () => {
-    await completePasswordReset(token, String(fd.get('password') ?? ''), String(fd.get('confirm') ?? ''))
+    const device = newDeviceToken()
+    await completePasswordReset(token, String(fd.get('password') ?? ''), String(fd.get('confirm') ?? ''), device.hash)
+    // recovery on a new device: this browser is now trusted (two-step login is still required to sign in)
+    setDeviceCookie(await cookies(), STAFF_DEVICE_COOKIE, device.token, '/')
     redirect('/login?reset=1')
   })
 }
@@ -62,6 +71,8 @@ export async function verifyMfaAction(_: ActionResult, fd: FormData): Promise<Ac
     if (r.locked) { await logout(); redirect('/login?mfa=locked') }
     return { ok: false, message: r.message }
   }
+  // only now (password AND two-step code accepted) may this browser become trusted
+  await trustStaffBrowserAfterMfa(tokenHash).catch(() => null)
   redirect('/')
 }
 

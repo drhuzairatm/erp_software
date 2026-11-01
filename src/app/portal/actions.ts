@@ -1,7 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { newDeviceToken, PORTAL_DEVICE_COOKIE, setDeviceCookie } from '@/server/auth/trusted-device'
 import type { ActionResult } from '@/components/action-types'
 import { chooseStudent, markNoticesRead, portalSubmitReferral, publicSubmitReferral, passwordLogin, portalLogout, portalSubmitCourier, portalUpload, requestCode, requestPasswordReset, setPasswordWithLink, verifyCode } from '@/server/portal'
 import { runAction } from '../actions/run-action'
@@ -59,7 +61,10 @@ export async function passwordLoginAction(_: ActionResult, fd: FormData): Promis
 export async function setPasswordAction(token: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
   let done = false
   const res = await runAction(async () => {
-    await setPasswordWithLink(token, String(fd.get('password') ?? ''), String(fd.get('confirm') ?? ''))
+    const device = newDeviceToken()
+    await setPasswordWithLink(token, String(fd.get('password') ?? ''), String(fd.get('confirm') ?? ''), device.hash)
+    // recovery on a new device: this browser is trusted for portal sign-in from now on
+    setDeviceCookie(await cookies(), PORTAL_DEVICE_COOKIE, device.token, '/portal')
     done = true
   })
   if (done) redirect('/portal?passwordset=1')

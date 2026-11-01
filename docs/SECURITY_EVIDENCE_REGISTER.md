@@ -17,6 +17,7 @@ No staging or production environment exists yet.
 | `687db59` | 2026-11-01 12:45 | Phase A: staff account security (invitations, account states, sign out everywhere, task hand-over, protected MD) |
 | `7ced178` | 2026-11-01 13:49 | Phase B: virus-scan status, quarantine, manual clearance, approval/courier gates, security alerts, login history, 2-step login for everyone, nonce browser policy |
 | `eab9075` | 2026-11-01 14:12 | Phase C: admissions scenarios A–L, security/isolation matrix, backup → restore drill |
+| `4612207` | 2026-11-01 | Audit remediation: H-1 viewer quarantine, M-1 trusted client address, M-2 bulk-access alerts |
 
 **Naming note:** the older test files `phase-a.test.ts`, `phase-b.test.ts` and `phase-c.test.ts` belong to the **earlier development phases** (MD/CEO roles, passports, document verification), not to this remediation programme. The remediation tests are `staff-accounts`, `security-phase-b`, `scenarios-a-l` and `security-matrix`.
 
@@ -28,6 +29,7 @@ No staging or production environment exists yet.
 | Browser-policy test on the **production build** (`next start`) | 2026-11-01 | `7ced178` | passed | PHASE_B_SECURITY_REPORT.md |
 | Backup → isolated restore drill | 2026-11-01 | `eab9075` | **31/31 checks passed** | BACKUP_RESTORE_DRILL.md |
 | Phase D re-run (after the documentation changes and two test-reliability fixes) | 2026-11-01 | Phase D commit | **260 passed** (full check incl. build); **54 browser passed, 0 skipped** | PHASE_D_REPORT.md |
+| N-1 run (migration 0035 applied to the development database) | 2026-11-01 | uncommitted, on top of `4612207` | **315 passed, 0 failed** (36 files; full check incl. typecheck, lint, build); **56 browser passed, 0 failed, 0 skipped** | this register, section N-1 |
 
 ## Evidence by area
 Each test was run on 2026-11-01. Columns: evidence ID, control, test or source (file), result, commit.
@@ -87,13 +89,33 @@ Each test was run on 2026-11-01. Columns: evidence ID, control, test or source (
 | E-R3 | Security objects, application role, row-level security, unreadable storage keys and append-only audit log all survive restore | same | Pass | `eab9075` |
 | E-R4 | 395/395 live files present and SHA-256 identical; replaced photo versions deleted by design (reported separately) | same | Pass | `eab9075` |
 
-### Audit remediation (H-1, M-1, M-2): audit remediation of 1 Nov 2026 (migration 0034, not yet committed)
+### Audit remediation (H-1, M-1, M-2): audit remediation of 1 Nov 2026 (migration 0034, commit `4612207`)
 | ID | Control | Test / source | Result | Commit |
 |---|---|---|---|---|
-| E-X1 | **H-1:** infected files refused by the in-app viewer: service, database function, **direct request to the real `/api/files/{id}/content` handler** (404), even for the MD; denial audited "quarantined". Clean and manually cleared files still viewable by authorised staff; unauthorised users and signed-out requests refused; download, merge, clearance and approval stay closed; portal download of a later-infected publication refused. | `tests/integration/audit-remediation.test.ts` (5 tests) | Pass | audit remediation (commit after f3e8ce3) |
-| E-X2 | **M-2:** 100 viewer accesses → alert; 50 views + 50 downloads → combined alert; 100 portal downloads → portal alert; 5 accesses → no alert; alerts and audit log immutable | same file (4 tests) | Pass | audit remediation (commit after f3e8ce3) |
-| E-X3 | **M-1:** forged `X-Forwarded-For` ignored in all modes; trusted `X-Real-IP` / right-most `X-Forwarded-For` used only when configured; invalid values discarded | `tests/unit/client-ip.test.ts` (5 tests) | Pass | audit remediation (commit after f3e8ce3) |
-| E-X4 | **M-1 + lockout:** the real `login()` with forged headers: per-email lockout after 5 failures, nothing fake stored; unknown addresses never lock out others (shared-bucket bug fixed); trusted proxy: per-address lockout at 30 and the address recorded; portal codes limited to 5 per identifier, forged address not stored | `tests/integration/client-ip-lockout.test.ts` (4 tests) | Pass | audit remediation (commit after f3e8ce3) |
+| E-X1 | **H-1:** infected files refused by the in-app viewer: service, database function, **direct request to the real `/api/files/{id}/content` handler** (404), even for the MD; denial audited "quarantined". Clean and manually cleared files still viewable by authorised staff; unauthorised users and signed-out requests refused; download, merge, clearance and approval stay closed; portal download of a later-infected publication refused. | `tests/integration/audit-remediation.test.ts` (5 tests) | Pass | `4612207` |
+| E-X2 | **M-2:** 100 viewer accesses → alert; 50 views + 50 downloads → combined alert; 100 portal downloads → portal alert; 5 accesses → no alert; alerts and audit log immutable | same file (4 tests) | Pass | `4612207` |
+| E-X3 | **M-1:** forged `X-Forwarded-For` ignored in all modes; trusted `X-Real-IP` / right-most `X-Forwarded-For` used only when configured; invalid values discarded | `tests/unit/client-ip.test.ts` (5 tests) | Pass | `4612207` |
+| E-X4 | **M-1 + lockout:** the real `login()` with forged headers: per-email lockout after 5 failures, nothing fake stored; unknown addresses never lock out others (shared-bucket bug fixed); trusted proxy: per-address lockout at 30 and the address recorded; portal codes limited to 5 per identifier, forged address not stored | `tests/integration/client-ip-lockout.test.ts` (4 tests) | Pass | `4612207` |
+
+### N-1: sign-in lockout and password reset (migration 0035, **uncommitted**, 1 Nov 2026)
+| ID | Control | Test / source | Result | Commit |
+|---|---|---|---|---|
+| E-N1 | Database security of 0035: every new function SECURITY DEFINER with fixed `search_path`; PUBLIC executes none; `erp_app` executes exactly the 11 application functions and no internal or trigger function; `auth_private` closed to `erp_app` (no USAGE, no table privilege); public policies 149 and RLS tables 89 unchanged | `tests/integration/auth-db-security.test.ts` | Pass | uncommitted |
+| E-N2 | **Exact rollback** in the throwaway test database: the 3 replaced functions restored byte-for-byte (md5 of definition and access list match the pre-0035 development fingerprints); every new function, table, column and trigger removed; re-apply works. **The development database was not rolled back.** | same file | Pass | uncommitted |
+| E-N3 | Staff: resets never lock; 3 per hour per email plus supersede; identical answers and timing (median difference under 15 ms); 10 per hour per address; trusted vs unrecognised browsers with 2-step login still required; hash-only storage; trust only after 2-step login; trusted limit 10; stolen cookie on another account, expiry; revocation on 5 events; recovery on a new browser; 20 parallel → 5 counted; refused attempts do not extend; many-accounts and global alerts | `tests/integration/auth-rate-limits.test.ts` (16 tests) | Pass | uncommitted |
+| E-N4 | Reset-email queue: link encrypted, delivered once, then erased; retry with back-off → failed after 5 with audit and alert; not configured → skipped and erased; expired → erased; 3 parallel senders deliver exactly once; CHECK constraints; global cap; `erp_app` cannot read the queue; sender functions refuse MD, admin and manager contexts; **the MD's reset link appears in no audit log, alert or notification outbox** and the MD's sign-in is unaffected | `tests/integration/staff-email-outbox.test.ts` | Pass | uncommitted |
+| E-N5 | Portal: the usual browser survives a lockout; trusted limit 10; another student's cookie gives nothing; sticky re-lock fixed (new and legacy functions); 20 parallel → 5 counted; revocation on new password or disabling; recovery trust | `tests/integration/portal-rate-limits.test.ts` | Pass | uncommitted |
+| E-N6 | Real browser: staff reset in own browser → trusted; another browser locked after 5 failures, even with the right password; the employee's browser still signs in; same answer for unknown and known emails; HttpOnly device cookie. Portal: lockout from another browser while the usual browser still signs in | `tests/e2e/n1-lockout.spec.ts` (2 tests) | Pass | uncommitted |
+
+**N-1 not tested / externally dependent (verified in development only; not production-ready):**
+- **Real email delivery** of reset emails: the queue is tested with a stub provider only.
+- **Production cookie behaviour:** the `__Host-erp_device` / `__Secure-erp_portal_device` names and the Secure flag apply only in production and were not exercised under `next start` over HTTPS.
+- **Real proxy behaviour:** the per-address sign-in and reset limits behind the VPS proxy (`TRUST_PROXY`).
+- **Browser test of trust after 2-step login:** development runs with `MFA_ENFORCE=off`, so the browser test reaches trust through a completed reset. Trust after 2-step login is covered only by the integration tests (`MFA_ENFORCE=roles`).
+
+**Known deviation (N-1):** the planned extra caps on portal sign-in codes (1 per minute, 5 per 15 minutes) were **not** built. They conflict with existing tested behaviour (`phase-i.test.ts`); the existing limit of 5 per hour per identifier stays.
+
+**Open finding N-7 (High, not fixed):** student-portal set-up and reset links can be read in the notification outbox while queued or in test mode. The remediation plan awaits approval.
 
 ## Controls without test evidence
 These are implemented or documented, but **no automated test proves them**:
@@ -107,7 +129,8 @@ These are implemented or documented, but **no automated test proves them**:
 
 ## Not tested at all (external or blocked)
 - **A real virus scanner:** ClamAV server or scanning service.
-- **Delivery:** real email delivery of invitations or alerts.
+- **Delivery:** real email delivery of invitations, alerts or password-reset emails (the queue is tested with a stub provider only).
+- **N-1 on a real proxy:** the per-address reset and sign-in limits behind the VPS proxy (needs `TRUST_PROXY`).
 - **Devices and browsers:** real phones (iPhone, Android), Safari, Firefox and Edge.
 - **Hosting:**
   - HTTPS / TLS configuration
