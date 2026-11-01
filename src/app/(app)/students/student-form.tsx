@@ -6,7 +6,7 @@ import type { ActionResult } from '@/components/action-types'
 import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
 import { DISPLAY, NoticeCard } from '@/components/notice'
 import { PhoneField } from '@/components/phone-field'
-import { PhotoPicker } from '@/components/photo-picker'
+import { PhotoCapture } from '@/components/photo-capture'
 import type { DuplicateCandidate } from '@/server/services/students'
 
 interface Opt { id: string; name: string }
@@ -159,7 +159,7 @@ export function StudentForm(p: StudentFormProps) {
                 {p.mode === 'create' && (
                   <div className="md:col-span-3">
                     <p className="label">Student Passport Photo (optional)</p>
-                    <PhotoPicker />
+                    <PhotoCapture />
                   </div>
                 )}
                 {p.contactEditable ? (

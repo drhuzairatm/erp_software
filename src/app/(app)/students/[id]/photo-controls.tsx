@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { removeStudentPhotoAction, uploadStudentPhotoAction } from '@/app/actions/students'
 import { ActionForm, ConfirmSubmit, SubmitButton } from '@/components/forms'
-import { PhotoPicker } from '@/components/photo-picker'
+import { PhotoCapture } from '@/components/photo-capture'
 
 /** Profile header avatar: photo (click for a larger view) or initials, plus upload / replace / remove / download. */
 export function StudentPhoto({ studentId, name, initials, version, canEdit }: { studentId: string; name: string; initials: string; version: number | null; canEdit: boolean }) {
@@ -49,7 +49,7 @@ export function StudentPhoto({ studentId, name, initials, version, canEdit }: { 
       <dialog ref={edit} className="m-auto w-[min(92vw,34rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-black/60" aria-label={version ? 'Replace photo' : 'Upload photo'}>
         <ActionForm key={k} action={uploadStudentPhotoAction.bind(null, studentId)} className="space-y-3 p-5" onSuccess={() => edit.current?.close()}>
           <h2 className="text-base font-semibold">{version ? 'Replace photo' : 'Upload photo'} – {name}</h2>
-          <PhotoPicker onChange={setChosen} />
+          <PhotoCapture onChange={setChosen} />
           <div className="flex justify-end gap-2">
             <button type="button" className="btn-secondary" onClick={() => edit.current?.close()}>Cancel</button>
             {chosen && <SubmitButton pendingText="Saving…">{version ? 'Confirm and replace' : 'Save photo'}</SubmitButton>}

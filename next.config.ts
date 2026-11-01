@@ -10,6 +10,8 @@ const csp = [
   `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
+  // live camera preview (MediaStream) and captured image previews
+  "media-src 'self' blob: mediastream:",
   "font-src 'self' data:",
   "connect-src 'self'" + (isDev ? ' ws: wss:' : ''),
   "frame-ancestors 'none'",
@@ -23,7 +25,8 @@ const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+  // camera only for the ERP itself (photo capture); never for embedded third parties. Microphone stays blocked.
+  { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(), payment=()' },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   ...(isDev ? [] : [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' }]),
 ]

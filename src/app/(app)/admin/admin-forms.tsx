@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { addReferenceAction, createRoleAction, createStaffAction, membershipAction, orgSettingsAction, removeStaffPhotoAction, reportingManagerAction, resetLinkAction, roleStructureAction, rolePermissionsAction, staffPhotoAction, toggleReferenceAction, userActiveAction, workflowAction } from '@/app/actions/admin'
-import { PhotoPicker } from '@/components/photo-picker'
+import { PhotoCapture } from '@/components/photo-capture'
 import { adminResetMfaAction } from '@/app/actions/auth'
 import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
 
@@ -44,7 +44,7 @@ export function CreateStaffForm({ orgs, roles, managers }: { orgs: Opt[]; roles:
               <select className="input" id="reportsTo" name="reportsTo" defaultValue=""><option value="">— none —</option>{managers.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></div>
           </div>
           <div><p className="label">Staff Profile Photo (optional)</p>
-            <PhotoPicker key={k} square help="A clear, recent photo of the face. JPG or PNG, maximum 5 MB. Shown as this person's avatar to colleagues." /></div>
+            <PhotoCapture key={k} square help="A clear, recent photo of the face. JPG or PNG, maximum 5 MB. Shown as this person's avatar to colleagues." /></div>
           <div><SubmitButton>Add staff</SubmitButton></div>
           <p className="hint">If the email already has an account (e.g. in the other company), the person is added to this company with the chosen role. Roles in one company never grant access in the other.</p>
         </>
@@ -185,7 +185,7 @@ export function StaffPhotoForm({ userId, hasPhoto }: { userId: string; hasPhoto:
   return (
     <div className="space-y-3">
       <ActionForm key={k} action={staffPhotoAction.bind(null, userId)} className="space-y-3" onSuccess={() => { setK((x) => x + 1); setChosen(false) }}>
-        <PhotoPicker square onChange={setChosen} help="A clear, recent photo of the face. JPG or PNG, maximum 5 MB." />
+        <PhotoCapture square onChange={setChosen} help="A clear, recent photo of the face. JPG or PNG, maximum 5 MB." />
         {chosen && <SubmitButton>{hasPhoto ? 'Confirm and replace photo' : 'Save photo'}</SubmitButton>}
       </ActionForm>
       {hasPhoto && (
