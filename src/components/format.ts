@@ -5,6 +5,7 @@ const dateTimeFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 's
 export function fmtDate(d: string | Date | null | undefined) {
   if (!d) return '—'
   if (typeof d === 'string') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { const t = new Date(d); return Number.isNaN(t.getTime()) ? '—' : dateFmt.format(t) }
     const [y, m, day] = d.split('-').map(Number)
     return dateFmt.format(new Date(Date.UTC(y, m - 1, day, 6)))
   }
@@ -29,4 +30,10 @@ export function label(s: string | null | undefined) {
 
 export function todayISO() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())
+}
+
+/** ISO date `days` from today (India time). */
+export function daysFromTodayISO(days: number) {
+  const [y, m, d] = todayISO().split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10)
 }

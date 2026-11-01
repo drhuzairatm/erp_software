@@ -33,6 +33,7 @@ const P: Record<string, string> = {
   key: 'M21 2l-2 2m-7.6 7.6a5.5 5.5 0 1 1-7.8 7.8 5.5 5.5 0 0 1 7.8-7.8zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4',
   mail: 'M4 4h16v16H4zM4 6l8 7 8-7',
   rules: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+  truck: 'M1 4h14v12H1zM15 9h4l3 3v4h-7M5.5 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
 }
 export type IconName = keyof typeof P
 export function Icon({ name, className = 'h-5 w-5' }: { name: IconName | string; className?: string }) {

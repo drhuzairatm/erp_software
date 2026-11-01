@@ -19,7 +19,7 @@ export function BrandMark({ brand, tone = 'dark' }: { brand: BrandCode; tone?: '
         const logo = officialLogo(c)
         return logo
           // eslint-disable-next-line @next/next/no-img-element
-          ? <img key={c} src={logo} alt={BRANDS[c].name} className="h-8 w-auto max-w-[180px] object-contain object-left" />
+          ? <img key={c} src={logo} alt={BRANDS[c].name} className="h-10 w-auto max-w-[190px] rounded-md object-contain object-left" />
           : <span key={c} className={`text-[15px] font-bold leading-tight tracking-tight ${text} ${c === 'grd' ? 'uppercase tracking-[0.12em]' : ''}`}>{BRANDS[c].name}</span>
       })}
     </div>

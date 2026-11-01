@@ -9,6 +9,7 @@ import { hashPassword } from '../../src/server/auth/password'
 import { getStorage, newStorageKey, sha256 } from '../../src/server/storage'
 import { demoAttestationRoutes, demoStartAttestations } from './demo-attestation'
 import { demoAcademicConfig, demoAcademicRecords } from './demo-academic'
+import { demoCourierAddresses } from './demo-courier'
 
 type Sql = postgres.Sql
 
@@ -387,6 +388,9 @@ export async function seedDemo(adminUrl: string, demoPassword: string, log: (m: 
       select coalesce((select user_id from student_assignments where student_id = ${id} and is_active and assignment_type = 'counsellor' limit 1),
                       (select m.user_id from students s join organization_memberships m on m.org_id = s.originating_org_id and m.is_active
                          join roles r on r.id = m.role_id and r.key = 'manager' where s.id = ${id} limit 1)) as user_id`)[0]?.user_id ?? null)
+
+    // --- Courier (fictional delivery address) -------------------------------
+    await demoCourierAddresses(sql)
 
     // --- Tasks --------------------------------------------------------------
     const delayReasons = ['student', 'university', 'embassy', 'provider', 'finance', 'other_external']

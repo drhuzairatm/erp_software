@@ -28,7 +28,8 @@
     "prebuild": "node scripts/copy-pdf-assets.mjs",
     "db:backup": "tsx scripts/db-backup.ts",
     "demo:attestation": "tsx scripts/demo-addon-attestation.ts",
-    "demo:academic": "tsx scripts/demo-addon-academic.ts"
+    "demo:academic": "tsx scripts/demo-addon-academic.ts",
+    "demo:courier": "tsx scripts/demo-addon-courier.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1161.0",

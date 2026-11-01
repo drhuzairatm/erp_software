@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { fmtDateTime } from '@/components/format'
-import { Badge, Card, PageHeader } from '@/components/ui'
+import { Icon } from '@/components/icons'
+import { Avatar, Badge, Card, PageHeader, StatCard } from '@/components/ui'
 import { can } from '@/server/auth/context'
 import { requireUser } from '@/server/auth/session'
 import { listStaff } from '@/server/services/admin'
@@ -16,6 +17,12 @@ export default async function UsersPage() {
   return (
     <>
       <PageHeader title="Staff accounts" description="Create accounts, set company roles, issue password links, and deactivate leavers. You can only assign roles — and manage people — whose access is within your own. Changes are audited." />
+      <section aria-label="Staff summary" className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label="Active staff" value={data.users.filter((u) => u.is_active).length} tone="blue" icon={<Icon name="staff" className="h-5 w-5" />} />
+        <StatCard label="Two-factor enabled" value={data.mfa.filter((x) => x.enabled).length} tone="green" icon={<Icon name="shield" className="h-5 w-5" />} />
+        <StatCard label="Password resets requested" value={data.resets.length} tone={data.resets.length ? 'amber' : 'slate'} icon={<Icon name="key" className="h-5 w-5" />} />
+        <StatCard label="Deactivated" value={data.users.filter((u) => !u.is_active).length} tone="slate" icon={<Icon name="close" className="h-5 w-5" />} />
+      </section>
       <Card title="Add a staff member" className="mb-6"><CreateStaffForm orgs={orgs} roles={data.roles} /></Card>
       <Card padded={false}>
         <div className="table-wrap"><table>
@@ -25,8 +32,9 @@ export default async function UsersPage() {
             const login = data.logins.find((l) => l.user_id === u.id)
             return (
               <tr key={u.id} className={u.is_active ? '' : 'opacity-60'}>
-                <td><p className="font-medium">{u.full_name} {!u.is_active && <Badge tone="red">Deactivated</Badge>}</p><p className="text-xs text-slate-500">{u.email}{u.job_title ? ` · ${u.job_title}` : ''}</p>
-                  {reset && <p className="mt-1"><Badge tone="amber">Password reset requested {fmtDateTime(reset.requested_at)}</Badge></p>}</td>
+                <td><div className="flex items-start gap-3"><Avatar name={u.full_name} />
+                  <div><p className="font-medium">{u.full_name} {!u.is_active && <Badge tone="red">Deactivated</Badge>}</p><p className="text-xs text-slate-500">{u.email}{u.job_title ? ` · ${u.job_title}` : ''}</p>
+                  {reset && <p className="mt-1"><Badge tone="amber">Password reset requested {fmtDateTime(reset.requested_at)}</Badge></p>}</div></div></td>
                 <td className="space-y-2">{data.memberships.filter((m) => m.user_id === u.id).map((m) => (
                   <div key={m.id}>
                     <p className="text-xs font-medium text-slate-600">{m.org_name}</p>

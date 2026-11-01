@@ -108,13 +108,52 @@ describe('passport records', () => {
     await pp.recordPassport(ctx, id, { kind: 'renewal', passportNumber: `PN${rand()}`, holderName: 'PHASE TWO STUDENT', gender: 'female',
       nationalityCountryId: await country('IN'), citizenshipCountryId: await country('IN'), issuingCountryId: await country('IN'),
       issueDate: '2026-01-01', expiryDate: '2036-01-01', placeOfIssue: 'Kochi' })
-    const d = (await pp.getPassportData(ctx, id))!
-    expect(d.current).toMatchObject({ version: 2, kind: 'renewal', holder_name: 'PHASE TWO STUDENT', tier: 'valid' })
-    expect(d.versions[1]).toMatchObject({ passport_number: num, is_current: false })
+    // awaiting verification: the old passport stays active
+    let d = (await pp.getPassportData(ctx, id))!
+    expect(d.current).toMatchObject({ version: 1, passport_number: num })
+    expect(d.pending).toMatchObject({ version: 2, kind: 'renewal', verification_status: 'pending', is_current: false })
     expect(d.followups[0]).toMatchObject({ kind: 'received' })
+    expect((await students.getStudent(ctx, id))!.student.passport_status).toBe('critical')
+    await pp.verifyPassport(ctx, d.pending!.id, 'verified', 'Checked against the scan')
+    d = (await pp.getPassportData(ctx, id))!
+    expect(d.pending).toBeNull()
+    expect(d.current).toMatchObject({ version: 2, kind: 'renewal', holder_name: 'PHASE TWO STUDENT', tier: 'valid', verification_status: 'verified' })
+    expect(d.versions[1]).toMatchObject({ passport_number: num, is_current: false })
     const tasks = await adminSql()`select status from tasks where student_id = ${id} and task_type = 'passport'`
     expect(tasks.every((t) => t.status === 'completed')).toBe(true)
     expect((await students.getStudent(ctx, id))!.student.passport_status).toBe('valid')
+  })
+
+  it('a new passport becomes active only after verification; rejection keeps the old passport', async () => {
+    const num = `PV${rand()}`
+    const { ctx, id } = await newStudent({ passportNumber: num, passportExpiry: inMonths(8) })
+    // the student form cannot swap the passport number
+    const cur = (await students.getStudent(ctx, id))!.student
+    await expect(students.updateStudent(ctx, id, { originatingOrgId: EDX, fullName: 'Phase Two Student', phone: cur.phone, email: cur.email,
+      passportNumber: `PX${rand()}`, passportExpiry: '2036-01-01' })).rejects.toThrow(/renewal/)
+    const newNum = `PW${rand()}`
+    await pp.recordPassport(ctx, id, { kind: 'renewal', passportNumber: newNum, expiryDate: '2036-01-01' })
+    // only one new passport can wait at a time
+    await expectServiceError(pp.recordPassport(ctx, id, { kind: 'renewal', passportNumber: `PY${rand()}`, expiryDate: '2036-02-01' }))
+    const [task] = await adminSql()`select title, status, assigned_to from tasks where student_id = ${id} and source_key like 'passport-verify:%'`
+    expect(task).toMatchObject({ status: 'not_started' })
+    expect(task.title).toMatch(/Verify new passport/)
+    // a counsellor can record but cannot verify
+    const counsellor = await ctxFor('edx.counsellor@demo.test')
+    const pend = (await pp.getPassportData(ctx, id))!.pending!
+    await expectServiceError(pp.verifyPassport(counsellor, pend.id, 'verified'))
+    await expectServiceError(pp.verifyPassport(ctx, pend.id, 'rejected', ''), 'invalid')
+    await pp.verifyPassport(ctx, pend.id, 'rejected', 'Number does not match the scan')
+    const d = (await pp.getPassportData(ctx, id))!
+    expect(d.current).toMatchObject({ passport_number: num, version: 1 })
+    expect(d.pending).toBeNull()
+    expect(d.versions.find((v) => v.id === pend.id)).toMatchObject({ verification_status: 'rejected', verification_note: 'Number does not match the scan' })
+    expect((await students.getStudent(ctx, id))!.student.passport_status).toBe('warning')
+    const [t2] = await adminSql()`select status from tasks where source_key = ${'passport-verify:' + pend.id}`
+    expect(t2.status).toBe('cancelled')
+    await expectServiceError(pp.verifyPassport(ctx, pend.id, 'verified'))
+    // tampering is still impossible
+    await expectDbError(adminSql()`update student_passports set verification_status = 'verified' where id = ${pend.id}`, '42501')
   })
 
   it('expiry tiers and deduplicated monitoring', async () => {

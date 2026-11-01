@@ -37,7 +37,7 @@ test('register with phones in different countries (searchable country picker); m
   await expect(page.getByText('Verified', { exact: true }).first()).toBeVisible()
 })
 
-test('passport tab: renewal keeps history; status shown on the profile', async ({ page }) => {
+test('passport tab: renewal is verified before it becomes active; history kept; status shown on the profile', async ({ page }) => {
   await login(page, 'edx.manager@demo.test')
   await page.getByLabel('Company').selectOption({ label: 'Dr.Expert Edulinks' })
   await page.goto('/students/new')
@@ -56,7 +56,15 @@ test('passport tab: renewal keeps history; status shown on the profile', async (
   await page.getByLabel('Holder name exactly as printed').fill('DEMO HOLDER NAME')
   await page.getByLabel('Expiry date *').fill('2036-05-01')
   await page.getByRole('button', { name: 'Record renewed passport' }).click()
-  await expect(page.getByText(/Renewed passport recorded/)).toBeVisible()
+  await expect(page.getByText(/New passport recorded and awaiting verification/)).toBeVisible()
+  // not active until verified
+  await expect(page.getByText('New passport awaiting verification').first()).toBeVisible()
+  await expect(page.getByText('Passport: Critical').first()).toBeVisible()
+  await page.getByLabel('Verification note (required to reject)').fill('Checked against the scan')
+  await page.getByRole('button', { name: 'Verify and activate' }).click()
+  // the verification card closes; the renewal is now the active passport
+  await expect(page.getByText('New passport awaiting verification')).toHaveCount(0)
+  await expect(page.getByText(/Verified by .* · /).first()).toBeVisible()
   await expect(page.getByText('Passport: Valid').first()).toBeVisible()
   await expect(page.getByRole('cell', { name: /v1 · / })).toBeVisible()
   await expect(page.locator('li').filter({ hasText: 'Renewed passport received' })).toBeVisible()

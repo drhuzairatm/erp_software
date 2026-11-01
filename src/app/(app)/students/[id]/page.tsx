@@ -19,6 +19,7 @@ import { EMAIL_STATUS, getContactHistory } from '@/server/services/passport'
 import { PassportStatusBadge, PassportTab } from './passport-tab'
 import { AcademicTab } from './academic-tab'
 import { AttentionPanel } from './attention'
+import { CourierPanel } from './courier-panel'
 import { VerifyEmailButton } from './passport-forms'
 import { AdmissionForm, ArchiveForm, AssignmentForm, FollowupForm, MergeForm, NoteForm, StageChangeForm, VisaForm } from './panels'
 import { AddChecklistItemForm, CustodyForm, DocumentDetailsForm, PaymentForm, QuickTaskForm, ReverseForm, UploadForm, VerifyForm } from './tab-forms'
@@ -368,6 +369,8 @@ async function Documents({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }
           </ul>
         )}
       </Card>
+      <CourierPanel ctx={ctx} studentId={s.id} editable={editable}
+        documents={cl.items.map((d) => ({ id: d.id, name: d.type_name + (d.label ? ` – ${d.label}` : ''), status: d.effective_status }))} />
       {editable && cl.perms.upload && (
         <Card title="Add a document to the checklist">
           <AddChecklistItemForm studentId={s.id} types={lookups.documentTypes.map((t) => ({ value: t.id, label: t.name }))} />

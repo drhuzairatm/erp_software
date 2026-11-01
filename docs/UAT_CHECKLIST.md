@@ -191,6 +191,16 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 - [ ] An expired passport shows a red CRITICAL banner; less than 12 months shows an amber Passport warning. Registration is not blocked.
 - [ ] Dashboard "Priority attention" lists critical counts and notices awaiting acknowledgement. Check on a phone.
 
+## G6. Passport verification and originals by courier (Nov 2026)
+
+- [ ] Passport tab: record a renewal. The profile still shows the old passport, with "New passport awaiting verification". Verify and activate it (as manager or documentation staff); the new passport becomes current. Try a rejection (a reason is required); the old passport stays.
+- [ ] A counsellor can record a new passport but cannot verify it. Changing the passport number on the Edit form is refused, with a pointer to the Passport tab.
+- [ ] Administration → Courier addresses: enter your real office address (the demo address is marked [DEMO]).
+- [ ] Student → Documents → "Originals by courier": only documents with **approved scans** can be chosen. Issue the instructions.
+- [ ] Portal (phone): the "Sending your original documents" card appears only now, with the address. Enter the courier company and tracking number.
+- [ ] Staff: the courier details appear as "Submitted by the student in the portal". Mark in transit, confirm receipt (the original location becomes "With staff"), and reconcile each document. A mismatch needs a note and creates a task.
+- [ ] Reports → Original documents by courier lists open shipments first.
+
 ## H. Usability
 | # | Test | Expected |
 |---|---|---|

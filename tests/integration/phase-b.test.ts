@@ -78,7 +78,8 @@ describe('passport details are protected', () => {
     const pass = `PA${rand()}`
     const { ctx, id: sid } = await newStudent('edx.manager@demo.test', { passportNumber: pass })
     const newPhone = `+91 90034 ${rand()}`
-    await students.updateStudent(ctx, sid, { originatingOrgId: EDX, fullName: 'Phase B Student', phone: newPhone, passportNumber: `PZ${rand()}` })
+    // (a different passport number must be recorded as a verified renewal, so the student form changes the expiry here)
+    await students.updateStudent(ctx, sid, { originatingOrgId: EDX, fullName: 'Phase B Student', phone: newPhone, passportNumber: pass, passportExpiry: '2035-03-03' })
     const rows = await adminSql()`select before_data::text as b, after_data::text as a from audit_logs where entity_type = 'students' and entity_id = ${sid}`
     const all = rows.map((r) => `${r.b} ${r.a}`).join(' ')
     expect(all).not.toContain(pass)

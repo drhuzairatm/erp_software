@@ -148,3 +148,19 @@ export async function taskAssignees(ctx: Ctx, orgIds: string[]) {
     select distinct u.id, u.full_name, m.org_id from organization_memberships m join user_profiles u on u.id = m.user_id and u.is_active
      where m.is_active and m.org_id = any(${tx.array(orgIds)}::uuid[]) order by u.full_name`)
 }
+
+/** Counts per task view (same visibility rules as the list). */
+export async function taskCounts(ctx: Ctx, orgIds: string[], mine: boolean) {
+  const [r] = await run(ctx, (tx) => tx<{ open: number; overdue: number; today: number; upcoming: number; waiting: number; unassigned: number; completed: number; completed_week: number; urgent: number }[]>`
+    select count(*) filter (where status not in ('completed', 'cancelled'))::int as open,
+           count(*) filter (where status not in ('completed', 'cancelled') and due_date < current_date)::int as overdue,
+           count(*) filter (where status not in ('completed', 'cancelled') and due_date = current_date)::int as today,
+           count(*) filter (where status not in ('completed', 'cancelled') and due_date > current_date)::int as upcoming,
+           count(*) filter (where status = 'waiting_external')::int as waiting,
+           count(*) filter (where status not in ('completed', 'cancelled') and assigned_to is null)::int as unassigned,
+           count(*) filter (where status = 'completed')::int as completed,
+           count(*) filter (where status = 'completed' and completed_at > now() - interval '7 days')::int as completed_week,
+           count(*) filter (where status not in ('completed', 'cancelled') and priority in ('urgent', 'high'))::int as urgent
+      from tasks where org_id = any(${tx.array(orgIds)}::uuid[]) ${mine ? tx`and assigned_to = ${ctx.userId}` : tx``}`)
+  return r
+}

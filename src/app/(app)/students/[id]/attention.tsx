@@ -19,6 +19,10 @@ export async function AttentionPanel({ ctx, profile }: { ctx: Ctx; profile: Stud
     cards.push(<NoticeCard key="pp" level="warning" label="Passport" title={`Passport valid for less than ${s.passport_status === 'urgent' ? '6' : '12'} months`} actions={passportLink}>
       From University Application onwards a passport valid for at least 12 months is required. Follow up for renewal.</NoticeCard>)
   }
+  if (at.passport_pending) {
+    cards.push(<NoticeCard key="ppv" level="warning" label="Passport" title="New passport awaiting verification" compact actions={passportLink}>
+      It becomes the active passport only after it is verified on the Passport tab.</NoticeCard>)
+  }
   if (at.awaiting_approval > 0 && at.can_approve) {
     cards.push(<NoticeCard key="appr" level="critical" label="Approval" title={`Manager approval required: ${at.awaiting_approval} document(s)`}
       actions={<Link href={`/students/${s.id}?tab=documents`} className="text-sm font-medium">Review documents →</Link>} />)

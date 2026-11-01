@@ -16,6 +16,8 @@ export const EVENTS: { key: string; label: string }[] = [
   { key: 'attestation_stage_completed', label: 'Attestation stage completed' },
   { key: 'attestation_completed', label: 'Attestation completed' },
   { key: 'one_and_same_requested', label: 'One and Same document requested' },
+  { key: 'courier_instructions_issued', label: 'Courier instructions issued (scans approved)' },
+  { key: 'original_received', label: 'Original documents received' },
 ]
 
 export function channelStatus(orgCodes: string[]) {

@@ -5,12 +5,17 @@ import { BrandMark } from '@/components/brand-mark'
 import { RadialProgress } from '@/components/charts'
 import { Icon } from '@/components/icons'
 import { brandOf } from '@/lib/brands'
-import { portalChoices, portalOverview, portalSession } from '@/server/portal'
+import { portalChoices, portalOverview, portalSession, portalShipments } from '@/server/portal'
 import { logoutAction } from '../actions'
-import { ChooseButton, PortalUpload } from '../forms'
+import { ChooseButton, CourierDetailsForm, PortalUpload } from '../forms'
 
 export const metadata: Metadata = { title: 'My application' }
 
+const COURIER_STATE: Record<string, [string, string]> = {
+  instructions_issued: ['Please send', 'bg-amber-100 text-amber-900'], dispatched: ['Sent – on the way', 'bg-violet-100 text-violet-900'],
+  in_transit: ['On the way', 'bg-violet-100 text-violet-900'], received: ['Received – being checked', 'bg-blue-100 text-blue-900'],
+  reconciliation_required: ['Being checked', 'bg-blue-100 text-blue-900'], completed: ['Received and checked', 'bg-green-100 text-green-900'],
+}
 const DOC_STATE: Record<string, [string, string]> = {
   missing: ['Please upload', 'bg-amber-100 text-amber-900'],
   checking: ['Received – being checked', 'bg-blue-50 text-blue-800'],
@@ -38,6 +43,7 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
   }
   const o = await portalOverview(session.tokenHash)
   if (!o) redirect('/portal')
+  const shipments = await portalShipments(session.tokenHash)
   const s = o.student
   const brand = brandOf(o.company.code)
   const toUpload = o.documents.filter((d) => d.can_upload && d.required)
@@ -126,9 +132,37 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
           <ul className="mt-2 list-inside list-disc space-y-1 text-slate-700">
             <li>Upload clear scans of every page — for cards and certificates, include both the front and the back.</li>
             <li>PDF or photo (JPEG/PNG), up to 10 MB. Make sure all text is readable.</li>
-            <li>Please do not send original documents until we confirm that your scans are approved. Your counsellor will then tell you how to send them.</li>
+            <li>Please do not send original documents until we confirm that your scans are approved. The courier instructions will then appear on this page.</li>
           </ul>
         </section>
+
+        {shipments.length > 0 && (
+          <section aria-labelledby="courier-h" className="space-y-3">
+            <h2 id="courier-h" className="flex items-center gap-2 px-1 text-base font-semibold"><Icon name="truck" className="h-5 w-5 text-slate-500" />Sending your original documents</h2>
+            {shipments.map((sh) => {
+              const st = COURIER_STATE[sh.status] ?? [sh.status, 'bg-slate-100 text-slate-700']
+              return (
+                <div key={sh.id} className="card space-y-3 p-5 text-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="font-semibold text-slate-900">{sh.documents.join(', ')}</p>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${st[1]}`}>{st[0]}</span>
+                  </div>
+                  <p className="text-slate-600">Your scans of these documents are approved. Please send the originals by courier to:</p>
+                  <address className="whitespace-pre-line rounded-xl bg-slate-50 px-4 py-3 not-italic text-slate-900">{sh.address}</address>
+                  {sh.instructions && <p className="rounded-xl bg-blue-50 px-4 py-3 text-blue-950">{sh.instructions}</p>}
+                  {sh.received_at ? <p className="text-green-800">✓ Received at our office on {fmtDate(sh.received_at)}.</p>
+                    : sh.courier_company && <p className="text-slate-700">Courier: <strong>{sh.courier_company}</strong> · tracking <span className="font-mono">{sh.tracking_number}</span>{sh.dispatch_date && ` · sent ${fmtDate(sh.dispatch_date)}`}</p>}
+                  {['instructions_issued', 'dispatched'].includes(sh.status) && (
+                    <div className="border-t border-slate-100 pt-3">
+                      <p className="mb-2 font-medium text-slate-800">{sh.courier_company ? 'Need to correct the courier details?' : 'After sending, tell us the courier details'}</p>
+                      <CourierDetailsForm shipmentId={sh.id} company={sh.courier_company} tracking={sh.tracking_number} />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </section>
+        )}
 
         <section aria-labelledby="docs-h" className="space-y-3">
           <h2 id="docs-h" className="px-1 text-base font-semibold">Your documents</h2>

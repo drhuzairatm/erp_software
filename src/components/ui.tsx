@@ -170,3 +170,37 @@ export function StatCard({ label, value, href, tone = 'slate', sub, icon, chart 
   const cls = `card relative block overflow-hidden px-4 pb-3.5 pt-4 transition ring-1 ring-transparent ${t.ring}`
   return href ? <Link href={href} className={`${cls} no-underline hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)] hover:no-underline`}>{body}</Link> : <div className={cls}>{body}</div>
 }
+
+/** Pill tabs for list views (links), with optional counts. */
+export function ViewTabs({ label, items }: { label: string; items: { href: string; label: string; active: boolean; count?: number; alert?: boolean }[] }) {
+  return (
+    <nav aria-label={label} className="mb-4 -mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+      {items.map((i) => (
+        <Link key={i.href} href={i.href} aria-current={i.active ? 'page' : undefined}
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium no-underline transition hover:no-underline ${
+            i.active ? 'bg-navy-950 text-white shadow-sm' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'}`}>
+          {i.label}
+          {i.count !== undefined && (
+            <span className={`rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${
+              i.active ? 'bg-white/15 text-white' : i.alert && i.count > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>{i.count}</span>
+          )}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+
+const AVATAR_COLORS = ['from-sky-400 to-blue-600', 'from-teal-300 to-emerald-600', 'from-violet-400 to-purple-600', 'from-amber-300 to-orange-500', 'from-rose-300 to-pink-600', 'from-cyan-300 to-sky-600']
+/** Initials avatar (no photos are stored). */
+export function Avatar({ name, size = 'md' }: { name: string | null | undefined; size?: 'sm' | 'md' }) {
+  const n = (name ?? '?').replace(/\(.*?\)/g, '').trim()
+  const initials = n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?'
+  const c = AVATAR_COLORS[[...n].reduce((a, ch) => a + ch.charCodeAt(0), 0) % AVATAR_COLORS.length]
+  return <span aria-hidden className={`inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br font-semibold text-white ${c} ${
+    size === 'sm' ? 'h-7 w-7 text-[11px]' : 'h-9 w-9 text-xs'}`}>{initials}</span>
+}
+
+/** Filter bar wrapper for GET forms. */
+export function FilterBar({ children }: { children: ReactNode }) {
+  return <form method="get" className="card mb-4 flex flex-wrap items-end gap-3 p-4">{children}</form>
+}

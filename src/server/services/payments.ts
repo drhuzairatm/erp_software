@@ -69,7 +69,19 @@ export async function listLedger(ctx: Ctx, orgIds: string[], f: LedgerFilters) {
     const [summary] = await tx<{ pending: string; pending_count: number }[]>`
       select coalesce(sum(amount) filter (where entry_type = 'receipt'), 0) as pending, count(*)::int as pending_count
         from payment_entries where org_id = any(${tx.array(allowed)}::uuid[]) and verification_status = 'pending'`
-    return { rows, total: Number(rows[0]?.total ?? 0), page, pageSize: PAGE_SIZE, summary }
+    // Totals per currency (verified entries only; amounts are never mixed across currencies)
+    const totals = await tx<{ currency: string; received_30: string; charged_30: string; refunded_30: string; months: number[] }[]>`
+      select e.currency,
+             coalesce(sum(e.amount) filter (where e.entry_type = 'receipt' and e.verification_status = 'verified' and e.entry_date > current_date - 30), 0) as received_30,
+             coalesce(sum(e.amount) filter (where e.entry_type = 'charge' and e.entry_date > current_date - 30), 0) as charged_30,
+             coalesce(sum(e.amount) filter (where e.entry_type in ('refund', 'disbursement') and e.verification_status = 'verified' and e.entry_date > current_date - 30), 0) as refunded_30,
+             array(select coalesce(sum(x.amount), 0)::float8 from generate_series(5, 0, -1) g
+                     left join payment_entries x on x.org_id = any(${tx.array(allowed)}::uuid[]) and x.currency = e.currency and x.entry_type = 'receipt'
+                          and x.verification_status = 'verified' and date_trunc('month', x.entry_date) = date_trunc('month', current_date) - make_interval(months => g)
+                    group by g order by g desc) as months
+        from payment_entries e where e.org_id = any(${tx.array(allowed)}::uuid[])
+       group by e.currency order by count(*) desc`
+    return { rows, total: Number(rows[0]?.total ?? 0), page, pageSize: PAGE_SIZE, summary, totals }
   })
 }
 

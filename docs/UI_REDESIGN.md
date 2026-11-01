@@ -11,7 +11,7 @@ The only new server code is two **read-only** query services for the dashboards 
   - Rounded cards, soft shadows, refined inputs, buttons and tables.
 - **Branding** (`src/lib/brands.ts`, `src/components/brand-mark.tsx`):
   - Each company is shown with its own name; the two are never merged into one mark.
-  - **No official logo files exist in the project. No logo was drawn.** Place official files at `public/brands/edx-logo.svg|png` and `public/brands/grd-logo.svg|png` and they appear automatically.
+  - **Official logos** (supplied by the MD, Nov 2026) are in `public/brands/edx-logo.png` and `public/brands/grd-logo.png`. These are cropped copies of the supplied files, which are kept unchanged as `public/public:brands:*.png`. They appear on the sidebar, sign-in and portal. Nothing was drawn or recoloured.
   - The site icon (`src/app/icon.svg`) is a neutral graduation cap, not a company logo.
 - **Components:**
   - `components/icons.tsx` (icon set)
@@ -32,7 +32,14 @@ The only new server code is two **read-only** query services for the dashboards 
 | Student portal | Mobile-first branded header; progress ring; next step; summary counts; visual stage tracker; documents grouped (needed, being checked, approved); instructions; payments pointer; contact. |
 | Staff and student sign-in | Split-screen branded layout. |
 | Student list and profile | Avatars and stage pills; gradient profile header with initials and a stage progress bar; pill tabs; the attention panel stays on every tab. |
-| All other modules | Restyled through the shared components (tasks, payments, reports, universities, administration, audit). Behaviour unchanged. |
+| Tasks | KPI cards (open, overdue, due today, high priority, completed in 7 days); view tabs with counts; **List / Board** switch (board columns by status, cards with a priority stripe, due chip and assignee avatar). Task detail: summary tiles, chat-style comments, timeline history. |
+| Payment ledger | KPI cards per currency (verified receipts in 30 days with a 6-month sparkline, charges, refunds and disbursements, awaiting verification); verification tabs; signed, colour-coded amounts. Shown only to users with `payments.read`, so the CEO never sees it. |
+| Reports | Gallery grouped by Students, Documents & compliance, Work and Finance; export and sensitivity tags; new "Original documents by courier" report. |
+| Universities | KPI cards; card grid with course pills, students, campuses, document rules and next deadline; detail page with an overview band. |
+| Administration | Section bar on every admin page, showing only the sections the user may open; staff KPIs and avatars; new Courier addresses page. |
+| Audit log | Outcome tabs; day-grouped activity feed with actor avatars and outcome dots; before → after shown for changed fields only. |
+| Document review | Progress stepper (uploaded → review → verified → manager approval → approved); timeline status history. Viewer and checklist unchanged. |
+| Student documents | New "Originals by courier" panel (tracker, courier details, receipt, reconciliation, history). |
 
 ## Business rules checked against the redesign
 - **Passport:** less than 12 months never blocks registration (the blocking rule applies from University Application, as approved). Expired passports show a red warning.
@@ -40,15 +47,12 @@ The only new server code is two **read-only** query services for the dashboards 
 - **Finance:** the CEO sees no amounts on either dashboard view (tested).
 - **Company separation and permissions:** unchanged (all queries run under RLS).
 
-## Gaps found — need decisions (NOT changed)
-1. **"A new passport becomes active only after verification."** Today a recorded renewal becomes current immediately; old versions are kept. Changing this alters the passport model and needs approval.
-2. **Courier workflow** (front-and-back scans → approval → courier instructions → parent submits courier and tracking number → staff confirm receipt). It isn't built yet (planned Phase 10).
-   - The portal shows no courier instructions.
-   - It tells students not to send originals until their scans are approved.
-3. **Lead management:** not in this ERP yet (Phase 9; leads come from both this ERP and Leadist). No lead screens were faked.
-4. **Student portal payment status and in-portal notifications:** not enabled (portal Phase 6). The portal shows a pointer to the counsellor.
-5. **Official logos:** missing files (see above).
+## Gaps found earlier — now decided
+1. **"A new passport becomes active only after verification":** built (see PASSPORT_AND_CONTACTS.md).
+2. **Courier workflow:** built for inbound originals (see UAT G6). The portal shows the address only after scan approval.
+3. **Lead management:** not in this ERP yet (Phase 9). No lead screens were faked.
+4. **Portal payment status and in-portal notifications:** not enabled (portal Phase 6).
+5. **Official logos:** installed.
 
-## Not yet given a bespoke layout (use the restyled shared components)
-Tasks board/list, payment ledger, reports gallery, university detail, administration pages, audit log, document review workspace.
-These are functional and consistent, but haven't had individual visual redesigns. That's the suggested next step.
+## Shared components added in part 2
+`ViewTabs` (pill tabs with counts), `Avatar` (initials), `FilterBar` in `components/ui.tsx`; `admin/admin-tabs.tsx`; the `truck` icon.

@@ -1,7 +1,7 @@
 'use client'
 
-import { ActionForm, SubmitButton } from '@/components/forms'
-import { chooseAction, requestCodeAction, uploadAction, verifyCodeAction } from './actions'
+import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
+import { chooseAction, requestCodeAction, submitCourierAction, uploadAction, verifyCodeAction } from './actions'
 
 export function RequestCodeForm() {
   return (
@@ -39,6 +39,24 @@ export function PortalUpload({ documentId }: { documentId: string }) {
       <input id={`f-${documentId}`} type="file" name="file" required accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png"
         className="block w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-800 sm:w-auto" />
       <SubmitButton className="btn-primary btn-sm" pendingText="Uploading…">Upload</SubmitButton>
+    </ActionForm>
+  )
+}
+
+export function CourierDetailsForm({ shipmentId, company, tracking }: { shipmentId: string; company: string | null; tracking: string | null }) {
+  return (
+    <ActionForm action={submitCourierAction.bind(null, shipmentId)} className="space-y-3">
+      {(s) => (
+        <>
+          <div><label className="label" htmlFor={`pc-${shipmentId}`}>Courier company *</label>
+            <input className="input" id={`pc-${shipmentId}`} name="courierCompany" defaultValue={company ?? ''} required maxLength={120} /><FieldError state={s} name="courierCompany" /></div>
+          <div><label className="label" htmlFor={`pt-${shipmentId}`}>Tracking / consignment number *</label>
+            <input className="input font-mono" id={`pt-${shipmentId}`} name="trackingNumber" defaultValue={tracking ?? ''} required maxLength={80} /><FieldError state={s} name="trackingNumber" /></div>
+          <div><label className="label" htmlFor={`pd-${shipmentId}`}>Date sent</label>
+            <input className="input" id={`pd-${shipmentId}`} name="dispatchDate" type="date" /></div>
+          <SubmitButton className="btn-primary w-full">{company ? 'Update courier details' : 'Send courier details'}</SubmitButton>
+        </>
+      )}
     </ActionForm>
   )
 }

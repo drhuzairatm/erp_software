@@ -32,6 +32,7 @@ export interface PassportRow {
   gender: string | null; nationality: string | null; nationality_country_id: string | null; citizenship: string | null; citizenship_country_id: string | null
   issuing_country: string | null; issuing_country_id: string | null; issue_date: string | null; expiry_date: string | null; place_of_issue: string | null
   document_file_id: string | null; notes: string | null; is_current: boolean; created_at: Date; superseded_at: Date | null; created_by_name: string | null; tier: string | null
+  verification_status: 'pending' | 'verified' | 'rejected'; verified_at: Date | null; verified_by_name: string | null; verification_note: string | null
 }
 
 export async function getPassportData(ctx: Ctx, studentId: string) {
@@ -40,9 +41,10 @@ export async function getPassportData(ctx: Ctx, studentId: string) {
     const [{ allowed }] = await tx<{ allowed: boolean }[]>`select app.can_on_student(${studentId}, 'students.passport.view') as allowed`
     if (!allowed) return null
     const versions = await tx<PassportRow[]>`
-      select p.*, n.name as nationality, c.name as citizenship, i.name as issuing_country, u.full_name as created_by_name, app.passport_tier(p.expiry_date) as tier
+      select p.*, n.name as nationality, c.name as citizenship, i.name as issuing_country, u.full_name as created_by_name, app.passport_tier(p.expiry_date) as tier,
+             vu.full_name as verified_by_name
         from student_passports p left join countries n on n.id = p.nationality_country_id left join countries c on c.id = p.citizenship_country_id
-        left join countries i on i.id = p.issuing_country_id left join user_profiles u on u.id = p.created_by
+        left join countries i on i.id = p.issuing_country_id left join user_profiles u on u.id = p.created_by left join user_profiles vu on vu.id = p.verified_by
        where p.student_id = ${studentId} order by p.version desc`
     const followups = await tx<{ id: string; kind: string; note: string; expected_date: string | null; created_at: Date; author: string | null; passport_version: number | null }[]>`
       select f.id, f.kind, f.note, f.expected_date, f.created_at, u.full_name as author, p.version as passport_version
@@ -51,7 +53,9 @@ export async function getPassportData(ctx: Ctx, studentId: string) {
     const tasks = await tx<{ id: string; title: string; status: string; due_date: string | null; assignee: string | null }[]>`
       select t.id, t.title, t.status, t.due_date, u.full_name as assignee from tasks t left join user_profiles u on u.id = t.assigned_to
        where t.student_id = ${studentId} and t.task_type = 'passport' order by t.created_at desc limit 20`
-    return { current: versions.find((v) => v.is_current) ?? null, versions, followups, tasks }
+    const [{ verify }] = await tx<{ verify: boolean }[]>`select app.can_on_student(${studentId}, 'students.passport.verify') as verify`
+    return { current: versions.find((v) => v.is_current) ?? null, pending: versions.find((v) => v.verification_status === 'pending') ?? null,
+             canVerify: verify, versions, followups, tasks }
   })
 }
 
@@ -72,6 +76,14 @@ export async function recordPassport(ctx: Ctx, studentId: string, v: Record<stri
       ${v.placeOfIssue ?? null}, ${v.notes ?? null}) as id`
     return r.id
   })
+}
+
+/** Verify (activate) or reject a passport that is awaiting verification. */
+export async function verifyPassport(ctx: Ctx, passportId: string, decision: string, note?: string) {
+  if (!UUID.test(passportId)) throw invalid('Unknown passport.')
+  if (decision !== 'verified' && decision !== 'rejected') throw invalid('Choose verify or reject.')
+  if (decision === 'rejected' && !note?.trim()) throw invalid('Give the reason for rejecting.', { note: ['Required when rejecting.'] })
+  return run(ctx, (tx) => tx`select app.verify_passport(${passportId}, ${decision}, ${note?.trim() || null})`)
 }
 
 export async function addPassportFollowup(ctx: Ctx, studentId: string, v: Record<string, string | undefined>) {

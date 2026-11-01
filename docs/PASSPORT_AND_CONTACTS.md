@@ -11,10 +11,17 @@
 
   Country of residence is recorded separately on the student. Each phone number has its own country.
 - **Nothing is overwritten.** Every change creates a new passport version: a renewal, a correction (a reason is required), or an edit on the student form. Previous versions stay in the history with their dates and authors. The database refuses updates and deletes, even by its owner.
-- A **renewal** must have a new passport number. Recording one:
-  - closes the open passport tasks
-  - adds "Renewed passport received" to the follow-up log
-  - links the Passport document's current scan, if one exists
+- **A new passport becomes active only after verification** (MD decision, Nov 2026; migration 0022):
+  - A first passport or a renewal recorded on the Passport tab is saved as **awaiting verification**. Until then, the current passport, the 12-month rule and the expiry alerts are unchanged. The student profile shows an amber "New passport awaiting verification" notice.
+  - A task "Verify new passport – <ID>" is created for the documentation staff on the student (else the counsellor, else a manager).
+  - A user with `students.passport.verify` (Company Manager, Documentation Staff; MD always) chooses **Verify and activate** or **Reject** (a reason is required). Verification makes it the current passport, closes the old passport's renewal tasks and re-runs the expiry monitor. Rejection keeps the previous passport active.
+  - Only one new passport can wait at a time. Records cannot be changed directly in the database.
+  - **Corrections** (same passport number, reason required) still apply immediately.
+  - The student form can no longer replace a recorded passport number. It asks for a renewal on the Passport tab instead. Expiry and issuing country can still be edited there, as a new version.
+- A **renewal** must have a new passport number. When it is recorded:
+  - "Renewed passport received – awaiting verification" is added to the follow-up log
+  - the Passport document's current scan is linked, if one exists
+  - the open passport tasks close once it is verified
 
   Scans stay in the Documents module, not on the Passport tab.
 - **Follow-up log:** remarks, contact attempts, renewal commitments with an expected date, and when the renewed passport was received.

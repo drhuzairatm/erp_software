@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import type { ActionResult } from '@/components/action-types'
-import { chooseStudent, portalLogout, portalUpload, requestCode, verifyCode } from '@/server/portal'
+import { chooseStudent, portalLogout, portalSubmitCourier, portalUpload, requestCode, verifyCode } from '@/server/portal'
 import { runAction } from '../actions/run-action'
 
 export async function requestCodeAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
@@ -41,4 +41,11 @@ export async function uploadAction(documentId: string, _: ActionResult, fd: Form
   })
   if (done) redirect('/portal/home?uploaded=1')
   return res
+}
+
+export async function submitCourierAction(shipmentId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  return runAction(async () => {
+    await portalSubmitCourier(shipmentId, String(fd.get('courierCompany') ?? ''), String(fd.get('trackingNumber') ?? ''), String(fd.get('dispatchDate') ?? '') || null)
+    revalidatePath('/portal/home')
+  }, 'Thank you. Your courier details were sent to our team.')
 }

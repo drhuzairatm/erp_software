@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { fmtDate } from '@/components/format'
+import { Icon } from '@/components/icons'
 import { Badge, Card, EmptyState, PageHeader } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { getLookups } from '@/server/services/lookups'
@@ -21,6 +22,16 @@ export default async function UniversityPage({ params }: { params: Promise<{ id:
     <>
       <PageHeader title={u.name} back={{ href: '/universities', label: 'Universities' }}
         description={<>{u.country}{u.city ? ` · ${u.city}` : ''}{u.website && <> · <a href={u.website} target="_blank" rel="noopener noreferrer">{u.website}</a></>} {!u.is_active && <Badge>Deactivated</Badge>}</>} />
+      <section aria-label="University overview" className="relative mb-6 overflow-hidden rounded-2xl bg-hero p-5 text-white shadow-sm">
+        <div className="flex flex-wrap items-center gap-4">
+          <span aria-hidden className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-cyan-brand ring-1 ring-white/15"><Icon name="university" className="h-8 w-8" /></span>
+          <dl className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+            {([['Courses', data.courses.filter((c) => c.is_active).length], ['Intakes', data.intakes.filter((i) => i.is_active).length],
+               ['Required documents', data.requirements.length], ['Campuses', data.campuses.filter((c) => c.is_active).length]] as const).map(([k, v]) => (
+              <div key={k} className="rounded-xl bg-white/5 px-3 py-2 ring-1 ring-white/10"><dt className="text-xs text-slate-300">{k}</dt><dd className="text-2xl font-bold tabular-nums">{v}</dd></div>))}
+          </dl>
+        </div>
+      </section>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card title="Courses offered and admission requirements" padded={false}>
           {data.courses.length === 0 ? <EmptyState title="No courses yet" /> : (

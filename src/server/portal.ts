@@ -2,7 +2,7 @@ import 'server-only'
 import { createHmac, randomBytes, randomInt } from 'node:crypto'
 import { cookies, headers } from 'next/headers'
 import { anonymous } from './db'
-import { invalid } from './errors'
+import { invalid, ServiceError } from './errors'
 import { getStorage, MAX_UPLOAD_BYTES, newStorageKey, safeFilename, sha256, sniffMime } from './storage'
 
 /**
@@ -118,4 +118,27 @@ export async function portalUpload(documentId: string, file: File) {
     await storage.remove(key).catch(() => {})
     throw e
   }
+}
+
+// ---------------------------------------------------------------- originals by courier
+export interface PortalShipment {
+  id: string; status: string; issued_at: string; address: string; instructions: string | null; courier_company: string | null
+  tracking_number: string | null; dispatch_date: string | null; received_at: string | null; documents: string[]
+}
+
+/** Courier instructions exist only after staff approved the scans and issued them. */
+export async function portalShipments(th: string): Promise<PortalShipment[]> {
+  const [r] = await anonymous((tx) => tx<{ s: PortalShipment[] }[]>`select app.portal_shipments(${th}) as s`)
+  return r?.s ?? []
+}
+
+export async function portalSubmitCourier(shipmentId: string, company: string, tracking: string, dispatchDate: string | null) {
+  const th = await tokenHash()
+  if (!th) throw new ServiceError('forbidden', 'Your session has ended. Please sign in again.')
+  if (!/^[0-9a-f-]{36}$/i.test(shipmentId)) throw new ServiceError('invalid', 'Unknown shipment.')
+  const c = company.trim(); const t = tracking.trim()
+  if (!c || !t) throw new ServiceError('invalid', 'Enter the courier company and the tracking number.', {
+    ...(c ? {} : { courierCompany: ['Required.'] }), ...(t ? {} : { trackingNumber: ['Required.'] }) })
+  const d = dispatchDate && /^\d{4}-\d{2}-\d{2}$/.test(dispatchDate) ? dispatchDate : null
+  await anonymous((tx) => tx`select app.portal_submit_courier(${th}, ${shipmentId}, ${c}, ${t}, ${d})`)
 }

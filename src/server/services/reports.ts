@@ -161,6 +161,26 @@ export const REPORTS: ReportDef[] = [
        order by days desc limit ${LIMIT}`,
   },
   {
+    key: 'courier',
+    title: 'Original documents by courier',
+    description: 'Courier instructions issued after scan approval, dispatch and tracking, receipt and reconciliation. Open shipments first.',
+    columns: () => [
+      { key: 'student_code', label: 'Student ID' }, { key: 'student_name', label: 'Student' }, { key: 'documents', label: 'Documents' },
+      { key: 'status_label', label: 'Status' }, { key: 'courier', label: 'Courier / tracking' }, { key: 'issued', label: 'Instructions issued', type: 'date' },
+      { key: 'days_open', label: 'Days open', type: 'number' }, { key: 'exception', label: 'Exception' },
+    ],
+    query: (tx, orgIds) => tx`
+      select s.student_code, s.full_name as student_name,
+             (select string_agg(t.name, ', ') from original_shipment_items i join student_documents d on d.id = i.student_document_id
+                join document_types t on t.id = d.document_type_id where i.shipment_id = sh.id) as documents,
+             initcap(replace(sh.status, '_', ' ')) as status_label, concat_ws(' · ', sh.courier_company, sh.tracking_number) as courier,
+             sh.issued_at::date as issued, case when sh.status in ('completed', 'cancelled') then null else (current_date - sh.issued_at::date) end as days_open,
+             coalesce(sh.exception_reason, '') as exception, s.id as student_id
+        from original_shipments sh join students s on s.id = sh.student_id and app.can_read_student(s.id)
+       where sh.org_id = any(${tx.array(orgIds)}::uuid[])
+       order by (sh.status in ('completed', 'cancelled')), sh.issued_at limit ${LIMIT}`,
+  },
+  {
     key: 'overdue-tasks',
     title: 'Overdue tasks by staff member',
     description: 'Open tasks past their due date. Tasks waiting on an external party are shown separately from internal delays.',

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { passportFollowupAction, recordPassportAction, sendEmailVerificationAction } from '@/app/actions/passport'
+import { passportFollowupAction, recordPassportAction, sendEmailVerificationAction, verifyPassportAction } from '@/app/actions/passport'
 import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
 
 type Opt = { id: string; name: string }
@@ -42,8 +42,26 @@ export function RecordPassportForm({ studentId, countries, current }: {
               <input className="input" id="pp-notes" name="notes" maxLength={2000} required={kind === 'correction'} /></div>
           </div>
           <p className="hint">Nothing is overwritten: this becomes a new passport version and the previous details stay in the history.
-            Upload the passport scan on the Documents tab (Passport item).</p>
+            {kind !== 'correction' && <> A new passport is saved as <strong>awaiting verification</strong> and becomes the active passport only after it is verified.</>}
+            {' '}Upload the passport scan on the Documents tab (Passport item).</p>
           <SubmitButton>{kind === 'renewal' ? 'Record renewed passport' : kind === 'correction' ? 'Record correction' : 'Record passport'}</SubmitButton>
+        </>
+      )}
+    </ActionForm>
+  )
+}
+
+export function VerifyPassportForm({ studentId, passportId }: { studentId: string; passportId: string }) {
+  return (
+    <ActionForm action={verifyPassportAction.bind(null, studentId, passportId)} className="space-y-3">
+      {(s) => (
+        <>
+          <div><label className="label" htmlFor="pv-note">Verification note (required to reject)</label>
+            <input className="input" id="pv-note" name="note" maxLength={2000} placeholder="e.g. Checked against the passport scan" /><FieldError state={s} name="note" /></div>
+          <div className="flex flex-wrap gap-2">
+            <SubmitButton name="decision" value="verified">Verify and activate</SubmitButton>
+            <SubmitButton name="decision" value="rejected" className="btn-danger">Reject</SubmitButton>
+          </div>
         </>
       )}
     </ActionForm>

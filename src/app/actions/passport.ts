@@ -13,7 +13,15 @@ export async function recordPassportAction(studentId: string, _: ActionResult, f
   const ctx = await requireUser()
   const v = formObject(fd)
   return runAction(async () => { await pp.recordPassport(ctx, studentId, v); revalidatePath(studentPath(studentId)) },
-    v.kind === 'renewal' ? 'Renewed passport recorded. The previous passport is kept in the history.' : 'Passport details recorded as a new version.')
+    v.kind === 'correction' ? 'Correction recorded as a new version.'
+      : 'New passport recorded and awaiting verification. It becomes the active passport only after it is verified.')
+}
+
+export async function verifyPassportAction(studentId: string, passportId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  const decision = String(fd.get('decision') ?? '')
+  return runAction(async () => { await pp.verifyPassport(ctx, passportId, decision, String(fd.get('note') ?? '')); revalidatePath(studentPath(studentId)) },
+    decision === 'verified' ? 'Passport verified. It is now the active passport.' : 'Passport rejected. The previous passport stays active.')
 }
 
 export async function passportFollowupAction(studentId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {

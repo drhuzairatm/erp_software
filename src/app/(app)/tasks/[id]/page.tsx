@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { fmtDate, fmtDateTime, label } from '@/components/format'
-import { Alert, Card, DL, PageHeader, PriorityBadge, StatusBadge } from '@/components/ui'
+import { Icon } from '@/components/icons'
+import { Alert, Avatar, Card, DL, PageHeader, PriorityBadge, StatusBadge } from '@/components/ui'
 import { requireUser } from '@/server/auth/session'
 import { getTask } from '@/server/services/tasks'
 import { CommentForm, UpdateTaskForm } from '../task-forms'
@@ -26,6 +27,18 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
       <PageHeader title={t.title} back={{ href: '/tasks', label: 'Tasks' }}
         description={<span className="flex flex-wrap items-center gap-2"><StatusBadge status={t.status} /><PriorityBadge priority={t.priority} />{t.is_overdue && <span className="font-semibold text-red-700">Overdue</span>}<span>{t.org_name}</span></span>} />
       {created && <div className="mb-4"><Alert tone="green">Task created.</Alert></div>}
+      <section aria-label="Task summary" className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {([
+          ['Assigned to', t.assignee_name ? <span key="a" className="flex items-center gap-2"><Avatar name={t.assignee_name} size="sm" />{t.assignee_name}</span> : <span key="a" className="text-amber-700">Unassigned</span>, 'staff'],
+          ['Due', <span key="d" className={t.is_overdue ? 'text-red-700' : ''}>{t.due_date ? fmtDate(t.due_date) : 'No due date'}</span>, 'clock'],
+          ['Type', label(t.task_type), 'tasks'],
+          ['Student', t.student_id ? (t.student_code ? <Link key="s" href={`/students/${t.student_id}`}>{t.student_name}</Link> : 'Restricted') : '—', 'students'],
+        ] as const).map(([k, v, icon]) => (
+          <div key={k} className="card flex items-start gap-3 p-4">
+            <span aria-hidden className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Icon name={icon} className="h-5 w-5" /></span>
+            <div className="min-w-0"><p className="text-xs font-medium text-slate-500">{k}</p><div className="truncate text-sm font-semibold text-slate-900">{v}</div></div>
+          </div>))}
+      </section>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card title="Details">
@@ -47,16 +60,20 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
           <Card title="Comments">
             {data.comments.length === 0 ? <p className="text-sm text-slate-500">No comments yet.</p> : (
               <ul className="mb-4 space-y-3">{data.comments.map((c) => (
-                <li key={c.id} className="text-sm"><p className="text-xs text-slate-500">{c.author} · {fmtDateTime(c.created_at)}</p><p className="whitespace-pre-wrap">{c.body}</p></li>))}
+                <li key={c.id} className="flex gap-3 text-sm"><Avatar name={c.author} size="sm" />
+                  <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm bg-slate-50 px-4 py-2.5 ring-1 ring-slate-100">
+                    <p className="text-xs text-slate-500"><span className="font-semibold text-slate-700">{c.author}</span> · {fmtDateTime(c.created_at)}</p>
+                    <p className="mt-0.5 whitespace-pre-wrap">{c.body}</p></div></li>))}
               </ul>
             )}
             <CommentForm id={t.id} />
           </Card>
         </div>
         <Card title="History">
-          <ol className="space-y-2 text-sm">
+          <ol className="relative space-y-4 border-l-2 border-slate-100 pl-5 text-sm">
             {data.events.map((e) => (
-              <li key={e.id}>
+              <li key={e.id} className="relative">
+                <span aria-hidden className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand-500 ring-2 ring-brand-100" />
                 <p className="text-xs text-slate-500">{fmtDateTime(e.occurred_at)} · {e.actor ?? 'System'}</p>
                 <p>{EVENT_TEXT[e.event_type] ?? e.event_type}{e.event_type !== 'comment' && e.event_type !== 'created' && (
                   <>: {e.from_value ? `${label(e.from_value)} → ` : ''}<strong>{label(e.to_value) }</strong></>)}</p>

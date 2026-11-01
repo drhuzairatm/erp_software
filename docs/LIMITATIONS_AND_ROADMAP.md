@@ -23,7 +23,8 @@
 | Platform | Developed on macOS with Node 24 and a local PostgreSQL 17 (no Docker). |
 
 - Attestation routes in the demo are **[TO CONFIRM]** examples from the brief; production starts with none. Expected days are informational only (no SLA alerts yet).
-- An attestation covers one file version. Physical courier/original-document tracking for attestation is not yet linked to stages.
+- An attestation covers one file version. Original documents by courier (scan → approval → courier → receipt → reconciliation) are tracked per student (migration 0023), but are not yet linked to attestation stages or to vendors/agencies. Outbound dispatch (office → university/embassy) and parent accounts are not built yet.
+- Courier instructions before scan approval need the `courier.exception` permission (MD only by default) and a reason; they are audited. Courier notification templates are installed but switched off until the wording is checked.
 
 - Phone numbers are validated but never verified (no SMS/WhatsApp verification yet). Numbers without "+" and without a country are treated as Indian (CSV imports).
 - Passport alerts are delivered as tasks; the staff Notification Centre (with read/unread and escalation messages) is a later phase. Expiry tiers (12/6/3 months) are fixed as specified; minimum-validity rules are configurable but "pathway" is represented by course.
@@ -34,6 +35,11 @@
 - Bonafide rules cannot yet be conditioned on nationality (the Qatar-school rule is scoped by previous education country, destination and university). The generic AND/OR rule engine is Phase 4.
 
 ## Decisions recorded (Nov 2026)
+
+- **A new passport becomes active only after verification** (built: migration 0022).
+- **Courier workflow** for original documents after scan approval (built: migration 0023). Each company enters its own delivery address. No address is invented.
+- **Official logos** supplied by the MD and installed in `public/brands/` (cropped copies of the supplied files).
+- Hardening to do: functions added in migrations 0017 onwards are executable by every database role, which is PostgreSQL's default. Each checks permissions itself, and the app connects with a single role. A later migration should revoke PUBLIC and grant erp_app explicitly.
 
 - Portal sign-in: students need a **password** login (Phase 6 — to confirm then whether one-time codes stay as an alternative).
 - Leads come from **both** this ERP and the Leadist CRM (Phase 9: own lead module plus an import/integration; Leadist itself is not modified).
