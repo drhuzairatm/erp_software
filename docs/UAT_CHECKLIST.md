@@ -219,6 +219,15 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 - [ ] Approve a document or change the stage: a notice appears in the portal with a bell count.
 - [ ] Company settings → switch on "Show students their own fees…" and check the portal Payments card. Leave it off if not wanted.
 
+## G9. Leads and referrals (Phase 9)
+
+- [ ] Leads → New lead (with consent). Add a second lead with the same phone; it shows "possible duplicate", and nothing is merged.
+- [ ] Follow-up: set status, assignee and date, and log a call. Closing asks for a reason.
+- [ ] Register as student: the student is created and the lead shows Application started.
+- [ ] Import a Leadist CSV export. Re-importing the same file skips the rows.
+- [ ] Portal → Refer a friend: share by WhatsApp or copy the link. Open the link on another phone and submit; MBBS goes to Edulinks, Bachelor's to GRADUATER, and Not sure to the central queue.
+- [ ] Your own phone number is refused as a referral. The referrer sees only first name and status.
+
 ## H. Usability
 | # | Test | Expected |
 |---|---|---|

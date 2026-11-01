@@ -231,3 +231,49 @@ export async function portalPayments(th: string): Promise<PortalPayments | null>
   const [r] = await anonymous((tx) => tx<{ p: PortalPayments | null }[]>`select app.portal_payments(${th}) as p`)
   return r?.p ?? null
 }
+
+// ---------------------------------------------------------------- Refer a Friend
+const REFERRAL_FIELDS = ['name', 'phone', 'whatsapp', 'email', 'residenceCountryId', 'destinationCountryId', 'programme', 'qualification', 'preferredCompany', 'remarks'] as const
+function referralPayload(fd: FormData) {
+  const p: Record<string, string | boolean> = {}
+  for (const k of REFERRAL_FIELDS) { const v = String(fd.get(k) ?? '').trim(); if (v) p[k] = v.slice(0, k === 'remarks' ? 2000 : 200) }
+  if (p.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(p.email))) throw invalid('Enter a valid email address.', { email: ['Invalid.'] })
+  p.consent = fd.get('consent') === 'yes'
+  return p
+}
+function referralError(e: unknown): never {
+  const m = (e as { message?: string }).message ?? ''
+  const known = ['consent', 'name', 'programme', 'refer yourself', 'too many', 'not valid']
+  if (known.some((k) => m.includes(k))) throw invalid(m.charAt(0).toUpperCase() + m.slice(1) + '.')
+  throw e
+}
+
+export async function portalReferralCode(th: string) {
+  const [r] = await anonymous((tx) => tx<{ code: string | null }[]>`select app.portal_referral_code(${th}) as code`)
+  return r?.code ?? null
+}
+export async function portalReferrals(th: string): Promise<{ name: string; created_at: string; status: string }[]> {
+  const [r] = await anonymous((tx) => tx<{ r: { name: string; created_at: string; status: string }[] }[]>`select app.portal_referrals(${th}) as r`)
+  return r?.r ?? []
+}
+export async function portalSubmitReferral(fd: FormData) {
+  const th = await tokenHash()
+  if (!th) throw new ServiceError('forbidden', 'Your session has ended. Please sign in again.')
+  const p = referralPayload(fd)
+  const { ip } = await ipAndAgent()
+  await anonymous((tx) => tx`select app.portal_submit_referral(${th}, ${tx.json(p)}, ${ip})`).catch(referralError)
+}
+export async function publicReferralInfo(code: string) {
+  if (!/^[A-Za-z2-9]{10}$/.test(code)) return null
+  const [r] = await anonymous((tx) => tx<{ i: { first_name: string; company: string } | null }[]>`select app.public_referral_info(${code}) as i`)
+  return r?.i ?? null
+}
+export async function publicSubmitReferral(code: string, fd: FormData) {
+  if (!/^[A-Za-z2-9]{10}$/.test(code)) throw invalid('This referral link is not valid.')
+  const p = referralPayload(fd)
+  const { ip } = await ipAndAgent()
+  await anonymous((tx) => tx`select app.public_submit_referral(${code}, ${tx.json(p)}, ${ip})`).catch(referralError)
+}
+export async function referralCountries() {
+  return anonymous((tx) => tx<{ id: string; name: string; is_destination: boolean }[]>`select * from app.public_countries()`)
+}

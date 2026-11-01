@@ -5,7 +5,9 @@ import { BrandMark } from '@/components/brand-mark'
 import { RadialProgress } from '@/components/charts'
 import { Icon } from '@/components/icons'
 import { brandOf } from '@/lib/brands'
-import { portalChoices, portalNotices, portalOverview, portalPayments, portalPublications, portalSession, portalShipments } from '@/server/portal'
+import { portalChoices, portalNotices, portalOverview, portalPayments, portalPublications, portalReferralCode, portalReferrals, portalSession, portalShipments, referralCountries } from '@/server/portal'
+import { appUrl } from '@/server/email'
+import { ReferralForm, ShareReferral } from '../referral-forms'
 import { logoutAction } from '../actions'
 import { ChooseButton, CourierDetailsForm, MarkReadButton, PortalUpload } from '../forms'
 
@@ -43,8 +45,8 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
   }
   const o = await portalOverview(session.tokenHash)
   if (!o) redirect('/portal')
-  const [shipments, notices, publications, payments] = await Promise.all([portalShipments(session.tokenHash), portalNotices(session.tokenHash),
-    portalPublications(session.tokenHash), portalPayments(session.tokenHash)])
+  const [shipments, notices, publications, payments, refCode, referrals, countries] = await Promise.all([portalShipments(session.tokenHash), portalNotices(session.tokenHash),
+    portalPublications(session.tokenHash), portalPayments(session.tokenHash), portalReferralCode(session.tokenHash), portalReferrals(session.tokenHash), referralCountries()])
   const unread = notices.filter((n) => !n.read).length
   const s = o.student
   const brand = brandOf(o.company.code)
@@ -235,6 +237,29 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
             </ul>
           )}
         </section>
+
+        {refCode && (
+          <section className="card overflow-hidden text-sm" aria-labelledby="ref-h">
+            <div className="bg-gradient-to-r from-brand-600 to-cyan-600 p-5 text-white">
+              <h2 id="ref-h" className="flex items-center gap-2 text-base font-semibold"><Icon name="students" className="h-5 w-5" />Refer a friend</h2>
+              <p className="mt-1 text-white/90">Know someone who wants to study abroad? Share your link, or enter their details below with their permission.</p>
+            </div>
+            <div className="space-y-4 p-5">
+              <ShareReferral url={appUrl(`/refer/${refCode}`)} company={o.company.name} />
+              <details className="rounded-xl border border-slate-200 p-3">
+                <summary className="cursor-pointer font-medium">Enter a friend&apos;s details</summary>
+                <div className="mt-3"><ReferralForm mode="portal" countries={countries.map((c) => ({ id: c.id, name: c.name }))}
+                  destinations={countries.filter((c) => c.is_destination).map((c) => ({ id: c.id, name: c.name }))} /></div>
+              </details>
+              {referrals.length > 0 && (
+                <div><h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Your referrals</h3>
+                  <ul className="divide-y divide-slate-100">{referrals.map((r, i) => (
+                    <li key={i} className="flex items-center justify-between py-2"><span>{r.name} <span className="text-xs text-slate-500">· {fmtDate(r.created_at)}</span></span>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">{r.status}</span></li>))}</ul></div>
+              )}
+            </div>
+          </section>
+        )}
 
         <section className="card p-5 text-sm">
           <h2 className="flex items-center gap-2 font-semibold"><Icon name="phone" className="h-5 w-5 text-slate-500" />Questions?</h2>

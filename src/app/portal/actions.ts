@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import type { ActionResult } from '@/components/action-types'
-import { chooseStudent, markNoticesRead, passwordLogin, portalLogout, portalSubmitCourier, portalUpload, requestCode, requestPasswordReset, setPasswordWithLink, verifyCode } from '@/server/portal'
+import { chooseStudent, markNoticesRead, portalSubmitReferral, publicSubmitReferral, passwordLogin, portalLogout, portalSubmitCourier, portalUpload, requestCode, requestPasswordReset, setPasswordWithLink, verifyCode } from '@/server/portal'
 import { runAction } from '../actions/run-action'
 
 export async function requestCodeAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
@@ -75,4 +75,13 @@ export async function markNoticesReadAction(): Promise<ActionResult> {
   await markNoticesRead()
   revalidatePath('/portal/home')
   return { ok: true }
+}
+
+export async function portalReferralAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  return runAction(async () => { await portalSubmitReferral(fd); revalidatePath('/portal/home') },
+    'Thank you! We will contact your friend. You can follow the progress below.')
+}
+
+export async function publicReferralAction(code: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  return runAction(async () => { await publicSubmitReferral(code, fd) }, 'Thank you! Our team will contact you soon.')
 }

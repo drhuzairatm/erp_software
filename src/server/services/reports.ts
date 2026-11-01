@@ -181,6 +181,25 @@ export const REPORTS: ReportDef[] = [
        order by (sh.status in ('completed', 'cancelled')), sh.issued_at limit ${LIMIT}`,
   },
   {
+    key: 'leads',
+    title: 'Leads and referrals',
+    description: 'Leads by company, source and status, with follow-up dates and conversions. Only leads you are permitted to see.',
+    pii: true,
+    columns: () => [
+      { key: 'name', label: 'Lead' }, { key: 'company', label: 'Company' }, { key: 'source', label: 'Source' }, { key: 'programme', label: 'Programme' },
+      { key: 'status', label: 'Status' }, { key: 'assigned_to', label: 'Assigned to' }, { key: 'next_followup_on', label: 'Next follow-up', type: 'date' },
+      { key: 'referred_by', label: 'Referred by' }, { key: 'student_code', label: 'Registered as' }, { key: 'created', label: 'Created', type: 'date' },
+    ],
+    query: (tx, orgIds) => tx`
+      select l.full_name as name, coalesce(o.name, 'Central review queue') as company, l.source, replace(coalesce(l.programme, ''), '_', ' ') as programme,
+             l.status, u.full_name as assigned_to, l.next_followup_on, rs.student_code as referred_by, s.student_code, l.created_at::date as created
+        from leads l left join organizations o on o.id = l.org_id left join user_profiles u on u.id = l.assigned_to
+        left join referrals r on r.id = l.referral_id left join students rs on rs.id = r.referrer_student_id and app.can_read_student(rs.id)
+        left join students s on s.id = l.converted_student_id and app.can_read_student(s.id)
+       where (l.org_id = any(${tx.array(orgIds)}::uuid[]) or l.org_id is null)
+       order by l.created_at desc limit ${LIMIT}`,
+  },
+  {
     key: 'overdue-tasks',
     title: 'Overdue tasks by staff member',
     description: 'Open tasks past their due date. Tasks waiting on an external party are shown separately from internal delays.',

@@ -21,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const add = (group: string, href: string, label: string, icon: string) => items.push({ group, href, label, icon })
   if (can(ctx, 'dashboard.view')) add('Workspace', '/', 'Dashboard', 'dashboard')
   if (canAny(ctx, ['students.read.all', 'students.read.processing', 'students.read.assigned'])) add('Workspace', '/students', 'Students', 'students')
+  if (canAny(ctx, ['leads.read', 'leads.review'])) add('Workspace', '/leads', 'Leads', 'flag')
   if (canAny(ctx, ['tasks.read.all', 'tasks.read.own'])) add('Workspace', '/tasks', 'Tasks', 'tasks')
   if (ctx.memberships.length) add('Workspace', '/universities', 'Universities', 'university')
   if (can(ctx, 'payments.read')) add('Finance', '/payments', 'Payment ledger', 'payments')
