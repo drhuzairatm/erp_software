@@ -273,10 +273,17 @@ export const ADVISORY_NOTICES = [
     notes: 'Current business rule from the brief (Oct 2026).',
     items: (['chemistry', 'biology', 'physics', 'english'] as const).map((k) => ({ subject_key: k, subject_name: k[0].toUpperCase() + k.slice(1), min_percentage: 60 })) },
 ]
+/** One and Same declaration wording approved by the MD (1 Nov 2026). Placeholders are filled from the student record. */
+export const ONE_AND_SAME_TEMPLATES = [
+  { name: 'One and Same declaration', approved: true,
+    body: 'I declare that {{passport_name}}, the name in my passport, and {{certificate_name}}, the name in my {{document}}, refer to one and the same person, namely me.\n\nName: {{student_name}}\nDate: {{date}}' },
+]
+
 export const BONAFIDE_RULES = [
   { name: 'Bonafide – Indian student at a Qatar school → Medical University – Varna (Bulgaria)', previousEducation: 'QA', destination: 'BG',
     university: 'Medical University – Varna',
-    description: 'Wording supplied by the MD (Oct 2026) for an Indian national at a school in Qatar applying to Varna. Created as a DRAFT: the MD approves it under Admin → Verification rules.',
+    description: 'Wording supplied by the MD (Oct 2026) for an Indian national at a school in Qatar applying to Varna. Approved by the MD on 1 Nov 2026.',
+    approved: true,
     requirements: [
       ['statement', 'States that she/he is eligible to apply and continue her/his studies at various institutions and universities in India, Qatar as well as abroad.', true, []],
       ['keywords', 'Key words of the eligibility statement', true, ['eligible', 'continue', 'studies', 'institutions', 'universities', 'India', 'Qatar', 'abroad']],

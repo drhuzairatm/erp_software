@@ -36,6 +36,9 @@
 
 ## Decisions recorded (Nov 2026)
 
+- **Approved by the MD (1 Nov 2026):** the Bonafide rule (Indian student at a Qatar school → Medical University – Varna) is now an approved verification rule. The One and Same declaration wording is an approved template ("One and Same declaration"). The demo "[TO CONFIRM]" template was retired. The One and Same *rules* (which name differences make it mandatory or recommended) are still the [DEMO] examples until the real rules are supplied.
+- **Approved by the MD (1 Nov 2026):** Phase 4 (rule engine), Phase 6 (portal v2 with password login) and Phase 9 (leads and referrals).
+
 - **A new passport becomes active only after verification** (built: migration 0022).
 - **Courier workflow** for original documents after scan approval (built: migration 0023). Each company enters its own delivery address. No address is invented.
 - **Official logos** supplied by the MD and installed in `public/brands/` (cropped copies of the supplied files).

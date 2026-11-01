@@ -1,6 +1,6 @@
 /**
  * Demo academic data (FICTIONAL). Plus Two / Class 10 records with subject marks, a few certificate names that differ
- * from the passport, a demo One and Same rule and a [TO CONFIRM] template approved for the demo only.
+ * from the passport and demo One and Same rules.
  */
 import postgres from 'postgres'
 
@@ -25,12 +25,7 @@ export async function demoAcademicConfig(sql: Sql, mdUserId: string) {
               values ('[DEMO] Surname missing on a certificate', 'missing_surname', 'mandatory', 'Demo rule for testing – confirm the real rules', ${mdUserId}),
                      ('[DEMO] Any other name difference', null, 'recommended', 'Demo rule for testing – confirm the real rules', ${mdUserId})`
   }
-  if (!(await sql`select 1 from one_and_same_templates where name like '[TO CONFIRM]%'`).length) {
-    const [t] = await sql<{ id: string }[]>`insert into one_and_same_templates (name, body, created_by) values ('[TO CONFIRM] One and Same declaration (demo wording)',
-      ${'[DEMO WORDING – NOT APPROVED BY THE BUSINESS]\n\nI declare that {{passport_name}}, the name in my passport, and {{certificate_name}}, the name in my {{document}}, refer to one and the same person, namely me.\n\nName: {{student_name}}\nDate: {{date}}'},
-      ${mdUserId}) returning id`
-    await as(sql, mdUserId, (tx) => tx`select app.approve_one_and_same_template(${t.id})`)
-  }
+  // The One and Same wording is the approved template installed by provisioning (no demo wording any more).
 }
 
 /** Adds academic records for the given demo students (skips students that already have records). Returns the count. */

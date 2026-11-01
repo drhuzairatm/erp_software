@@ -31,7 +31,7 @@ const plusTwo = (marks: Record<string, number>, extra: Record<string, string> = 
 ] as const
 
 describe('business configuration supplied by the MD', () => {
-  it('is installed: 12-month passport rule (block), Bulgaria 60% thresholds, Varna/Pleven, Bonafide wording as a draft', async () => {
+  it('is installed: 12-month passport rule (block), Bulgaria 60% thresholds, Varna/Pleven, Bonafide wording approved by the MD; One and Same wording approved', async () => {
     const sql = adminSql()
     const [p] = await sql`select min_months, enforcement, stage_key, is_active from passport_validity_rules where name like 'Passport valid for at least 12 months%'`
     expect(p).toEqual({ min_months: 12, enforcement: 'block', stage_key: 'university_application', is_active: true })
@@ -44,8 +44,11 @@ describe('business configuration supplied by the MD', () => {
                                  (select q.text from verification_requirements q where q.rule_id = r.id and q.kind = 'statement') as statement
                             from verification_rules r join countries c on c.id = r.previous_education_country_id join countries d on d.id = r.destination_country_id
                             join universities u on u.id = r.university_id where r.name like 'Bonafide – Indian student at a Qatar school%'`
-    expect(b).toMatchObject({ status: 'draft', edu: 'QA', dest: 'BG', uni: 'Medical University – Varna', kinds: ['statement', 'keywords'] })
+    expect(b).toMatchObject({ status: 'approved', edu: 'QA', dest: 'BG', uni: 'Medical University – Varna', kinds: ['statement', 'keywords'] })
     expect(b.statement).toMatch(/eligible to apply and continue her\/his studies at various institutions and universities in India, Qatar as well as abroad/)
+    const [oas] = await adminSql()`select status, body from one_and_same_templates where name = 'One and Same declaration'`
+    expect(oas.status).toBe('approved')
+    expect(oas.body).toMatch(/refer to one and the same person/)
   })
 
   it('a passport valid for less than 12 months blocks University Application', async () => {

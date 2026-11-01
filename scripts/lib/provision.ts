@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import postgres from 'postgres'
-import { ADVISORY_NOTICES, BONAFIDE_RULES, BUSINESS_UNIVERSITIES, PASSPORT_VALIDITY_RULES, COUNTRIES, COURSES, DEFAULT_ROLES, DEPARTMENTS, NOTIFICATION_TEMPLATES, DOCUMENT_TYPES, FEE_CATEGORIES, LEAD_SOURCES, ORGANIZATIONS, WORKFLOWS } from './defaults'
+import { ADVISORY_NOTICES, BONAFIDE_RULES, ONE_AND_SAME_TEMPLATES, BUSINESS_UNIVERSITIES, PASSPORT_VALIDITY_RULES, COUNTRIES, COURSES, DEFAULT_ROLES, DEPARTMENTS, NOTIFICATION_TEMPLATES, DOCUMENT_TYPES, FEE_CATEGORIES, LEAD_SOURCES, ORGANIZATIONS, WORKFLOWS } from './defaults'
 
 /**
  * Idempotently installs organizations, default roles, and reference data.
@@ -125,15 +125,34 @@ export async function provision(adminUrl: string, log: (m: string) => void = con
         await tx`insert into advisory_notice_events (notice_group_id, notice_id, version, action, reason, current)
                  values (${group}, ${id}, 1, 'created', 'Installed from the business brief', app.advisory_snapshot(${id}))`
       }
+      for (const t of ONE_AND_SAME_TEMPLATES) {
+        if ((await tx`select 1 from one_and_same_templates where name = ${t.name}`).length) continue
+        await tx`insert into one_and_same_templates (name, body, status, approved_at) values (${t.name}, ${t.body}, 'approved', now())`
+      }
       for (const b of BONAFIDE_RULES) {
-        if ((await tx`select 1 from verification_rules where name = ${b.name}`).length) continue
+        const [existing] = await tx<{ id: string; status: string }[]>`select id, status from verification_rules where name = ${b.name} order by version desc limit 1`
+        if (existing) {
+          // MD approval recorded in the defaults: approve the installed draft once (later versions are managed in the app)
+          if (b.approved && existing.status === 'draft' && !(await tx`select 1 from verification_rules where name = ${b.name} and status <> 'draft'`).length) {
+            await tx`select set_config('app.rule_change', 'on', true)`
+            await tx`update verification_rules set status = 'approved', effective_from = current_date, approved_at = now(), description = ${b.description} where id = ${existing.id}`
+            await tx`select set_config('app.rule_change', 'off', true)`
+          }
+          continue
+        }
         const [r] = await tx<{ id: string }[]>`
           insert into verification_rules (name, description, document_type_id, previous_education_country_id, destination_country_id, university_id)
           values (${b.name}, ${b.description}, (select id from document_types where key = 'bonafide_certificate'), ${await cid(b.previousEducation)},
                   ${await cid(b.destination)}, (select id from universities where name = ${b.university} limit 1)) returning id`
+
         for (const [k, [kind, text, mandatory, keywords]] of b.requirements.entries()) {
           await tx`insert into verification_requirements (rule_id, sort_order, kind, text, keywords, is_mandatory)
                    values (${r.id}, ${(k + 1) * 10}, ${kind}, ${text}, ${tx.array(keywords)}::text[], ${mandatory})`
+        }
+        if (b.approved) {
+          await tx`select set_config('app.rule_change', 'on', true)`
+          await tx`update verification_rules set status = 'approved', effective_from = current_date, approved_at = now() where id = ${r.id}`
+          await tx`select set_config('app.rule_change', 'off', true)`
         }
       }
     })
