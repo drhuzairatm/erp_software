@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getActiveSession } from '@/server/auth/session'
-import { attestationFileContent } from '@/server/services/attestation'
+import { getActiveSession } from '@/lib/auth/session'
+import { attestationFileContent } from '@/services/attestation'
 
 /** Supporting documents of attestation stages (documents.file.view; every access audited). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {

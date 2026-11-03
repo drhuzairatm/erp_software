@@ -2,11 +2,11 @@
 import { PDFDocument } from 'pdf-lib'
 import sharp from 'sharp'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as documents from '@/server/services/documents'
-import { buildMergedPdf, mergeCandidates, mergeFilename } from '@/server/services/merge'
-import * as students from '@/server/services/students'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as documents from '@/services/documents'
+import { buildMergedPdf, mergeCandidates, mergeFilename } from '@/services/merge'
+import * as students from '@/services/students'
 import { adminSql, ctxFor, orgId } from '../support/helpers'
 
 let EDX: string

@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Icon } from '@/components/icons'
 import { Alert, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { canSeeMasterData } from '@/server/services/master-data'
+import { requireUser } from '@/lib/auth/session'
+import { canSeeMasterData } from '@/services/master-data'
 
 export const metadata: Metadata = { title: 'Master data' }
 

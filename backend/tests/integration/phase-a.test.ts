@@ -3,15 +3,15 @@
  * payment status, and two-factor authentication.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { decryptSecret, totp } from '@/server/auth/mfa'
-import { finishEnrolment, startEnrolment, verifyLoginCode } from '@/server/auth/mfa-service'
-import { hashToken, newTokenValue } from '@/server/auth/tokens'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as admin from '@/server/services/admin'
-import * as dashboard from '@/server/services/dashboard'
-import * as payments from '@/server/services/payments'
-import * as reports from '@/server/services/reports'
+import { decryptSecret, totp } from '@/lib/auth/mfa'
+import { finishEnrolment, startEnrolment, verifyLoginCode } from '@/lib/auth/mfa-service'
+import { hashToken, newTokenValue } from '@/lib/auth/tokens'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as admin from '@/services/admin'
+import * as dashboard from '@/services/dashboard'
+import * as payments from '@/services/payments'
+import * as reports from '@/services/reports'
 import { adminSql, as, ctxFor, expectDbError, orgId, userId } from '../support/helpers'
 
 let EDX: string, GRD: string
@@ -223,7 +223,7 @@ describe('two-factor sign-in', () => {
   it('an authorised administrator can reset 2FA; it ends the person\'s sessions', async () => {
     const md = await ctxFor('md@demo.test')
     await admin.issueResetLink(md, uid) // sanity: MD can administer finance staff
-    const { adminResetMfa } = await import('@/server/auth/mfa-service')
+    const { adminResetMfa } = await import('@/lib/auth/mfa-service')
     await adminResetMfa(md, uid, 'Identity verified by video call (fictional)')
     const rows = await adminSql()`select 1 from auth_private.mfa where user_id = ${uid}`
     expect(rows).toHaveLength(0)

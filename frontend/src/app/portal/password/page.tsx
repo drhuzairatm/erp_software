@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { AuthShell } from '@/components/auth-shell'
-import { checkPasswordLink } from '@/server/portal'
+import { checkPasswordLink } from '@/services/portal'
 import { SetPasswordForm } from '../forms'
 
 export const metadata: Metadata = { title: 'Set your password' }

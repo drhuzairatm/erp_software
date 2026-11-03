@@ -1,11 +1,11 @@
 /** Staff photos, employee IDs, reporting managers, role status and structure – with the existing anti-escalation rules intact. */
 import sharp from 'sharp'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import { getStorage } from '@/server/storage'
-import * as admin from '@/server/services/admin'
-import * as staffPhotos from '@/server/services/staff-photos'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import { getStorage } from '@/lib/storage'
+import * as admin from '@/services/admin'
+import * as staffPhotos from '@/services/staff-photos'
 import { adminSql, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 let EDX: string; let GRD: string

@@ -1,10 +1,10 @@
 /** Phase 1: attestation & apostille engine. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { anonymous, db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as att from '@/server/services/attestation'
-import * as documents from '@/server/services/documents'
-import * as students from '@/server/services/students'
+import { anonymous, db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as att from '@/services/attestation'
+import * as documents from '@/services/documents'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin, securityClear } from '../support/helpers'
 beforeAll(async () => { await delegateToSystemAdmin(['attestation.routes.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 

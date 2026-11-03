@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 import { Alert, Badge, Card, EmptyState, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { run } from '@/server/services/base'
-import { getLookups } from '@/server/services/lookups'
-import { canManagePassportRules, contactRequiredStage, listValidityRules } from '@/server/services/passport'
+import { requireUser } from '@/lib/auth/session'
+import { run } from '@/services/base'
+import { getLookups } from '@/services/lookups'
+import { canManagePassportRules, contactRequiredStage, listValidityRules } from '@/services/passport'
 import { describe } from '@/lib/conditions'
-import { conditionOptions, namesOf } from '@/server/services/rules'
+import { conditionOptions, namesOf } from '@/services/rules'
 import { AddRuleForm, ContactStageForm, ToggleRule } from './forms'
 
 export const metadata: Metadata = { title: 'Passport & contact rules' }

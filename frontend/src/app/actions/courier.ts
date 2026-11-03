@@ -2,9 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import * as courier from '@/server/services/courier'
-import { formObject } from '@/server/validation'
+import { requireUser } from '@/lib/auth/session'
+import * as courier from '@/services/courier'
+import { formObject } from '@/lib/validation'
 import { runAction } from './run-action'
 
 const docsPath = (id: string) => `/students/${id}`

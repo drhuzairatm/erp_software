@@ -1,9 +1,9 @@
 import 'server-only'
 import { after } from 'next/server'
 import { unstable_rethrow } from 'next/navigation'
-import { processQueue } from '@/server/notifications/dispatcher'
+import { processQueue } from '@/lib/notifications/dispatcher'
 import type { ActionResult } from '@/components/action-types'
-import { toServiceError } from '@/server/errors'
+import { toServiceError } from '@/lib/errors'
 
 /** Execute a server action body and convert errors into a safe ActionResult. */
 export async function runAction(fn: () => Promise<ActionResult | void>, successMessage?: string): Promise<ActionResult> {

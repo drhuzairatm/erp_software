@@ -1,10 +1,10 @@
 /** Business change (Nov 2026): country-wise academic requirements are ADVISORY notices with acknowledgement — never blocking. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as ac from '@/server/services/academic'
-import * as rq from '@/server/services/requirements'
-import * as students from '@/server/services/students'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as ac from '@/services/academic'
+import * as rq from '@/services/requirements'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
 beforeAll(async () => { await delegateToSystemAdmin(['requirements.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 

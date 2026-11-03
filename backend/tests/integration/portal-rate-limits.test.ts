@@ -14,13 +14,13 @@ vi.mock('next/headers', () => ({
   }),
 }))
 
-import { verifyPassword } from '@/server/auth/password'
-import { hashToken } from '@/server/auth/tokens'
-import { newDeviceToken, PORTAL_DEVICE_COOKIE } from '@/server/auth/trusted-device'
-import { anonymous, db } from '@/server/db'
-import { passwordLogin, setPasswordWithLink } from '@/server/portal'
-import * as pa from '@/server/services/portal-accounts'
-import * as students from '@/server/services/students'
+import { verifyPassword } from '@/lib/auth/password'
+import { hashToken } from '@/lib/auth/tokens'
+import { newDeviceToken, PORTAL_DEVICE_COOKIE } from '@/lib/auth/trusted-device'
+import { anonymous, db } from '@/lib/db'
+import { passwordLogin, setPasswordWithLink } from '@/services/portal'
+import * as pa from '@/services/portal-accounts'
+import * as students from '@/services/students'
 import { adminSql, ctxFor, orgId } from '../support/helpers'
 
 const PW = 'Fictional-Portal-N1-Pass7!'

@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fmtDateTime, label } from '@/components/format'
 import { Avatar, Card, EmptyState, PageHeader, Pagination, ViewTabs, staffPhotoUrl } from '@/components/ui'
-import { can } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { staffPhotoVersions } from '@/server/services/staff-photos'
-import { type AuditFilters, listAudit } from '@/server/services/admin'
-import { getScope } from '@/server/scope'
+import { can } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { staffPhotoVersions } from '@/services/staff-photos'
+import { type AuditFilters, listAudit } from '@/services/admin'
+import { getScope } from '@/services/scope'
 
 export const metadata: Metadata = { title: 'Audit log' }
 

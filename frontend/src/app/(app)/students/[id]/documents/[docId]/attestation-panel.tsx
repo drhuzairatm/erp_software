@@ -1,7 +1,7 @@
 import { fmtDate, fmtDateTime, label } from '@/components/format'
 import { Badge, Card, type Tone } from '@/components/ui'
-import type { Ctx } from '@/server/services/base'
-import { getDocumentAttestation } from '@/server/services/attestation'
+import type { Ctx } from '@/services/base'
+import { getDocumentAttestation } from '@/services/attestation'
 import { CancelAttestationForm, StartAttestationForm, StepForms } from './attestation-forms'
 
 const STEP_TONE: Record<string, Tone> = { pending: 'slate', in_progress: 'blue', completed: 'green', not_required: 'slate', exception: 'amber' }

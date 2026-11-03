@@ -1,7 +1,7 @@
 import { fmtDateTime } from '@/components/format'
 import { Badge, Card } from '@/components/ui'
-import type { Ctx } from '@/server/services/base'
-import { portalAccount, studentPublications } from '@/server/services/portal-accounts'
+import type { Ctx } from '@/services/base'
+import { portalAccount, studentPublications } from '@/services/portal-accounts'
 import { AccountStatusForm, IssueLinkButton, PublishForm, UnpublishForm } from './portal-forms'
 
 // delivery status of the secure portal link email (finding N-7); the link itself is never shown

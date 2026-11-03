@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { portalDownload } from '@/server/portal'
+import { portalDownload } from '@/services/portal'
 
 /** A document published to the signed-in student. Every download is logged; anything else is a plain 404. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {

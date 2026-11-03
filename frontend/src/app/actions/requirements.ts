@@ -3,9 +3,9 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import * as rq from '@/server/services/requirements'
-import { formObject } from '@/server/validation'
+import { requireUser } from '@/lib/auth/session'
+import * as rq from '@/services/requirements'
+import { formObject } from '@/lib/validation'
 import { runAction } from './run-action'
 
 export async function acknowledgeAction(studentId: string, noticeId: string, _: ActionResult): Promise<ActionResult> {

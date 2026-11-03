@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { confirmEmailVerification } from '@/server/services/passport'
+import { confirmEmailVerification } from '@/services/passport'
 
 export const metadata: Metadata = { title: 'Confirm your email address', robots: { index: false } }
 

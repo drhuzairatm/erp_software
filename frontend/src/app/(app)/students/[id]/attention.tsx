@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { AdvisoryNotice } from '@/components/advisory-notice'
 import { NoticeCard } from '@/components/notice'
-import { studentAttention } from '@/server/services/attention'
-import type { Ctx } from '@/server/services/base'
-import type { StudentProfile } from '@/server/services/students'
+import { studentAttention } from '@/services/attention'
+import type { Ctx } from '@/services/base'
+import type { StudentProfile } from '@/services/students'
 
 /** Staff attention panel: visible on every tab of the student profile. Nothing here blocks the workflow. */
 export async function AttentionPanel({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }) {

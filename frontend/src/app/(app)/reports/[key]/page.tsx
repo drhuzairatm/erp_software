@@ -3,11 +3,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { fmtDate, fmtMoney, label } from '@/components/format'
 import { Card, EmptyState, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { ServiceError } from '@/server/errors'
-import { getLookups } from '@/server/services/lookups'
-import { runReport } from '@/server/services/reports'
-import { getScope } from '@/server/scope'
+import { requireUser } from '@/lib/auth/session'
+import { ServiceError } from '@/lib/errors'
+import { getLookups } from '@/services/lookups'
+import { runReport } from '@/services/reports'
+import { getScope } from '@/services/scope'
 
 export const metadata: Metadata = { title: 'Report' }
 

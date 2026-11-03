@@ -17,7 +17,8 @@
     "noUncheckedIndexedAccess": false,
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/server/*": ["../backend/src/server/*"],
+      "@/lib/http/context-provider": ["./src/server-api/next-context-provider.ts"],
+      "@/services/*": ["../backend/src/services/*"],
       "@/lib/*": ["../backend/src/lib/*"],
       "@/*": ["./src/*"]
     }

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { getActiveSession } from '@/server/auth/session'
-import { ServiceError } from '@/server/errors'
-import { getScope } from '@/server/scope'
-import { exportReport } from '@/server/services/reports'
+import { getActiveSession } from '@/lib/auth/session'
+import { ServiceError } from '@/lib/errors'
+import { getScope } from '@/services/scope'
+import { exportReport } from '@/services/reports'
 
 /** CSV export. Permission-checked and written to the audit log. */
 export async function GET(req: Request, { params }: { params: Promise<{ key: string }> }) {

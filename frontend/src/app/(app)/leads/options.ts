@@ -1,6 +1,6 @@
-import { can, orgsWith } from '@/server/auth/context'
-import type { Ctx } from '@/server/services/base'
-import { getLookups } from '@/server/services/lookups'
+import { can, orgsWith } from '@/lib/auth/context'
+import type { Ctx } from '@/services/base'
+import { getLookups } from '@/services/lookups'
 import type { LeadFormOptions } from './lead-forms'
 
 export async function leadFormOptions(ctx: Ctx): Promise<LeadFormOptions> {

@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import { acknowledgeAlert, clearFileManually } from '@/server/services/security'
+import { requireUser } from '@/lib/auth/session'
+import { acknowledgeAlert, clearFileManually } from '@/services/security'
 import { runAction } from './run-action'
 
 export async function clearFileAction(fileId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {

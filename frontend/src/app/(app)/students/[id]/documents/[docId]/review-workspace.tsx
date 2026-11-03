@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { annotationAction, documentActionAction, verificationAction } from '@/app/actions/documents'
 import { ActionForm, SubmitButton } from '@/components/forms'
-import type { ReviewRequirement } from '@/server/services/documents'
+import type { ReviewRequirement } from '@/services/documents'
 import { type Annotation, normaliseText, PdfViewer, type Selection } from './pdf-viewer'
 
 export interface WorkspaceProps {

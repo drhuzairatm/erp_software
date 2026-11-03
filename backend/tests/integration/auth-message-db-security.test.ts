@@ -14,13 +14,13 @@ vi.mock('next/headers', () => ({
 
 import { createHmac, randomBytes } from 'node:crypto'
 import { rollbackTo, runMigrations } from '../../scripts/lib/migrations'
-import { encryptAuthSecret } from '@/server/auth/auth-message-crypto'
-import { encryptSecret } from '@/server/auth/mfa'
-import { hashToken } from '@/server/auth/tokens'
-import { anonymous, db } from '@/server/db'
-import { processQueue } from '@/server/notifications/dispatcher'
-import * as pp from '@/server/services/passport'
-import * as students from '@/server/services/students'
+import { encryptAuthSecret } from '@/lib/auth/auth-message-crypto'
+import { encryptSecret } from '@/lib/auth/mfa'
+import { hashToken } from '@/lib/auth/tokens'
+import { anonymous, db } from '@/lib/db'
+import { processQueue } from '@/lib/notifications/dispatcher'
+import * as pp from '@/services/passport'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 afterAll(async () => { await adminSql().end(); await db().end() })

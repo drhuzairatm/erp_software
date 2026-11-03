@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { fmtDateTime } from '@/components/format'
 import { Badge, Card, EmptyState, PageHeader } from '@/components/ui'
-import { can } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { getLookups } from '@/server/services/lookups'
-import { listRequests } from '@/server/services/master-data'
+import { can } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { getLookups } from '@/services/lookups'
+import { listRequests } from '@/services/master-data'
 import { DecideForm, RequestForm } from '../forms'
 
 export const metadata: Metadata = { title: 'Master data requests' }

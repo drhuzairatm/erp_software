@@ -12,11 +12,11 @@ vi.mock('next/headers', () => ({
 }))
 
 import { rollbackTo, runMigrations } from '../../scripts/lib/migrations'
-import { hashToken } from '@/server/auth/tokens'
-import { anonymous, db } from '@/server/db'
-import { setPasswordWithLink } from '@/server/portal'
-import * as pa from '@/server/services/portal-accounts'
-import * as students from '@/server/services/students'
+import { hashToken } from '@/lib/auth/tokens'
+import { anonymous, db } from '@/lib/db'
+import { setPasswordWithLink } from '@/services/portal'
+import * as pa from '@/services/portal-accounts'
+import * as students from '@/services/students'
 import { adminSql, ctxFor, orgId } from '../support/helpers'
 
 afterAll(async () => { await adminSql().end(); await db().end() })

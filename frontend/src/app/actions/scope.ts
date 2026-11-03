@@ -2,8 +2,8 @@
 
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { requireUser } from '@/server/auth/session'
-import { resolveScope, SCOPE_COOKIE } from '@/server/scope'
+import { requireUser } from '@/lib/auth/session'
+import { resolveScope, SCOPE_COOKIE } from '@/services/scope'
 
 export async function setScopeAction(fd: FormData) {
   const ctx = await requireUser()

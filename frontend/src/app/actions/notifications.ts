@@ -2,9 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import * as n from '@/server/services/notifications'
-import { formObject } from '@/server/validation'
+import { requireUser } from '@/lib/auth/session'
+import * as n from '@/services/notifications'
+import { formObject } from '@/lib/validation'
 import { runAction } from './run-action'
 
 export async function consentAction(studentId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {

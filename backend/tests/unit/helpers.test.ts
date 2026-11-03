@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { checkPasswordStrength } from '@/server/auth/password'
-import { capitalise } from '@/server/db'
-import { resolveScope } from '@/server/scope'
-import { toCsv } from '@/server/services/reports'
-import { safeFilename, sniffMime } from '@/server/storage'
+import { checkPasswordStrength } from '@/lib/auth/password'
+import { capitalise } from '@/lib/db'
+import { resolveScope } from '@/services/scope'
+import { toCsv } from '@/services/reports'
+import { safeFilename, sniffMime } from '@/lib/storage'
 
 describe('file type detection (does not trust the browser)', () => {
   it('recognises allowed types by content', () => {

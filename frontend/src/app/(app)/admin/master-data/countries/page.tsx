@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Badge, Card, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { canSeeMasterData, listCountries, mdCan } from '@/server/services/master-data'
-import { listCurrencies } from '@/server/services/payments'
+import { requireUser } from '@/lib/auth/session'
+import { canSeeMasterData, listCountries, mdCan } from '@/services/master-data'
+import { listCurrencies } from '@/services/payments'
 import { CountryForm, StatusButton } from '../forms'
 
 export const metadata: Metadata = { title: 'Countries' }

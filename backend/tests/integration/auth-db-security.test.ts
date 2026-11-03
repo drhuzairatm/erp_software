@@ -5,7 +5,7 @@
  */
 import { afterAll, describe, expect, it } from 'vitest'
 import { rollbackTo, runMigrations } from '../../scripts/lib/migrations'
-import { db } from '@/server/db'
+import { db } from '@/lib/db'
 import { adminSql } from '../support/helpers'
 
 afterAll(async () => { await adminSql().end(); await db().end() })

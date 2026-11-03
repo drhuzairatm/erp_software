@@ -1,9 +1,9 @@
 /** Multi-currency payments: transaction rates, INR equivalents, per-currency balances, receipts, rate corrections, duplicates, permissions. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as payments from '@/server/services/payments'
-import * as students from '@/server/services/students'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as payments from '@/services/payments'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 let EDX: string; let SERVICE: string

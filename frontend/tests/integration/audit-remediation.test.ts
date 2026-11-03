@@ -3,26 +3,41 @@
  * and M-2 (bulk-access alerts for views, downloads and portal downloads). Fictional data only.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import type { Ctx } from '@/server/services/base'
+import type { Ctx } from '@/services/base'
 
-// The route handler resolves the signed-in user through getActiveSession(); the test supplies the user directly.
-let currentCtx: Ctx | null = null
-vi.mock('@/server/auth/session', async (orig) => ({ ...(await orig<typeof import('@/server/auth/session')>()), getActiveSession: async () => currentCtx }))
+// Since Stage 2 the viewer route proxies to the internal API (separate process), so the user can no longer be supplied by
+// mocking getActiveSession(): the test signs the same person in for real (simulated next/headers cookie jar) and the
+// browser request carries the session cookie. The API process runs with MFA_ENFORCE=off so that, as before, every
+// session is fully active and only the file permissions decide (the MFA gate is covered in contract-files-photos).
+let jar = new Map<string, string>()
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers({ 'user-agent': 'vitest-remediation' }),
+  cookies: async () => ({
+    get: (k: string) => (jar.has(k) ? { name: k, value: jar.get(k)! } : undefined),
+    getAll: () => [...jar].map(([name, value]) => ({ name, value })),
+    has: (k: string) => jar.has(k),
+    set: (k: string | { name: string; value: string }, v?: string) => { if (typeof k === 'string') jar.set(k, v!); else jar.set(k.name, k.value) },
+    delete: (k: string | { name: string }) => { jar.delete(typeof k === 'string' ? k : k.name) },
+  }),
+}))
 
 import { GET as viewerRoute } from '@/app/api/files/[id]/content/route'
-import { anonymous, db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as documents from '@/server/services/documents'
-import * as pa from '@/server/services/portal-accounts'
-import * as security from '@/server/services/security'
-import * as students from '@/server/services/students'
+import { login, SESSION_COOKIE } from '@/lib/auth/session'
+import { anonymous, db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as documents from '@/services/documents'
+import * as pa from '@/services/portal-accounts'
+import * as security from '@/services/security'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, expectDbError, orgId, securityClear } from '../../../backend/tests/support/helpers'
+import { startApiProcess } from './support/api-process'
 
 let EDX: string
 const rand = () => String(Math.floor(Math.random() * 90000) + 10000)
 const pdf = (t: string) => new File([new TextEncoder().encode(`%PDF-1.4\n% ${t}\n%%EOF`)], 'scan.pdf', { type: 'application/pdf' })
-beforeAll(async () => { EDX = await orgId('EDX') })
-afterAll(async () => { await adminSql().end(); await db().end() })
+let api: Awaited<ReturnType<typeof startApiProcess>>
+beforeAll(async () => { EDX = await orgId('EDX'); api = await startApiProcess({ MFA_ENFORCE: 'off' }) })
+afterAll(async () => { await api.close(); await adminSql().end(); await db().end() })
 
 async function expectServiceError(p: Promise<unknown>) {
   try { await p } catch (e) { expect(e).toBeInstanceOf(ServiceError); return }
@@ -41,7 +56,21 @@ async function uploaded(key = 'plus_two_certificate', assignTo = 'docs@demo.test
 }
 /** The trusted server-side path that records a scanner result (what the scanner integration calls). */
 const scanResult = (key: string, status: 'clean' | 'infected') => anonymous((tx) => tx`select app.record_file_scan(${key}, ${status}, 'ClamAV', ${status === 'infected' ? 'Fictional.Test.Signature' : null})`)
-const callRoute = async (ctx: Ctx | null, fileId: string) => { currentCtx = ctx; return viewerRoute(new Request(`http://localhost/api/files/${fileId}/content`), { params: Promise.resolve({ id: fileId }) }) }
+/** The real route as the browser calls it: signed in as the person `ctx` belongs to (real password sign-in), or signed out. */
+const sessionTokens = new Map<string, string>()
+async function sessionCookie(ctx: Ctx) {
+  if (!sessionTokens.has(ctx.userId)) {
+    const [u] = await adminSql()<{ email: string }[]>`select email from user_profiles where id = ${ctx.userId}`
+    jar = new Map()
+    expect(await login(u.email, process.env.SEED_DEMO_PASSWORD!)).toMatchObject({ ok: true, mfaPending: false })
+    sessionTokens.set(ctx.userId, jar.get(SESSION_COOKIE)!)
+  }
+  return `${SESSION_COOKIE}=${sessionTokens.get(ctx.userId)}`
+}
+const callRoute = async (ctx: Ctx | null, fileId: string) => {
+  const headers: Record<string, string> = ctx ? { cookie: await sessionCookie(ctx) } : {}
+  return viewerRoute(new Request(`http://localhost/api/files/${fileId}/content`, { headers }), { params: Promise.resolve({ id: fileId }) })
+}
 
 describe('H-1: quarantined files are never readable through the in-app viewer', () => {
   it('clean file: an authorised viewer gets the bytes, through the service and the real route handler', async () => {

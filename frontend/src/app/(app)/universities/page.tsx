@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { daysFromTodayISO, fmtDate } from '@/components/format'
 import { Icon } from '@/components/icons'
 import { Badge, Card, EmptyState, PageHeader, StatCard } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { getLookups } from '@/server/services/lookups'
-import { canManageUniversities, listUniversities } from '@/server/services/universities'
+import { requireUser } from '@/lib/auth/session'
+import { getLookups } from '@/services/lookups'
+import { canManageUniversities, listUniversities } from '@/services/universities'
 import { UniversityForm } from './university-forms'
 
 export const metadata: Metadata = { title: 'Universities' }

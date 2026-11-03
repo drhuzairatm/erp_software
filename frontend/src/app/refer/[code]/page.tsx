@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { AuthShell } from '@/components/auth-shell'
-import { publicReferralInfo, referralCountries } from '@/server/portal'
+import { publicReferralInfo, referralCountries } from '@/services/portal'
 import { ReferralForm } from '@/app/portal/referral-forms'
 
 export const metadata: Metadata = { title: 'Study abroad – referral', robots: { index: false } }

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { Alert, Card, PageHeader } from '@/components/ui'
-import { can } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { getLookups } from '@/server/services/lookups'
-import { getScope } from '@/server/scope'
-import { IMPORT_FIELDS, MAX_IMPORT_ROWS } from '@/server/services/student-import'
+import { can } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { getLookups } from '@/services/lookups'
+import { getScope } from '@/services/scope'
+import { IMPORT_FIELDS, MAX_IMPORT_ROWS } from '@/services/student-import'
 import { ImportWizard } from './import-wizard'
 
 export const metadata: Metadata = { title: 'Import students' }

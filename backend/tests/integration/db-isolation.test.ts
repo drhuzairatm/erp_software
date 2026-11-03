@@ -4,7 +4,7 @@
  * bypass the application code: even raw SQL with guessed ids must not leak.
  */
 import { afterAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
+import { db } from '@/lib/db'
 import { adminSql, as, expectDbError, orgId, studentWhere } from '../support/helpers'
 
 afterAll(async () => {

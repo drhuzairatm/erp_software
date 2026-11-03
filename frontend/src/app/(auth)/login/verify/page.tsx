@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { getPendingMfaToken } from '@/server/auth/session'
+import { getPendingMfaToken } from '@/lib/auth/session'
 import { VerifyForm } from './verify-form'
 
 export const metadata: Metadata = { title: 'Two-factor code' }

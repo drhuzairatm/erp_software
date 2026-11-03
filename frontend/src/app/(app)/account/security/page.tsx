@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 import { fmtDateTime } from '@/components/format'
 import { Alert, Card, PageHeader } from '@/components/ui'
-import { mfaStatus } from '@/server/auth/mfa-service'
-import { requireUser } from '@/server/auth/session'
+import { mfaStatus } from '@/lib/auth/mfa-service'
+import { requireUser } from '@/lib/auth/session'
 import { MfaSetup } from './mfa-setup'
 import { LoginActivity } from '@/components/login-activity'
-import { loginActivity } from '@/server/services/security'
+import { loginActivity } from '@/services/security'
 import { SignOutAll } from './sign-out-all'
 
 export const metadata: Metadata = { title: 'Two-factor login' }

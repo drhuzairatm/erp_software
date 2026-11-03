@@ -3,9 +3,9 @@
 import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import { deliverPortalEmails } from '@/server/notifications/portal-email'
-import * as pa from '@/server/services/portal-accounts'
+import { requireUser } from '@/lib/auth/session'
+import { deliverPortalEmails } from '@/lib/notifications/portal-email'
+import * as pa from '@/services/portal-accounts'
 import { runAction } from './run-action'
 
 const path = (id: string) => `/students/${id}`

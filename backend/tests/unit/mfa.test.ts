@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { base32Decode, base32Encode, decryptSecret, encryptSecret, hashRecoveryCode, hotp, mfaRequired, totp, verifyTotp } from '@/server/auth/mfa'
+import { base32Decode, base32Encode, decryptSecret, encryptSecret, hashRecoveryCode, hotp, mfaRequired, totp, verifyTotp } from '@/lib/auth/mfa'
 
 const RFC_SECRET = Buffer.from('12345678901234567890') // RFC 4226 / 6238 test secret
 

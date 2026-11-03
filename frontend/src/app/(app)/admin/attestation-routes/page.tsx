@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fmtDate, label } from '@/components/format'
 import { Alert, Badge, Card, EmptyState, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { canApproveRoutes, canManageRoutes, listAuthorities, listRoutes } from '@/server/services/attestation'
-import { getLookups } from '@/server/services/lookups'
+import { requireUser } from '@/lib/auth/session'
+import { canApproveRoutes, canManageRoutes, listAuthorities, listRoutes } from '@/services/attestation'
+import { getLookups } from '@/services/lookups'
 import { AddAuthorityForm, ToggleAuthority } from './route-forms'
 
 export const metadata: Metadata = { title: 'Attestation routes' }

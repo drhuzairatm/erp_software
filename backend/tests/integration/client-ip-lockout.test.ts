@@ -15,12 +15,12 @@ vi.mock('next/headers', () => ({
   }),
 }))
 
-import { db } from '@/server/db'
-import { login } from '@/server/auth/session'
-import { acceptInvitation } from '@/server/auth/passwords'
-import { requestCode } from '@/server/portal'
-import * as admin from '@/server/services/admin'
-import * as students from '@/server/services/students'
+import { db } from '@/lib/db'
+import { login } from '@/lib/auth/session'
+import { acceptInvitation } from '@/lib/auth/passwords'
+import { requestCode } from '@/services/portal'
+import * as admin from '@/services/admin'
+import * as students from '@/services/students'
 import { adminSql, ctxFor, orgId } from '../support/helpers'
 
 const PW = 'Fictional-Lockout-6271!'

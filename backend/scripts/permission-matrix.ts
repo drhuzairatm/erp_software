@@ -6,7 +6,7 @@
 import { writeFileSync } from 'node:fs'
 import postgres from 'postgres'
 import { loadEnv, requireEnv } from './lib/env'
-import { repoPath } from '../src/server/repo-root'
+import { repoPath } from '../src/lib/repo-root'
 
 loadEnv()
 const sql = postgres(requireEnv('DATABASE_ADMIN_URL'), { max: 1, onnotice: () => {} })

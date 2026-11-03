@@ -14,8 +14,8 @@ const provider = vi.hoisted(() => ({
   sendEmail: vi.fn(async (_org: string, _to: string, _subject: string, _body: string) =>
     ({ ok: true, provider: 'smtp', providerId: 'stub-1' }) as { ok: true; provider: string; providerId: string | null } | { ok: false; provider: string; error: string; transient: boolean }),
 }))
-vi.mock('@/server/notifications/providers', async (orig) => {
-  const real = await orig<typeof import('@/server/notifications/providers')>()
+vi.mock('@/lib/notifications/providers', async (orig) => {
+  const real = await orig<typeof import('@/lib/notifications/providers')>()
   return {
     ...real,
     channelConfigured: (channel: string, org: string) => (channel === 'whatsapp' ? real.channelConfigured('whatsapp', org) : provider.configured),
@@ -27,15 +27,15 @@ import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs
 import path from 'node:path'
 import { createHmac } from 'node:crypto'
 import { GET as cronNotifications } from '@/app/api/cron/notifications/route'
-import { decryptAuthSecret, encryptAuthSecret } from '@/server/auth/auth-message-crypto'
-import { encryptSecret } from '@/server/auth/mfa'
-import { anonymous, db } from '@/server/db'
-import { deliverAuthMessages, maskSecretText } from '@/server/notifications/auth-message'
-import { TEST_MAILBOX_DIR } from '@/server/notifications/test-mailbox'
-import { requestCode, verifyCode } from '@/server/portal'
-import * as notifications from '@/server/services/notifications'
-import * as pp from '@/server/services/passport'
-import * as students from '@/server/services/students'
+import { decryptAuthSecret, encryptAuthSecret } from '@/lib/auth/auth-message-crypto'
+import { encryptSecret } from '@/lib/auth/mfa'
+import { anonymous, db } from '@/lib/db'
+import { deliverAuthMessages, maskSecretText } from '@/lib/notifications/auth-message'
+import { TEST_MAILBOX_DIR } from '@/lib/notifications/test-mailbox'
+import { requestCode, verifyCode } from '@/services/portal'
+import * as notifications from '@/services/notifications'
+import * as pp from '@/services/passport'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, expectDbError, orgId } from '../../../backend/tests/support/helpers'
 
 const rand = () => String(Math.floor(Math.random() * 90000) + 10000)

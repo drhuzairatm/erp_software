@@ -1,12 +1,12 @@
 /** Phase B: education background, passport privacy, universities and automatic checklists. */
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import { getChecklist } from '@/server/services/documents'
-import { previewImport } from '@/server/services/student-import'
-import * as students from '@/server/services/students'
-import * as uni from '@/server/services/universities'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import { getChecklist } from '@/services/documents'
+import { previewImport } from '@/services/student-import'
+import * as students from '@/services/students'
+import * as uni from '@/services/universities'
 import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
 beforeAll(async () => { await delegateToSystemAdmin(['universities.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 

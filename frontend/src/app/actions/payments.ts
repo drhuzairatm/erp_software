@@ -2,9 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import * as payments from '@/server/services/payments'
-import { formObject } from '@/server/validation'
+import { requireUser } from '@/lib/auth/session'
+import * as payments from '@/services/payments'
+import { formObject } from '@/lib/validation'
 import { runAction } from './run-action'
 
 export async function recordPaymentAction(studentId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {

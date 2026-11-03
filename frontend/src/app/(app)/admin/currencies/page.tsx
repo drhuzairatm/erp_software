@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { Alert, Card, PageHeader } from '@/components/ui'
-import { can } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { listCurrencies } from '@/server/services/payments'
+import { can } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { listCurrencies } from '@/services/payments'
 import { CurrencyForm } from './forms'
 
 export const metadata: Metadata = { title: 'Currencies & reference rates' }

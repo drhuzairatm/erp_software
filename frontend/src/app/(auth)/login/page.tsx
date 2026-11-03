@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { LoginForm } from './login-form'
-import { getSession } from '@/server/auth/session'
+import { getSession } from '@/lib/auth/session'
 
 export const metadata: Metadata = { title: 'Sign in' }
 

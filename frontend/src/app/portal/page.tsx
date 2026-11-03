@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { portalSession } from '@/server/portal'
+import { portalSession } from '@/services/portal'
 import { AuthShell } from '@/components/auth-shell'
 import { PasswordLoginForm, RequestCodeForm } from './forms'
 

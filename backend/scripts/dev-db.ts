@@ -5,7 +5,7 @@
 import EmbeddedPostgres from 'embedded-postgres'
 import postgres from 'postgres'
 import { loadEnv, requireEnv } from './lib/env'
-import { repoPath } from '../src/server/repo-root'
+import { repoPath } from '../src/lib/repo-root'
 
 loadEnv()
 const adminUrl = new URL(requireEnv('DATABASE_ADMIN_URL'))

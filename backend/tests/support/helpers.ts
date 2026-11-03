@@ -1,5 +1,5 @@
 import postgres from 'postgres'
-import { withUser, type Tx } from '@/server/db'
+import { withUser, type Tx } from '@/lib/db'
 
 let admin: postgres.Sql | null = null
 export function adminSql() {
@@ -45,8 +45,8 @@ export async function expectDbError(p: Promise<unknown>, code: string) {
   throw new Error(`expected error ${code}, but the operation succeeded`)
 }
 
-import { loadMemberships } from '@/server/auth/context'
-import type { Ctx } from '@/server/services/base'
+import { loadMemberships } from '@/lib/auth/context'
+import type { Ctx } from '@/services/base'
 
 /** Build the same authorization context the web app builds for a session. */
 export async function ctxFor(email: string): Promise<Ctx> {

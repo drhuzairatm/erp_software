@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { commentAction, createTaskAction, updateTaskAction } from '@/app/actions/tasks'
 import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
-import { DELAY_REASONS, PRIORITIES, TASK_STATUSES, TASK_TYPES } from '@/server/validation'
+import { DELAY_REASONS, PRIORITIES, TASK_STATUSES, TASK_TYPES } from '@/lib/validation'
 
 const lbl = (s: string) => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 

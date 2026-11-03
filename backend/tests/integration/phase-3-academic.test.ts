@@ -1,11 +1,11 @@
 /** Phase 3: academic records, eligibility thresholds, name checks, One and Same workflow, business configuration. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as ac from '@/server/services/academic'
-import * as documents from '@/server/services/documents'
-import * as pp from '@/server/services/passport'
-import * as students from '@/server/services/students'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as ac from '@/services/academic'
+import * as documents from '@/services/documents'
+import * as pp from '@/services/passport'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin, securityClear } from '../support/helpers'
 beforeAll(async () => { await delegateToSystemAdmin(['academic.rules.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 

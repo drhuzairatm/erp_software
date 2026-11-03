@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
+import { requireUser } from '@/lib/auth/session'
 import { PasswordForm } from './password-form'
 
 export const metadata: Metadata = { title: 'Change password' }

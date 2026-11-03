@@ -1,14 +1,14 @@
 /** Phase 6: student portal password accounts, publication with logged downloads, portal notices, optional payment view. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { anonymous, db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import { encryptSecret } from '@/server/auth/mfa'
-import { verifyPassword } from '@/server/auth/password'
-import { hashToken } from '@/server/auth/tokens'
-import { checkPasswordLink, setPasswordWithLink } from '@/server/portal'
-import * as documents from '@/server/services/documents'
-import * as pa from '@/server/services/portal-accounts'
-import * as students from '@/server/services/students'
+import { anonymous, db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import { encryptSecret } from '@/lib/auth/mfa'
+import { verifyPassword } from '@/lib/auth/password'
+import { hashToken } from '@/lib/auth/tokens'
+import { checkPasswordLink, setPasswordWithLink } from '@/services/portal'
+import * as documents from '@/services/documents'
+import * as pa from '@/services/portal-accounts'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, orgId, securityClear } from '../support/helpers'
 
 let EDX: string

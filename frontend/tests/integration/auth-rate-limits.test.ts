@@ -18,17 +18,17 @@ vi.mock('next/headers', () => ({
 }))
 vi.mock('next/server', async (orig) => ({ ...(await orig<typeof import('next/server')>()), after: () => {} }))
 const sendEmail = vi.hoisted(() => vi.fn(async () => ({ sent: true })))
-vi.mock('@/server/email', async (orig) => ({ ...(await orig<typeof import('@/server/email')>()), emailConfigured: () => true, sendEmail }))
+vi.mock('@/lib/email', async (orig) => ({ ...(await orig<typeof import('@/lib/email')>()), emailConfigured: () => true, sendEmail }))
 
 import { forgotPasswordAction } from '@/app/actions/auth'
-import { decryptSecret, totp } from '@/server/auth/mfa'
-import { adminResetMfa, finishEnrolment, startEnrolment, verifyLoginCode } from '@/server/auth/mfa-service'
-import { acceptInvitation, changeOwnPassword, completePasswordReset, requestPasswordReset } from '@/server/auth/passwords'
-import { LOCKED_MESSAGE, login, SESSION_COOKIE } from '@/server/auth/session'
-import { hashToken } from '@/server/auth/tokens'
-import { newDeviceToken, STAFF_DEVICE_COOKIE, trustStaffBrowserAfterMfa } from '@/server/auth/trusted-device'
-import { db } from '@/server/db'
-import * as admin from '@/server/services/admin'
+import { decryptSecret, totp } from '@/lib/auth/mfa'
+import { adminResetMfa, finishEnrolment, startEnrolment, verifyLoginCode } from '@/lib/auth/mfa-service'
+import { acceptInvitation, changeOwnPassword, completePasswordReset, requestPasswordReset } from '@/lib/auth/passwords'
+import { LOCKED_MESSAGE, login, SESSION_COOKIE } from '@/lib/auth/session'
+import { hashToken } from '@/lib/auth/tokens'
+import { newDeviceToken, STAFF_DEVICE_COOKIE, trustStaffBrowserAfterMfa } from '@/lib/auth/trusted-device'
+import { db } from '@/lib/db'
+import * as admin from '@/services/admin'
 import { adminSql, ctxFor, orgId } from '../../../backend/tests/support/helpers'
 
 const PW = 'Fictional-N1-Passw0rd!'
@@ -204,7 +204,7 @@ describe('N-1: trusted browsers', () => {
     const usual = browser(); await fullSignIn(usual, v.email, PW, codes)
     const thief = new Map([[STAFF_DEVICE_COOKIE, usual.get(STAFF_DEVICE_COOKIE)!]])
     inBrowser(thief)
-    const { getSession } = await import('@/server/auth/session')
+    const { getSession } = await import('@/lib/auth/session')
     expect(await getSession()).toBeNull()
     for (let i = 0; i < 10; i++) await login(v.email, WRONG)
     expect(await login(v.email, PW)).toEqual({ ok: false, message: LOCKED_MESSAGE })

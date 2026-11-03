@@ -5,7 +5,7 @@ import { useActionState, useState } from 'react'
 import { commitImportAction, previewImportAction } from '@/app/actions/import'
 import { initialResult } from '@/components/action-types'
 import { ActionForm, SubmitButton } from '@/components/forms'
-import type { ImportAnalysis, ImportResult, RowStatus } from '@/server/services/student-import'
+import type { ImportAnalysis, ImportResult, RowStatus } from '@/services/student-import'
 
 const TONE: Record<RowStatus, string> = { ready: 'bg-green-50 text-green-800', duplicate: 'bg-amber-50 text-amber-900', error: 'bg-red-50 text-red-800' }
 const LABEL: Record<RowStatus, string> = { ready: 'Ready', duplicate: 'Possible duplicate', error: 'Error' }

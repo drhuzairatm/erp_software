@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Card, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { canManageRequirements } from '@/server/services/requirements'
+import { requireUser } from '@/lib/auth/session'
+import { canManageRequirements } from '@/services/requirements'
 import { RequirementForm } from '../forms'
 import { requirementOptions } from '../options'
 

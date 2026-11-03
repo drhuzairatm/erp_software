@@ -17,4 +17,6 @@ export const TEST_ENV = {
   APP_URL: 'http://localhost:3000',
   MFA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   MFA_ENFORCE: 'roles',
+  // internal API credential (test-only value): used by the Next.js-side proxy and the Express API in tests
+  INTERNAL_API_SECRET: 'test-internal-api-secret-0123456789-abcdefghij',
 }

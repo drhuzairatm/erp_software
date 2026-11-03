@@ -4,9 +4,9 @@ import { notFound } from 'next/navigation'
 import { fmtDate, fmtDateTime, label } from '@/components/format'
 import { Icon } from '@/components/icons'
 import { Alert, Avatar, Card, DL, PageHeader, PriorityBadge, StatusBadge, staffPhotoUrl } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { staffPhotoVersions } from '@/server/services/staff-photos'
-import { getTask } from '@/server/services/tasks'
+import { requireUser } from '@/lib/auth/session'
+import { staffPhotoVersions } from '@/services/staff-photos'
+import { getTask } from '@/services/tasks'
 import { CommentForm, UpdateTaskForm } from '../task-forms'
 
 export const metadata: Metadata = { title: 'Task' }

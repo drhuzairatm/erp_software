@@ -1,5 +1,5 @@
-import type { Ctx } from '@/server/services/base'
-import { getLookups } from '@/server/services/lookups'
+import type { Ctx } from '@/services/base'
+import { getLookups } from '@/services/lookups'
 
 export async function ruleOptions(ctx: Ctx) {
   const l = await getLookups(ctx)

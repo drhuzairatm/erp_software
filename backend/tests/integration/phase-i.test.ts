@@ -1,11 +1,11 @@
 /** Phase I: student portal — sign-in codes, own-data-only access, uploads, privacy of codes. */
 import { createHmac, randomBytes } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { decryptAuthSecret, encryptAuthSecret } from '@/server/auth/auth-message-crypto'
-import { anonymous, db } from '@/server/db'
-import { deliverAuthMessages } from '@/server/notifications/auth-message'
-import * as notifications from '@/server/services/notifications'
-import * as students from '@/server/services/students'
+import { decryptAuthSecret, encryptAuthSecret } from '@/lib/auth/auth-message-crypto'
+import { anonymous, db } from '@/lib/db'
+import { deliverAuthMessages } from '@/lib/notifications/auth-message'
+import * as notifications from '@/services/notifications'
+import * as students from '@/services/students'
 import { adminSql, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 let EDX: string
@@ -122,7 +122,7 @@ describe('the portal shows only the student\'s own, student-facing data', () => 
     const { th } = await verify(...Object.values(await requestCode(s.email)) as [string, string])
     const doc = ((await overview(th))!.documents as { id: string; name: string }[]).find((d) => d.name === 'Passport')!
     await anonymous((tx) => tx`select app.portal_register_document_file(${th}, ${doc.id}, ${'org/z/students/w/' + rand()}, 'p.pdf', 'application/pdf', 10, ${'b'.repeat(64)})`)
-    const { documentAction } = await import('@/server/services/documents')
+    const { documentAction } = await import('@/services/documents')
     await documentAction(s.mgr, doc.id, 'request_changes', 'Photo page is cut off')
     const after = ((await overview(th))!.documents as { id: string; state: string; reason: string; can_upload: boolean }[]).find((x) => x.id === doc.id)
     expect(after).toMatchObject({ state: 'changes_required', reason: 'Photo page is cut off', can_upload: true })

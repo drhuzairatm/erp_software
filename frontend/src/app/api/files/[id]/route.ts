@@ -1,17 +1,13 @@
-import { NextResponse } from 'next/server'
-import { getActiveSession } from '@/server/auth/session'
-import { openFile } from '@/server/services/documents'
+import { apiPathSegment } from '@/server-api/forward'
+import { proxyToApi } from '@/server-api/proxy'
 
 /**
- * Open a document file. The server checks the user's permission in the
- * database (which also audits the attempt) and then redirects to a signed URL
- * that expires in 60 seconds. Unauthorized requests get a plain 404.
+ * Open a document file: proxied to the internal API (GET /api/files/:id), which checks the user's permission in the
+ * database (audited) and answers with a 302 to a signed URL that expires in 60 seconds. Unauthorized requests get a
+ * plain 404.
+ * The query string is passed on unchanged; the id is sent as one encoded path segment (apiPathSegment).
  */
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const ctx = await getActiveSession()
-  if (!ctx) return new NextResponse('Not found', { status: 404 })
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const url = await openFile(ctx, id).catch(() => null)
-  if (!url) return new NextResponse('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
-  return new NextResponse(null, { status: 302, headers: { Location: url, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } })
+  return proxyToApi(req, `/api/files/${apiPathSegment(id)}`)
 }
