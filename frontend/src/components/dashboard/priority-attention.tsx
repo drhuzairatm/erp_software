@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { DISPLAY, LevelChip, LevelIcon, type Level } from '@/components/notice'
-import { pendingAcknowledgements } from '@/server/services/requirements'
-import { type Ctx, run } from '@/server/services/base'
+import { pendingAcknowledgements } from '@/services/requirements'
+import { type Ctx, run } from '@/services/base'
 
 /** Priority attention panel (staff and managers): what needs action first. Counts are live and limited to visible students. */
 export async function PriorityAttention({ ctx, orgIds }: { ctx: Ctx; orgIds: string[] }) {

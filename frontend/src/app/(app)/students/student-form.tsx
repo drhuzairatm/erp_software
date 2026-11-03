@@ -7,7 +7,7 @@ import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
 import { DISPLAY, NoticeCard } from '@/components/notice'
 import { PhoneField } from '@/components/phone-field'
 import { PhotoCapture } from '@/components/photo-capture'
-import type { DuplicateCandidate } from '@/server/services/students'
+import type { DuplicateCandidate } from '@/services/students'
 
 interface Opt { id: string; name: string }
 export interface StudentFormProps {

@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { fmtDateTime, label } from '@/components/format'
 import { Badge, Card, EmptyState, PageHeader, StatCard } from '@/components/ui'
 import { Icon } from '@/components/icons'
-import { requireUser } from '@/server/auth/session'
-import { scannerName } from '@/server/security/scanner'
-import { canSeeSecurity, listAlerts } from '@/server/services/security'
+import { requireUser } from '@/lib/auth/session'
+import { scannerName } from '@/lib/security/scanner'
+import { canSeeSecurity, listAlerts } from '@/services/security'
 import { AckForm } from './ack-form'
 
 export const metadata: Metadata = { title: 'Security alerts' }

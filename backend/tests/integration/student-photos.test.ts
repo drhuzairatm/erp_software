@@ -1,11 +1,11 @@
 /** Student passport photos: validation, processing (EXIF removed, portrait kept, 256×256 thumbnail), permissions, history, filter. */
 import sharp from 'sharp'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import { getStorage } from '@/server/storage'
-import * as photos from '@/server/services/photos'
-import * as students from '@/server/services/students'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import { getStorage } from '@/lib/storage'
+import * as photos from '@/services/photos'
+import * as students from '@/services/students'
 import { adminSql, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 let EDX: string

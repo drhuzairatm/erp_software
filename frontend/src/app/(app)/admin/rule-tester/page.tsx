@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { ConditionBuilder } from '@/components/condition-builder'
 import { Badge, Card, EmptyState, PageHeader } from '@/components/ui'
 import { FIELDS, type FieldKey, parseConditions, type Trace } from '@/lib/conditions'
-import { requireUser } from '@/server/auth/session'
-import { ServiceError } from '@/server/errors'
-import { canTestRules, conditionOptions, previewCondition, testStudent } from '@/server/services/rules'
+import { requireUser } from '@/lib/auth/session'
+import { ServiceError } from '@/lib/errors'
+import { canTestRules, conditionOptions, previewCondition, testStudent } from '@/services/rules'
 
 export const metadata: Metadata = { title: 'Rule tester' }
 

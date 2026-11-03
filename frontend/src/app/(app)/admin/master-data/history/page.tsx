@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { fmtDateTime, label } from '@/components/format'
 import { Card, EmptyState, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { canSeeMasterData, masterDataHistory } from '@/server/services/master-data'
+import { requireUser } from '@/lib/auth/session'
+import { canSeeMasterData, masterDataHistory } from '@/services/master-data'
 
 export const metadata: Metadata = { title: 'Master data history' }
 

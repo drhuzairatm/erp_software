@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { repoPath } from '../../src/server/repo-root'
+import { repoPath } from '../../src/lib/repo-root'
 
 /** Load .env (if present) for command-line scripts. Real env vars win. */
 export function loadEnv() {

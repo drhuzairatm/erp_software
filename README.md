@@ -33,8 +33,12 @@ cp .env.example .env            # then replace every CHANGE_ME value (see below)
 npm install
 npm run db:start                # terminal 1: local PostgreSQL (keep running)
 npm run db:reset                # terminal 2: create schema + fictional demo data
+npm run dev:api                 # terminal 3: internal API (Express, http://127.0.0.1:4000, loopback only)
 npm run dev                     # http://localhost:3000
 ```
+
+`INTERNAL_API_SECRET` (at least 32 random characters) must be set in `.env`: the app signs every request to the internal
+API with it. Without it, or without `npm run dev:api` running, `/api/health` answers 503 `{"status":"api_unavailable"}`.
 
 Generate random values for `.env` with:
 `node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"`
@@ -59,7 +63,8 @@ Password for all: the value of `SEED_DEMO_PASSWORD` in your `.env`. Locally `MFA
 | Command | Purpose |
 |---|---|
 | `npm run dev` | Development server (frontend workspace) |
-| `npm run build` / `npm start` | Production build / run |
+| `npm run build` / `npm start` | Production build (internal API bundle + Next.js) / run the app |
+| `npm run dev:api` / `npm run start:api` | Internal API (Express): development with reload / run the production build (one instance, loopback only) |
 | `npm run db:start` | Local PostgreSQL (development only) |
 | `npm run db:migrate` | Apply new migrations (uses `DATABASE_ADMIN_URL`); `-- --rollback NNNN` undoes recent ones |
 | `npm run db:backup` | Logical database backup (needs PostgreSQL 17 client tools) |
@@ -83,7 +88,8 @@ frontend/                     Next.js app (@erp/frontend): what the browser sees
   src/app/(app)/              Application pages (dashboard, students, tasks, payments, reports, admin, audit)
   src/app/portal/             Student portal
   src/app/actions/            Server actions (form handlers)
-  src/app/api/                File access, signed local file serving, CSV export, cron, health check
+  src/app/api/                File access, signed local file serving, CSV export, cron, health check (health, files and photos proxied to the API)
+  src/server-api/             The only client of the internal API: signed requests, header allow-lists, proxying
   src/components/             Shared React components
   src/proxy.ts                Per-request security (nonce CSP, session checks)
   src/instrumentation.ts      Production start-up checks
@@ -92,18 +98,24 @@ frontend/                     Next.js app (@erp/frontend): what the browser sees
   tests/integration/          Tests of route handlers and server actions (Vitest)
   next.config.ts, vercel.json, playwright.config.ts
 backend/                      Server-only code (@erp/backend), imported by the app; never sent to the browser
-  src/server/                 Auth, DB access, services, notifications, storage, configuration
-  src/lib/                    Validation and shared helpers (also used by client components, e.g. form rules)
+  src/app.ts, src/server.ts   Internal API (Express): app setup / process start-up (loopback only; never browser-facing)
+  src/routes/                 API routes (index.ts registers health, files, photos, students)
+  src/controllers/            HTTP input/output only (files, photos, students)
+  src/middleware/             Internal-request checks, per-request context, authenticate (staff session), error handler
+  src/services/               Business services (rules, permissions, transactions), used by the API and the Next.js app
+  src/repositories/           Database queries moved out of the services (Repository Pattern; files and photos so far)
+  src/lib/                    Infrastructure: auth, DB access, notifications, storage, security, configuration,
+                              internal-API credential and request context; shared helpers (some used by client components)
   db/migrations/, db/rollbacks/   Versioned SQL and exact rollbacks
   scripts/                    Local DB, migrations, provisioning, demo seed, admin creation, generated docs
-  tests/unit/, tests/integration/, tests/support/   Vitest (throwaway PostgreSQL on port 54339)
+  tests/unit/, tests/integration/, tests/api/, tests/support/   Vitest (throwaway PostgreSQL on port 54339)
 docs/                         Architecture, security, deployment, backup, user guide, UAT checklist, roadmap
 .env                          Shared by both folders (repository root; never committed)
 .data/                        Local development data: database, file storage, test mailbox (never committed)
 eslint.config.mjs             Shared lint rules
 ```
 
-The app imports backend code with the same aliases as before: `@/server/…` and `@/lib/…` resolve to `backend/src/…`, `@/…` to `frontend/src/…` (`frontend/tsconfig.json`).
+The app imports backend code through aliases: `@/services/…` and `@/lib/…` resolve to `backend/src/…`, `@/…` to `frontend/src/…` (`frontend/tsconfig.json`). Older code and documents used `@/server/…`; that folder is now `backend/src/lib/` (except `portal.ts` and `scope.ts`, now in `backend/src/services/`).
 
 **Older documents** were written before the split and use the old paths. Read them as:
 `src/server/` → `backend/src/server/`, `src/lib/` → `backend/src/lib/`, `db/` → `backend/db/`, `scripts/` → `backend/scripts/`,

@@ -1,10 +1,10 @@
 /** Original documents by courier: scan → approval → courier instructions → dispatch → receipt → reconciliation. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { anonymous, db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as courier from '@/server/services/courier'
-import * as documents from '@/server/services/documents'
-import * as students from '@/server/services/students'
+import { anonymous, db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as courier from '@/services/courier'
+import * as documents from '@/services/documents'
+import * as students from '@/services/students'
 import { adminSql, ctxFor, expectDbError, orgId, securityClear } from '../support/helpers'
 
 let EDX: string; let GRD: string

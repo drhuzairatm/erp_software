@@ -2,9 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import * as md from '@/server/services/master-data'
-import { formObject } from '@/server/validation'
+import { requireUser } from '@/lib/auth/session'
+import * as md from '@/services/master-data'
+import { formObject } from '@/lib/validation'
 import { runAction } from './run-action'
 
 const refresh = () => { revalidatePath('/admin/master-data', 'layout'); revalidatePath('/students/new'); revalidatePath('/universities') }

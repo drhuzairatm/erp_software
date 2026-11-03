@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import { commitImport, previewImport } from '@/server/services/student-import'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import { commitImport, previewImport } from '@/services/student-import'
 import { adminSql, ctxFor, orgId } from '../support/helpers'
 
 let EDX: string, GRD: string
@@ -126,7 +126,7 @@ describe('Leadist CRM export layout', () => {
 
 describe('import template', () => {
   it('its two fictional example rows pass validation and fill country, course and workflow', async () => {
-    const { importTemplateCsv } = await import('@/server/services/student-import')
+    const { importTemplateCsv } = await import('@/services/student-import')
     const mgr = await ctxFor('edx.manager@demo.test')
     const a = await previewImport(mgr, EDX, importTemplateCsv())
     expect(a.ignored).toEqual([])

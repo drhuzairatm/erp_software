@@ -1,10 +1,10 @@
 /** Phase A – staff account security: invitations, states, sign out everywhere, task hand-over, protected MD (fictional data). */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { anonymous, db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import { acceptInvitation, invitationInfo } from '@/server/auth/passwords'
-import { hashToken, newTokenValue } from '@/server/auth/tokens'
-import * as admin from '@/server/services/admin'
+import { anonymous, db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import { acceptInvitation, invitationInfo } from '@/lib/auth/passwords'
+import { hashToken, newTokenValue } from '@/lib/auth/tokens'
+import * as admin from '@/services/admin'
 import { adminSql, ctxFor, expectDbError, orgId, userId } from '../support/helpers'
 
 let EDX: string

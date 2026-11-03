@@ -3,15 +3,15 @@
  * Every student, document and payment here is fictional (synthetic test data).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as ac from '@/server/services/academic'
-import * as att from '@/server/services/attestation'
-import * as documents from '@/server/services/documents'
-import * as pp from '@/server/services/passport'
-import * as payments from '@/server/services/payments'
-import * as rq from '@/server/services/requirements'
-import * as students from '@/server/services/students'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as ac from '@/services/academic'
+import * as att from '@/services/attestation'
+import * as documents from '@/services/documents'
+import * as pp from '@/services/passport'
+import * as payments from '@/services/payments'
+import * as rq from '@/services/requirements'
+import * as students from '@/services/students'
 import { adminSql, ctxFor, orgId, securityClear } from '../support/helpers'
 
 let EDX: string

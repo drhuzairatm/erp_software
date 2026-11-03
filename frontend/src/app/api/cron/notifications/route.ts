@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { deliverStaffEmails } from '@/server/auth/staff-email'
-import { processQueue } from '@/server/notifications/dispatcher'
-import { deliverAuthMessages } from '@/server/notifications/auth-message'
-import { deliverPortalEmails } from '@/server/notifications/portal-email'
-import { emailSecurityAlerts } from '@/server/security/jobs'
+import { deliverStaffEmails } from '@/lib/auth/staff-email'
+import { processQueue } from '@/lib/notifications/dispatcher'
+import { deliverAuthMessages } from '@/lib/notifications/auth-message'
+import { deliverPortalEmails } from '@/lib/notifications/portal-email'
+import { emailSecurityAlerts } from '@/lib/security/jobs'
 
 /**
  * Scheduled sender (e.g. Vercel Cron every minute). Requires

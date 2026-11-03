@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { currentStep, totp } from '../../../backend/src/server/auth/mfa'
+import { currentStep, totp } from '../../../backend/src/lib/auth/mfa'
 import { adminDb, login } from './helpers'
 
 const admin = adminDb()

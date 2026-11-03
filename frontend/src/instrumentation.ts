@@ -1,4 +1,4 @@
-import { assertNotificationConfig } from '@/server/config/notifications-config'
+import { assertNotificationConfig } from '@/lib/config/notifications-config'
 
 /**
  * Runs once when a server instance starts, before it handles requests. A production server serves nothing (every request, /api/health included, gets HTTP 500) with an

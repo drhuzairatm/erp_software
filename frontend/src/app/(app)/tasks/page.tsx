@@ -3,12 +3,12 @@ import Link from 'next/link'
 import { fmtDate, label } from '@/components/format'
 import { Icon } from '@/components/icons'
 import { Avatar, Card, EmptyState, FilterBar, PageHeader, Pagination, PriorityBadge, StatCard, StatusBadge, ViewTabs, staffPhotoUrl, studentPhotoUrl } from '@/components/ui'
-import { can, canAny } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { staffPhotoVersions } from '@/server/services/staff-photos'
-import { listTasks, type TaskFilters, type TaskRow, taskAssignees, taskCounts } from '@/server/services/tasks'
-import { getScope } from '@/server/scope'
-import { DELAY_REASONS } from '@/server/validation'
+import { can, canAny } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { staffPhotoVersions } from '@/services/staff-photos'
+import { listTasks, type TaskFilters, type TaskRow, taskAssignees, taskCounts } from '@/services/tasks'
+import { getScope } from '@/services/scope'
+import { DELAY_REASONS } from '@/lib/validation'
 
 export const metadata: Metadata = { title: 'Tasks' }
 

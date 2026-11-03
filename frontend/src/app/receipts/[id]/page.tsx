@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation'
 import { BrandMark } from '@/components/brand-mark'
 import { fmtDate, fmtDateTime, fmtMoney, label } from '@/components/format'
 import { brandOf } from '@/lib/brands'
-import { requireUser } from '@/server/auth/session'
-import { getReceipt } from '@/server/services/payments'
+import { requireUser } from '@/lib/auth/session'
+import { getReceipt } from '@/services/payments'
 import { PrintButton } from './print-button'
 
 export const metadata: Metadata = { title: 'Payment receipt' }

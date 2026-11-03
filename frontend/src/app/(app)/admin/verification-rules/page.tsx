@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fmtDate } from '@/components/format'
 import { Alert, Badge, Card, EmptyState, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { canApproveRules, canManageRules, listRules } from '@/server/services/verification-rules'
+import { requireUser } from '@/lib/auth/session'
+import { canApproveRules, canManageRules, listRules } from '@/services/verification-rules'
 
 export const metadata: Metadata = { title: 'Verification rules' }
 

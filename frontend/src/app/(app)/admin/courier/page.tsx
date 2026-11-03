@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { Alert, Badge, Card, EmptyState, PageHeader } from '@/components/ui'
-import { can, orgsWith } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { listCourierAddresses } from '@/server/services/courier'
+import { can, orgsWith } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { listCourierAddresses } from '@/services/courier'
 import { AddressForm } from './forms'
 
 export const metadata: Metadata = { title: 'Courier addresses' }

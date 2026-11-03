@@ -3,9 +3,9 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import * as att from '@/server/services/attestation'
-import { formObject } from '@/server/validation'
+import { requireUser } from '@/lib/auth/session'
+import * as att from '@/services/attestation'
+import { formObject } from '@/lib/validation'
 import { runAction } from './run-action'
 
 const docPath = (studentId: string, docId: string) => `/students/${studentId}/documents/${docId}`

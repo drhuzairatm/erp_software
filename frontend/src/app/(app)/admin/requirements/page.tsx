@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { fmtDate } from '@/components/format'
 import { DISPLAY, LevelChip } from '@/components/notice'
 import { Alert, Badge, Card, EmptyState, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { CATEGORIES, PRIORITIES, canManageRequirements, listRequirements } from '@/server/services/requirements'
+import { requireUser } from '@/lib/auth/session'
+import { CATEGORIES, PRIORITIES, canManageRequirements, listRequirements } from '@/services/requirements'
 
 export const metadata: Metadata = { title: 'Country-wise requirements' }
 

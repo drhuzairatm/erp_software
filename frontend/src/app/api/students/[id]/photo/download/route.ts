@@ -1,13 +1,12 @@
-import { NextResponse } from 'next/server'
-import { getActiveSession } from '@/server/auth/session'
-import { studentPhotoDownloadUrl } from '@/server/services/photos'
+import { apiPathSegment } from '@/server-api/forward'
+import { proxyToApi } from '@/server-api/proxy'
 
-/** Download the passport photo (portrait, full quality) through a 60-second signed URL. Audited. */
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const ctx = await getActiveSession()
-  if (!ctx) return new NextResponse('Not found', { status: 404 })
+/**
+ * Download the passport photo through a 60-second signed URL: proxied to the internal API
+ * (GET /api/students/:id/photo/download). Audited.
+ * The query string is passed on unchanged; the id is sent as one encoded path segment (apiPathSegment).
+ */
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const url = await studentPhotoDownloadUrl(ctx, id).catch(() => null)
-  if (!url) return new NextResponse('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
-  return new NextResponse(null, { status: 302, headers: { Location: url, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } })
+  return proxyToApi(req, `/api/students/${apiPathSegment(id)}/photo/download`)
 }

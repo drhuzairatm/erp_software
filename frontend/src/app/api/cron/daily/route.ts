@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { anonymous } from '@/server/db'
-import { rescanPendingFiles } from '@/server/security/jobs'
+import { anonymous } from '@/lib/db'
+import { rescanPendingFiles } from '@/lib/security/jobs'
 
 /**
  * Daily housekeeping (e.g. Vercel Cron 02:30 UTC). Requires "Authorization: Bearer <CRON_SECRET>".

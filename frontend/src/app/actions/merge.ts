@@ -1,8 +1,8 @@
 'use server'
 
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import { buildMergedPdf } from '@/server/services/merge'
+import { requireUser } from '@/lib/auth/session'
+import { buildMergedPdf } from '@/services/merge'
 import { runAction } from './run-action'
 
 /** Check step: processes the selection without producing a file and reports pages, warnings and problems. */

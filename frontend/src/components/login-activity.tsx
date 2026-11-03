@@ -1,6 +1,6 @@
 import { fmtDateTime, label } from './format'
 import { Badge, Card } from './ui'
-import type { ActiveSession, LoginEvent } from '@/server/services/security'
+import type { ActiveSession, LoginEvent } from '@/services/security'
 
 const EVENT: Record<string, string> = {
   login: 'Password accepted', login_failed: 'Failed sign-in', mfa_verified: 'Two-factor code accepted', mfa_failed: 'Wrong two-factor code',

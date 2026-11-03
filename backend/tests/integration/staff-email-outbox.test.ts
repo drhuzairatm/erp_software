@@ -8,14 +8,14 @@ const currentHeaders = new Headers()
 vi.mock('next/headers', () => ({ headers: async () => currentHeaders, cookies: async () => ({ get: () => undefined, set: () => {}, delete: () => {} }) }))
 let configured = true
 const sendEmail = vi.fn(async (_to: string, _subject: string, _text: string) => ({ sent: true } as { sent: boolean; error?: string }))
-vi.mock('@/server/email', async (orig) => ({ ...(await orig<typeof import('@/server/email')>()), emailConfigured: () => configured, sendEmail: (to: string, s: string, t: string) => sendEmail(to, s, t) }))
+vi.mock('@/lib/email', async (orig) => ({ ...(await orig<typeof import('@/lib/email')>()), emailConfigured: () => configured, sendEmail: (to: string, s: string, t: string) => sendEmail(to, s, t) }))
 
-import { decryptSecret } from '@/server/auth/mfa'
-import { acceptInvitation, requestPasswordReset } from '@/server/auth/passwords'
-import { deliverStaffEmails } from '@/server/auth/staff-email'
-import { hashToken } from '@/server/auth/tokens'
-import { anonymous, db } from '@/server/db'
-import * as admin from '@/server/services/admin'
+import { decryptSecret } from '@/lib/auth/mfa'
+import { acceptInvitation, requestPasswordReset } from '@/lib/auth/passwords'
+import { deliverStaffEmails } from '@/lib/auth/staff-email'
+import { hashToken } from '@/lib/auth/tokens'
+import { anonymous, db } from '@/lib/db'
+import * as admin from '@/services/admin'
 import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 const PW = 'Fictional-Outbox-Pass1!'

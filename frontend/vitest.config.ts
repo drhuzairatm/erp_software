@@ -12,7 +12,8 @@ const BACKEND = path.resolve(import.meta.dirname, '../backend')
 export default defineConfig({
   resolve: {
     alias: [
-      { find: /^@\/server\//, replacement: `${BACKEND}/src/server/` },
+      { find: /^@\/lib\/http\/context-provider$/, replacement: path.resolve(import.meta.dirname, 'src/server-api/next-context-provider.ts') },
+      { find: /^@\/services\//, replacement: `${BACKEND}/src/services/` },
       { find: /^@\/lib\//, replacement: `${BACKEND}/src/lib/` },
       { find: /^@\//, replacement: `${path.resolve(import.meta.dirname, 'src')}/` },
       { find: 'server-only', replacement: `${BACKEND}/tests/support/server-only-stub.ts` },

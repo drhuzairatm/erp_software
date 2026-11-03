@@ -20,7 +20,7 @@ import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import postgres from 'postgres'
 import { loadEnv, requireEnv } from './lib/env'
-import { repoPath, repoRoot } from '../src/server/repo-root'
+import { repoPath, repoRoot } from '../src/lib/repo-root'
 
 loadEnv()
 const SRC_URL = new URL(requireEnv('DATABASE_ADMIN_URL'))

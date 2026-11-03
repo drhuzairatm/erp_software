@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Alert, Badge, Card, PageHeader } from '@/components/ui'
-import { can, orgsWith } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { listRoles } from '@/server/services/admin'
+import { can, orgsWith } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { listRoles } from '@/services/admin'
 import { CreateRoleForm, RolePermissionsForm, RoleStructureForm } from '../admin-forms'
 
 export const metadata: Metadata = { title: 'Roles & permissions' }

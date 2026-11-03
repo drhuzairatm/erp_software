@@ -6,7 +6,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import postgres from 'postgres'
-import { getStorage, newStorageKey, sha256 } from '../src/server/storage'
+import { getStorage, newStorageKey, sha256 } from '../src/lib/storage'
 import { isLocalDatabase, loadEnv, requireEnv } from './lib/env'
 import { demoAttestationRoutes, demoStartAttestations } from './lib/demo-attestation'
 import { placeholderPdf } from './lib/seed-demo'

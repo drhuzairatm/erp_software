@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { Card, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { canManageRoutes } from '@/server/services/attestation'
+import { requireUser } from '@/lib/auth/session'
+import { canManageRoutes } from '@/services/attestation'
 import { routeOptions } from '../options'
-import { conditionOptions } from '@/server/services/rules'
+import { conditionOptions } from '@/services/rules'
 import { RouteForm } from '../route-forms'
 
 export const metadata: Metadata = { title: 'New attestation route' }

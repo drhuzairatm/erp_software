@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Badge, Card, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { canSeeMasterData, listCountries, listCourses, mdCan } from '@/server/services/master-data'
+import { requireUser } from '@/lib/auth/session'
+import { canSeeMasterData, listCountries, listCourses, mdCan } from '@/services/master-data'
 import { CourseForm, StatusButton } from '../forms'
 
 export const metadata: Metadata = { title: 'Courses' }

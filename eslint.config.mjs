@@ -17,5 +17,5 @@ export default defineConfig([
     rules: { '@next/next/no-html-link-for-pages': 'off' },
   },
   // one shared configuration for both workspaces (frontend/ and backend/ run "eslint ." and find this file)
-  globalIgnores(['**/.next/**', '**/out/**', '**/build/**', '**/next-env.d.ts', '**/.data/**', '**/playwright-report/**', '**/test-results/**', '**/public/pdfjs/**', '**/node_modules/**']),
+  globalIgnores(['**/.next/**', '**/out/**', '**/build/**', '**/dist/**', '**/next-env.d.ts', '**/.data/**', '**/playwright-report/**', '**/test-results/**', '**/public/pdfjs/**', '**/node_modules/**']),
 ])

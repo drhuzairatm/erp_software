@@ -1,8 +1,8 @@
 import { fmtDate, fmtDateTime, label } from '@/components/format'
 import { Badge, Card, DL, EmptyState } from '@/components/ui'
-import { PASSPORT_TIERS, type PassportTier, getPassportData } from '@/server/services/passport'
-import type { Ctx } from '@/server/services/base'
-import { getLookups } from '@/server/services/lookups'
+import { PASSPORT_TIERS, type PassportTier, getPassportData } from '@/services/passport'
+import type { Ctx } from '@/services/base'
+import { getLookups } from '@/services/lookups'
 import { NoticeCard } from '@/components/notice'
 import { PassportFollowupForm, RecordPassportForm, VerifyPassportForm } from './passport-forms'
 

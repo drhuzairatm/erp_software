@@ -4,11 +4,11 @@ import { HBarList } from '@/components/charts'
 import { fmtDate } from '@/components/format'
 import { Icon } from '@/components/icons'
 import { Avatar, Badge, Card, EmptyState, FilterBar, PageHeader, Pagination, StatCard, ViewTabs, staffPhotoUrl } from '@/components/ui'
-import { can } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { staffPhotoVersions } from '@/server/services/staff-photos'
-import { canReviewLeads, canSeeLeads, LEAD_STATUSES, listLeads, PROGRAMMES, SOURCES } from '@/server/services/leads'
-import { getScope } from '@/server/scope'
+import { can } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { staffPhotoVersions } from '@/services/staff-photos'
+import { canReviewLeads, canSeeLeads, LEAD_STATUSES, listLeads, PROGRAMMES, SOURCES } from '@/services/leads'
+import { getScope } from '@/services/scope'
 
 export const metadata: Metadata = { title: 'Leads' }
 

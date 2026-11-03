@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { Badge, Card, PageHeader } from '@/components/ui'
-import { can, canAny } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { getSettings } from '@/server/services/admin'
-import { getLookups } from '@/server/services/lookups'
+import { can, canAny } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { getSettings } from '@/services/admin'
+import { getLookups } from '@/services/lookups'
 import { AddReferenceForm, OrgSettingsForm, ToggleReference, WorkflowForm } from '../admin-forms'
 
 export const metadata: Metadata = { title: 'Company settings' }

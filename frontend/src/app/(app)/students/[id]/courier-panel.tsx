@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { fmtDate, fmtDateTime } from '@/components/format'
 import { NoticeCard } from '@/components/notice'
 import { Badge, Card } from '@/components/ui'
-import type { Ctx } from '@/server/services/base'
-import { getStudentShipments, SHIPMENT_STATUS, SHIPMENT_STEPS, type Shipment } from '@/server/services/courier'
+import type { Ctx } from '@/services/base'
+import { getStudentShipments, SHIPMENT_STATUS, SHIPMENT_STEPS, type Shipment } from '@/services/courier'
 import { DispatchForm, IssueInstructionsForm, ReconcileForm, ShipmentStatusButtons } from './courier-forms'
 
 /** Step tracker for one shipment */

@@ -3,9 +3,9 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import * as uni from '@/server/services/universities'
-import { formObject } from '@/server/validation'
+import { requireUser } from '@/lib/auth/session'
+import * as uni from '@/services/universities'
+import { formObject } from '@/lib/validation'
 import { runAction } from './run-action'
 
 export async function saveUniversityAction(id: string | null, _: ActionResult, fd: FormData): Promise<ActionResult> {

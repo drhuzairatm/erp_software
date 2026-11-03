@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/ui'
-import { can, orgsWith } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { taskAssignees } from '@/server/services/tasks'
+import { can, orgsWith } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { taskAssignees } from '@/services/tasks'
 import { NewTaskForm } from '../task-forms'
 
 export const metadata: Metadata = { title: 'New task' }

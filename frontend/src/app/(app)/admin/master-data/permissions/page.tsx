@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Card, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { canSeeMasterData, masterDataPermissions } from '@/server/services/master-data'
+import { requireUser } from '@/lib/auth/session'
+import { canSeeMasterData, masterDataPermissions } from '@/services/master-data'
 
 export const metadata: Metadata = { title: 'Master data permissions' }
 

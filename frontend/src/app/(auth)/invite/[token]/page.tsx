@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fmtDateTime } from '@/components/format'
-import { invitationInfo } from '@/server/auth/passwords'
+import { invitationInfo } from '@/lib/auth/passwords'
 import { InviteForm } from './invite-form'
 
 export const metadata: Metadata = { title: 'Accept invitation', referrer: 'no-referrer' }

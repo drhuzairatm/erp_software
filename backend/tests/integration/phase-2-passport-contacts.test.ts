@@ -1,10 +1,10 @@
 /** Phase 2: passport versions & expiry monitoring, international phones, contact history, email verification. */
-import { decryptAuthSecret } from '@/server/auth/auth-message-crypto'
+import { decryptAuthSecret } from '@/lib/auth/auth-message-crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as pp from '@/server/services/passport'
-import * as students from '@/server/services/students'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as pp from '@/services/passport'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin } from '../support/helpers'
 beforeAll(async () => { await delegateToSystemAdmin(['passport.rules.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 

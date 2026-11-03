@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { importTemplateCsv, mapHeaders, parseCsv, parseDate } from '@/server/services/student-import'
+import { importTemplateCsv, mapHeaders, parseCsv, parseDate } from '@/services/student-import'
 
 describe('CSV parsing', () => {
   it('handles quotes, embedded commas/newlines, BOM, CRLF and blank lines', () => {

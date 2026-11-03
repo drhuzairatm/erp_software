@@ -14,19 +14,19 @@ const provider = vi.hoisted(() => ({
   sendEmail: vi.fn(async (_org: string, _to: string, _subject: string, _body: string) =>
     ({ ok: true, provider: 'smtp', providerId: 'stub-1' }) as { ok: true; provider: string; providerId: string | null } | { ok: false; provider: string; error: string; transient: boolean }),
 }))
-vi.mock('@/server/notifications/providers', async (orig) => ({
-  ...(await orig<typeof import('@/server/notifications/providers')>()),
+vi.mock('@/lib/notifications/providers', async (orig) => ({
+  ...(await orig<typeof import('@/lib/notifications/providers')>()),
   channelConfigured: () => provider.configured,
   sendEmail: (org: string, to: string, subject: string, body: string) => provider.sendEmail(org, to, subject, body),
 }))
 
-import { hashToken } from '@/server/auth/tokens'
-import { anonymous, db } from '@/server/db'
-import { deliverPortalEmails } from '@/server/notifications/portal-email'
-import { checkPasswordLink, passwordLogin, requestPasswordReset, setPasswordWithLink } from '@/server/portal'
-import * as notifications from '@/server/services/notifications'
-import * as pa from '@/server/services/portal-accounts'
-import * as students from '@/server/services/students'
+import { hashToken } from '@/lib/auth/tokens'
+import { anonymous, db } from '@/lib/db'
+import { deliverPortalEmails } from '@/lib/notifications/portal-email'
+import { checkPasswordLink, passwordLogin, requestPasswordReset, setPasswordWithLink } from '@/services/portal'
+import * as notifications from '@/services/notifications'
+import * as pa from '@/services/portal-accounts'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 const PW = 'Fictional-N7-Portal-Pass1!'

@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import { commitImport, previewImport } from '@/server/services/student-import'
+import { requireUser } from '@/lib/auth/session'
+import { commitImport, previewImport } from '@/services/student-import'
 import { runAction } from './run-action'
 
 function read(fd: FormData) {

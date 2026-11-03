@@ -5,10 +5,10 @@ import { fmtDate, fmtDateTime, fmtMoney, label } from '@/components/format'
 import { Sparkline } from '@/components/charts'
 import { Icon } from '@/components/icons'
 import { Alert, Card, EmptyState, PageHeader, Pagination, StatCard, StatusBadge, ViewTabs } from '@/components/ui'
-import { can } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { type LedgerFilters, listCurrencies, listLedger } from '@/server/services/payments'
-import { getScope } from '@/server/scope'
+import { can } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { type LedgerFilters, listCurrencies, listLedger } from '@/services/payments'
+import { getScope } from '@/services/scope'
 
 export const metadata: Metadata = { title: 'Payment ledger' }
 

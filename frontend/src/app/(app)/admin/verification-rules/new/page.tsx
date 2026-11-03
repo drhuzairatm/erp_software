@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { Card, PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { canManageRules } from '@/server/services/verification-rules'
+import { requireUser } from '@/lib/auth/session'
+import { canManageRules } from '@/services/verification-rules'
 import { ruleOptions } from '../options'
-import { conditionOptions } from '@/server/services/rules'
+import { conditionOptions } from '@/services/rules'
 import { RuleForm } from '../rule-forms'
 
 export const metadata: Metadata = { title: 'New verification rule' }

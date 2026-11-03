@@ -5,8 +5,8 @@
  */
 import { randomUUID } from 'node:crypto'
 import postgres from 'postgres'
-import { hashPassword } from '../../src/server/auth/password'
-import { getStorage, newStorageKey, sha256 } from '../../src/server/storage'
+import { hashPassword } from '../../src/lib/auth/password'
+import { getStorage, newStorageKey, sha256 } from '../../src/lib/storage'
 import { demoAttestationRoutes, demoStartAttestations } from './demo-attestation'
 import { demoAcademicConfig, demoAcademicRecords } from './demo-academic'
 import { demoCourierAddresses } from './demo-courier'

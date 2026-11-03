@@ -11,13 +11,16 @@ Object.assign(process.env, TEST_ENV)
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@': path.resolve(import.meta.dirname, 'src'),
-      'server-only': path.resolve(import.meta.dirname, 'tests/support/server-only-stub.ts'),
-    },
+    alias: [
+      // Shared server code runs here as it does inside the Next.js app (next/headers, simulated per test where needed).
+      // The Express API tests (tests/api) switch to the Express request-context provider explicitly with vi.mock.
+      { find: /^@\/lib\/http\/context-provider$/, replacement: path.resolve(import.meta.dirname, '../frontend/src/server-api/next-context-provider.ts') },
+      { find: /^@\//, replacement: `${path.resolve(import.meta.dirname, 'src')}/` },
+      { find: 'server-only', replacement: path.resolve(import.meta.dirname, 'tests/support/server-only-stub.ts') },
+    ],
   },
   test: {
-    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts', 'tests/api/**/*.test.ts'],
     globalSetup: ['tests/support/global-setup.ts'],
     env: TEST_ENV,
     pool: 'forks',

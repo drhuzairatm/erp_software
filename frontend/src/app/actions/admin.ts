@@ -2,13 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import { appUrl, emailConfigured, sendEmail } from '@/server/email'
-import * as admin from '@/server/services/admin'
-import { formObject } from '@/server/validation'
+import { requireUser } from '@/lib/auth/session'
+import { appUrl, emailConfigured, sendEmail } from '@/lib/email'
+import * as admin from '@/services/admin'
+import { formObject } from '@/lib/validation'
 import { runAction } from './run-action'
-import { parseCrop } from '@/server/services/photos'
-import { removeStaffPhoto, saveStaffPhoto } from '@/server/services/staff-photos'
+import { parseCrop } from '@/services/photos'
+import { removeStaffPhoto, saveStaffPhoto } from '@/services/staff-photos'
 
 export async function createStaffAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
   const ctx = await requireUser()

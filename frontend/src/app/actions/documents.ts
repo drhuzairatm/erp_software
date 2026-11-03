@@ -2,9 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import * as documents from '@/server/services/documents'
-import { formObject } from '@/server/validation'
+import { requireUser } from '@/lib/auth/session'
+import * as documents from '@/services/documents'
+import { formObject } from '@/lib/validation'
 import { runAction } from './run-action'
 
 const tab = (studentId: string) => `/students/${studentId}`

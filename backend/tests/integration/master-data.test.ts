@@ -1,10 +1,10 @@
 /** MD-controlled master data – the 16 acceptance checks (fictional data). */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as md from '@/server/services/master-data'
-import * as students from '@/server/services/students'
-import * as unis from '@/server/services/universities'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as md from '@/services/master-data'
+import * as students from '@/services/students'
+import * as unis from '@/services/universities'
 import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 let EDX: string

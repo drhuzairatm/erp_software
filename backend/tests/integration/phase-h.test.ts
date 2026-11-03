@@ -1,13 +1,13 @@
 /** Phase H: consent-based notifications, test mode, providers (mocked), retries, privacy. */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import { processQueue } from '@/server/notifications/dispatcher'
-import { gallaboxBody } from '@/server/notifications/providers'
-import { renderTemplate, toInternationalDigits } from '@/server/notifications/render'
-import * as documents from '@/server/services/documents'
-import * as notifications from '@/server/services/notifications'
-import * as students from '@/server/services/students'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import { processQueue } from '@/lib/notifications/dispatcher'
+import { gallaboxBody } from '@/lib/notifications/providers'
+import { renderTemplate, toInternationalDigits } from '@/lib/notifications/render'
+import * as documents from '@/services/documents'
+import * as notifications from '@/services/notifications'
+import * as students from '@/services/students'
 import { adminSql, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 let EDX: string

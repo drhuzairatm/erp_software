@@ -1,7 +1,7 @@
-import { can, canAny } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { canTestRules } from '@/server/services/rules'
-import { canSeeMasterData } from '@/server/services/master-data'
+import { can, canAny } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { canTestRules } from '@/services/rules'
+import { canSeeMasterData } from '@/services/master-data'
 import { type AdminSection, AdminTabs } from './admin-tabs'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

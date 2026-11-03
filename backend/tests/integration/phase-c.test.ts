@@ -1,10 +1,10 @@
 /** Phase C: verification rules, immutable verification records, two-person approval, annotations, view vs download. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as documents from '@/server/services/documents'
-import * as students from '@/server/services/students'
-import * as rules from '@/server/services/verification-rules'
+import { db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as documents from '@/services/documents'
+import * as students from '@/services/students'
+import * as rules from '@/services/verification-rules'
 import { adminSql, as, ctxFor, expectDbError, orgId, delegateToSystemAdmin, securityClear } from '../support/helpers'
 beforeAll(async () => { await delegateToSystemAdmin(['verification.rules.manage']) }) // the MD has delegated these to the System Administrator (test setup)
 

@@ -1,7 +1,7 @@
 import { fmtDateTime } from '@/components/format'
 import { DISPLAY, type Level, LevelIcon, NoticeCard } from '@/components/notice'
-import type { StudentAdvisory } from '@/server/services/requirements'
-import { ACADEMIC_STATUS, CATEGORIES } from '@/server/services/requirements'
+import type { StudentAdvisory } from '@/services/requirements'
+import { ACADEMIC_STATUS, CATEGORIES } from '@/services/requirements'
 import { AcknowledgeButton } from './acknowledge-button'
 
 const RESULT: Record<string, { label: string; level: Level }> = {

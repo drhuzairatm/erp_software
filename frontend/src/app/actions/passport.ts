@@ -3,10 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
 import type { ActionResult } from '@/components/action-types'
-import { requireUser } from '@/server/auth/session'
-import { deliverAuthMessages } from '@/server/notifications/auth-message'
-import * as pp from '@/server/services/passport'
-import { formObject } from '@/server/validation'
+import { requireUser } from '@/lib/auth/session'
+import { deliverAuthMessages } from '@/lib/notifications/auth-message'
+import * as pp from '@/services/passport'
+import { formObject } from '@/lib/validation'
 import { runAction } from './run-action'
 
 const studentPath = (id: string) => `/students/${id}`

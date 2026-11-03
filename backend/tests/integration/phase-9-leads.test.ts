@@ -1,9 +1,9 @@
 /** Phase 9: leads (company-specific, central review queue, duplicates flagged, conversion, Leadist import) and Refer a Friend. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { anonymous, db } from '@/server/db'
-import { ServiceError } from '@/server/errors'
-import * as leads from '@/server/services/leads'
-import * as students from '@/server/services/students'
+import { anonymous, db } from '@/lib/db'
+import { ServiceError } from '@/lib/errors'
+import * as leads from '@/services/leads'
+import * as students from '@/services/students'
 import { adminSql, as, ctxFor, expectDbError, orgId } from '../support/helpers'
 
 let EDX: string; let GRD: string

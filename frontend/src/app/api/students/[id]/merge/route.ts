@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getActiveSession } from '@/server/auth/session'
-import { ServiceError } from '@/server/errors'
-import { buildMergedPdf } from '@/server/services/merge'
+import { getActiveSession } from '@/lib/auth/session'
+import { ServiceError } from '@/lib/errors'
+import { buildMergedPdf } from '@/services/merge'
 
 /**
  * Generates the combined PDF and returns it as a download (or inline preview). Nothing is stored.

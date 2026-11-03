@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Icon } from '@/components/icons'
 import { PageHeader } from '@/components/ui'
-import { requireUser } from '@/server/auth/session'
-import { exportAllowed, reportsFor } from '@/server/services/reports'
-import { getScope } from '@/server/scope'
+import { requireUser } from '@/lib/auth/session'
+import { exportAllowed, reportsFor } from '@/services/reports'
+import { getScope } from '@/services/scope'
 
 export const metadata: Metadata = { title: 'Reports' }
 

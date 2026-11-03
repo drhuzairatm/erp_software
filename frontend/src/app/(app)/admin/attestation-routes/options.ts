@@ -1,7 +1,7 @@
-import type { Ctx } from '@/server/services/base'
-import { listAuthorities } from '@/server/services/attestation'
-import { getLookups } from '@/server/services/lookups'
-import { run } from '@/server/services/base'
+import type { Ctx } from '@/services/base'
+import { listAuthorities } from '@/services/attestation'
+import { getLookups } from '@/services/lookups'
+import { run } from '@/services/base'
 import type { RouteOptions } from './route-forms'
 
 export async function routeOptions(ctx: Ctx): Promise<RouteOptions> {

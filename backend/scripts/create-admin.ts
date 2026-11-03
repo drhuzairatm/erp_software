@@ -17,7 +17,7 @@
  */
 import { parseArgs } from 'node:util'
 import postgres from 'postgres'
-import { hashToken, newTokenValue } from '../src/server/auth/tokens'
+import { hashToken, newTokenValue } from '../src/lib/auth/tokens'
 import { loadEnv, requireEnv } from './lib/env'
 
 loadEnv()

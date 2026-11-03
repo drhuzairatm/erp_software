@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { fmtDate, fmtDateTime } from '@/components/format'
 import { Alert, Badge, Card, DL, EmptyState } from '@/components/ui'
-import { GRADING_SYSTEMS, MISMATCH_LABELS, OAS_STATUS, RECORD_KINDS, SUBJECT_KEYS, getAcademic } from '@/server/services/academic'
-import type { Ctx } from '@/server/services/base'
-import { getLookups } from '@/server/services/lookups'
+import { GRADING_SYSTEMS, MISMATCH_LABELS, OAS_STATUS, RECORD_KINDS, SUBJECT_KEYS, getAcademic } from '@/services/academic'
+import type { Ctx } from '@/services/base'
+import { getLookups } from '@/services/lookups'
 import { EditRecord, NameCheckReview, OasActions, RecordForm } from './academic-forms'
 
 

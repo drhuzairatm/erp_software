@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { resetTokenValid } from '@/server/auth/passwords'
+import { resetTokenValid } from '@/lib/auth/passwords'
 import { ResetForm } from './reset-form'
 
 export const metadata: Metadata = { title: 'Set password', referrer: 'no-referrer' }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Card, PageHeader } from '@/components/ui'
-import { canAny } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
+import { canAny } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
 import { NewLeadForm } from '../lead-forms'
 import { leadFormOptions } from '../options'
 

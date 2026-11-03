@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { fmtDateTime, label } from '@/components/format'
 import { Badge, type Tone } from '@/components/ui'
-import type { MessageRow } from '@/server/services/notifications'
+import type { MessageRow } from '@/services/notifications'
 import { RetryButton } from './message-forms'
 
 export const STATUS_TONE: Record<string, Tone> = { queued: 'blue', sending: 'blue', sent: 'green', delivered: 'green', read: 'green', failed: 'red', skipped: 'slate', test: 'purple', expired: 'slate', revoked: 'slate' }

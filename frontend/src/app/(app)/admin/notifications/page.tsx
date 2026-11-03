@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { Alert, Badge, Card, PageHeader } from '@/components/ui'
-import { can } from '@/server/auth/context'
-import { requireUser } from '@/server/auth/session'
-import { getLookups } from '@/server/services/lookups'
-import { channelStatus, EVENTS, getNotificationSettings } from '@/server/services/notifications'
+import { can } from '@/lib/auth/context'
+import { requireUser } from '@/lib/auth/session'
+import { getLookups } from '@/services/lookups'
+import { channelStatus, EVENTS, getNotificationSettings } from '@/services/notifications'
 import { RuleToggle, TemplateForm } from '../../notifications/message-forms'
 
 export const metadata: Metadata = { title: 'Notification settings' }

@@ -2,8 +2,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-import { assertNotificationConfig, notificationConfigStatus } from '@/server/config/notifications-config'
-import { testMailboxEnabled } from '@/server/notifications/test-mailbox'
+import { assertNotificationConfig, notificationConfigStatus } from '@/lib/config/notifications-config'
+import { testMailboxEnabled } from '@/lib/notifications/test-mailbox'
 
 const prod = (e: Record<string, string | undefined> = {}) => ({ NODE_ENV: 'production', ...e })
 
