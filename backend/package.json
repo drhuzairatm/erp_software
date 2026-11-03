@@ -1,0 +1,49 @@
+{
+  "name": "@erp/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Server logic, database migrations, admin scripts and service/database tests (used by the Next.js app in ../frontend)",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --exclude tests/integration/migrations.test.ts && vitest run tests/integration/migrations.test.ts",
+    "test:watch": "vitest",
+    "db:start": "tsx scripts/dev-db.ts",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:reset": "tsx scripts/migrate.ts --reset && tsx scripts/seed.ts",
+    "db:provision": "tsx scripts/provision.ts",
+    "db:backup": "tsx scripts/db-backup.ts",
+    "admin:create": "tsx scripts/create-admin.ts",
+    "docs:permissions": "tsx scripts/permission-matrix.ts",
+    "docs:schema": "tsx scripts/schema-doc.ts",
+    "demo:attestation": "tsx scripts/demo-addon-attestation.ts",
+    "demo:academic": "tsx scripts/demo-addon-academic.ts",
+    "demo:courier": "tsx scripts/demo-addon-courier.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1161.0",
+    "@aws-sdk/s3-request-presigner": "^3.1161.0",
+    "@node-rs/argon2": "^2.2.2",
+    "libphonenumber-js": "^1.13.15",
+    "next": "^16.4.3",
+    "nodemailer": "^10.2.1",
+    "pdf-lib": "^1.17.1",
+    "postgres": "^3.4.9",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.1",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/nodemailer": "^8.0.2",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "embedded-postgres": "^17.11.0-beta.19",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.5"
+  }
+}

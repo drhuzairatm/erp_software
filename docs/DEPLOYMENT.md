@@ -47,6 +47,11 @@ close to your users and compliant with your requirements (e.g. Mumbai `ap-south-
 
 1. Put the code in a **private** GitHub repository (do not commit `.env`).
 2. Vercel → New Project → import the repo. Framework: Next.js. Node.js version 24.
+   **Root Directory: `frontend`** (the repository is an npm workspace; see README, *Project layout*). Keep
+   "Include files outside the Root Directory in the Build Step" **enabled**: the app imports `backend/`. Vercel
+   installs from the root `package-lock.json`. `frontend/vercel.json` holds the cron schedules, and
+   `outputFileTracingRoot` in `frontend/next.config.ts` makes the deployed functions include the backend code they use.
+   **Not yet verified on Vercel** (no project exists); verified locally with `npm run build` and `npm start`.
 3. Environment variables (Production and Preview separately):
    `APP_URL`, `DATABASE_URL` (erp_app pooled URL), `DATABASE_POOLED=true`, `STORAGE_DRIVER=s3`, the `S3_*`
    values, `STORAGE_SIGNING_SECRET` (random 32+ chars), `MFA_ENCRYPTION_KEY` (32 random bytes, base64 —
@@ -58,7 +63,7 @@ close to your users and compliant with your requirements (e.g. Mumbai `ap-south-
    **Never** add `DATABASE_ADMIN_URL`, `APP_DB_PASSWORD` or `SEED_DEMO_PASSWORD` to Vercel.
 4. Deploy, then add your domain (e.g. `staff.yourcompany.com`) and confirm HTTPS.
 5. Optional: enable Vercel Firewall rate limiting for `/login` and `/forgot-password`.
-6. **Scheduled jobs (required):** `/api/cron/notifications` must run **every minute**. It also delivers staff password-reset emails, student-portal set-up and reset emails, and portal sign-in codes and email-verification links from their encrypted queues (`auth_private.staff_email_outbox`, `auth_private.portal_email_outbox`, `auth_private.auth_message_outbox`); the sign-in action only tries a faster delivery. `/api/cron/daily` runs once a day and also removes expired trusted-browser and reset-request records. On Vercel, `vercel.json` sets both (per-minute needs Pro). On a **Hostinger VPS**, add a system cron (or systemd timer), for example `* * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/notifications`, plus a daily call to `/api/cron/daily`. Without it, reset emails are never sent and expire after 1 hour.
+6. **Scheduled jobs (required):** `/api/cron/notifications` must run **every minute**. It also delivers staff password-reset emails, student-portal set-up and reset emails, and portal sign-in codes and email-verification links from their encrypted queues (`auth_private.staff_email_outbox`, `auth_private.portal_email_outbox`, `auth_private.auth_message_outbox`); the sign-in action only tries a faster delivery. `/api/cron/daily` runs once a day and also removes expired trusted-browser and reset-request records. On Vercel, `frontend/vercel.json` sets both (per-minute needs Pro). On a **Hostinger VPS**, add a system cron (or systemd timer), for example `* * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/notifications`, plus a daily call to `/api/cron/daily`. Without it, reset emails are never sent and expire after 1 hour.
 
 ### 3.1 Encryption key rotation (`MFA_ENCRYPTION_KEY`)
 
@@ -78,7 +83,7 @@ dual-key rotation. Changing the key means:
 
 ## 3a. Client address and reverse proxy (`TRUST_PROXY`)
 
-**Why it matters:** the client address feeds the per-address sign-in limit (30 failures in 15 minutes), the portal-code limit (20 per hour), the "many failed sign-ins from one address" alert and the audit log. Headers like `X-Forwarded-For` can be typed by anyone, so the app believes **only** the header that **your own proxy sets**, and only when `TRUST_PROXY` says so (`src/lib/client-ip.ts`). Values that are not valid IPv4/IPv6 addresses are discarded.
+**Why it matters:** the client address feeds the per-address sign-in limit (30 failures in 15 minutes), the portal-code limit (20 per hour), the "many failed sign-ins from one address" alert and the audit log. Headers like `X-Forwarded-For` can be typed by anyone, so the app believes **only** the header that **your own proxy sets**, and only when `TRUST_PROXY` says so (`backend/src/lib/client-ip.ts`). Values that are not valid IPv4/IPv6 addresses are discarded.
 
 **If `TRUST_PROXY` is not set (or the app is reached directly):**
 - No forwarding header is trusted, and the address is **unknown**.
@@ -139,7 +144,7 @@ staff from **Staff** in the app.
 2. Push to a branch → Vercel preview deploy (against staging) → smoke test.
 3. Apply new migrations to staging (`npm run db:migrate` with staging admin URL), test, then production.
    Never edit an applied migration (the runner refuses). From 0017 every migration ships with an undo
-   script in `db/rollbacks/` (`npm run db:migrate -- --rollback NNNN`). Take `npm run db:backup` first.
+   script in `backend/db/rollbacks/` (`npm run db:migrate -- --rollback NNNN`). Take `npm run db:backup` first.
    Code changes are tracked in git: deploy a tagged commit so a release can be rolled back.
 4. Merge to main → production deploy. Check `/api/health` returns `{"status":"ok"}`.
 

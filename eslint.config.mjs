@@ -11,5 +11,11 @@ export default defineConfig([
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', '.data/**', 'playwright-report/**', 'test-results/**', 'public/pdfjs/**']),
+  {
+    // the backend has no pages or links; the Next.js page-link rule only applies to the app in frontend/
+    files: ['backend/**'],
+    rules: { '@next/next/no-html-link-for-pages': 'off' },
+  },
+  // one shared configuration for both workspaces (frontend/ and backend/ run "eslint ." and find this file)
+  globalIgnores(['**/.next/**', '**/out/**', '**/build/**', '**/next-env.d.ts', '**/.data/**', '**/playwright-report/**', '**/test-results/**', '**/public/pdfjs/**', '**/node_modules/**']),
 ])

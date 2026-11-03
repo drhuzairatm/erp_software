@@ -11,5 +11,6 @@ playwright-report/
 test-results/
 coverage/
 .DS_Store
-public/pdfjs/
+/public/pdfjs/
+/frontend/public/pdfjs/
 backups/

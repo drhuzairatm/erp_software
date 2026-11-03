@@ -1,0 +1,37 @@
+{
+  "name": "@erp/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Next.js app: pages, layouts, components, server actions and route handlers, browser tests",
+  "scripts": {
+    "predev": "node scripts/copy-pdf-assets.mjs",
+    "dev": "next dev",
+    "prebuild": "node scripts/copy-pdf-assets.mjs",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@erp/backend": "*",
+    "@next/env": "16.4.3",
+    "next": "^16.4.3",
+    "pdfjs-dist": "^6.4.299",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.3",
+    "vitest": "^5.0.5",
+    "postgres": "^3.4.9",
+    "sharp": "^0.35.5"
+  }
+}

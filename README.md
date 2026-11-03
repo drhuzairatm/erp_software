@@ -58,7 +58,7 @@ Password for all: the value of `SEED_DEMO_PASSWORD` in your `.env`. Locally `MFA
 
 | Command | Purpose |
 |---|---|
-| `npm run dev` | Development server |
+| `npm run dev` | Development server (frontend workspace) |
 | `npm run build` / `npm start` | Production build / run |
 | `npm run db:start` | Local PostgreSQL (development only) |
 | `npm run db:migrate` | Apply new migrations (uses `DATABASE_ADMIN_URL`); `-- --rollback NNNN` undoes recent ones |
@@ -67,7 +67,7 @@ Password for all: the value of `SEED_DEMO_PASSWORD` in your `.env`. Locally `MFA
 | `npm run db:seed` | Load fictional demo data (refuses production) |
 | `npm run db:reset` | Drop and rebuild the **local** database with demo data |
 | `npm run admin:create -- --email … --name "…"` | Create the first administrator; prints a one-time setup link |
-| `npm test` | Unit + integration tests (starts its own throwaway PostgreSQL) |
+| `npm test` | Unit + integration tests of both workspaces (starts its own throwaway PostgreSQL) |
 | `npm run test:e2e` | Browser tests (needs the dev database with demo data and Google Chrome) |
 | `npm run check` | Typecheck + lint + tests + production build |
 | `npm run docs:permissions` | Regenerate docs/ROLE_PERMISSION_MATRIX.md from the database |
@@ -75,18 +75,40 @@ Password for all: the value of `SEED_DEMO_PASSWORD` in your `.env`. Locally `MFA
 
 ## Project layout
 
+The repository is an npm workspace with two folders. Run every `npm run …` command above from the repository root; it is forwarded to the right folder.
+
 ```
-db/migrations/        Versioned SQL: schema, row-level security, functions, system data
-scripts/              Local DB, migrations, provisioning, demo seed, admin creation
-src/server/           Server-only code: auth, DB access, services, storage, validation
-src/app/(auth)/       Login, forgot/reset password
-src/app/(app)/        Application pages (dashboard, students, tasks, payments, reports, admin, audit)
-src/app/actions/      Server actions (form handlers)
-src/app/api/          File access, signed local file serving, CSV export, health check
-tests/integration/    Database isolation + service tests (Vitest)
-tests/e2e/            Browser tests (Playwright)
-docs/                 Architecture, security, deployment, backup, user guide, UAT checklist, roadmap
+frontend/                     Next.js app (@erp/frontend): what the browser sees, plus its route handlers and server actions
+  src/app/(auth)/             Login, forgot/reset password
+  src/app/(app)/              Application pages (dashboard, students, tasks, payments, reports, admin, audit)
+  src/app/portal/             Student portal
+  src/app/actions/            Server actions (form handlers)
+  src/app/api/                File access, signed local file serving, CSV export, cron, health check
+  src/components/             Shared React components
+  src/proxy.ts                Per-request security (nonce CSP, session checks)
+  src/instrumentation.ts      Production start-up checks
+  public/brands/              Logos
+  tests/e2e/                  Browser tests (Playwright)
+  tests/integration/          Tests of route handlers and server actions (Vitest)
+  next.config.ts, vercel.json, playwright.config.ts
+backend/                      Server-only code (@erp/backend), imported by the app; never sent to the browser
+  src/server/                 Auth, DB access, services, notifications, storage, configuration
+  src/lib/                    Validation and shared helpers (also used by client components, e.g. form rules)
+  db/migrations/, db/rollbacks/   Versioned SQL and exact rollbacks
+  scripts/                    Local DB, migrations, provisioning, demo seed, admin creation, generated docs
+  tests/unit/, tests/integration/, tests/support/   Vitest (throwaway PostgreSQL on port 54339)
+docs/                         Architecture, security, deployment, backup, user guide, UAT checklist, roadmap
+.env                          Shared by both folders (repository root; never committed)
+.data/                        Local development data: database, file storage, test mailbox (never committed)
+eslint.config.mjs             Shared lint rules
 ```
+
+The app imports backend code with the same aliases as before: `@/server/…` and `@/lib/…` resolve to `backend/src/…`, `@/…` to `frontend/src/…` (`frontend/tsconfig.json`).
+
+**Older documents** were written before the split and use the old paths. Read them as:
+`src/server/` → `backend/src/server/`, `src/lib/` → `backend/src/lib/`, `db/` → `backend/db/`, `scripts/` → `backend/scripts/`,
+`src/app/`, `src/components/`, `src/proxy.ts`, `src/instrumentation.ts` → under `frontend/`,
+`tests/e2e/` → `frontend/tests/e2e/`, other `tests/` → `backend/tests/` (except three route/action tests in `frontend/tests/integration/`).
 
 ## Documentation
 
