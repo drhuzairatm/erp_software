@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { adminDb, login } from './helpers'
+import { adminDb, codeFrom, fromTestMailbox, login } from './helpers'
 
 const admin = adminDb()
 test.afterAll(async () => { await admin.end() })
@@ -16,10 +16,11 @@ test('student signs in with a code, sees progress, uploads a requested document'
      limit 1`
   await page.goto('/portal')
   await page.getByLabel('Email or mobile number you registered with').fill(s.email)
+  const since = Date.now()
   await page.getByRole('button', { name: 'Send me a code' }).click()
   await expect(page).toHaveURL(/\/portal\/verify\?c=/)
-  // test mode: the code waits in the outbox (fictional student)
-  const [m] = await admin`select params->>'code' as code from notification_messages where student_id = ${s.id} and event_key = 'portal_login_code' order by created_at desc limit 1`
+  // test mode: the code is never stored; the dev server's local test mailbox has it (fictional student)
+  const m = { code: codeFrom(await fromTestMailbox(s.email, 'portal_login_code', since)) }
   await page.getByLabel('6-digit code').fill(m.code === '000000' ? '111111' : '000000')
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByText('That code is not correct')).toBeVisible()

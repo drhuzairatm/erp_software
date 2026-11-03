@@ -31,7 +31,8 @@ No staging or production environment exists yet.
 | Backup → isolated restore drill | 2026-11-01 | `eab9075` | **31/31 checks passed** | BACKUP_RESTORE_DRILL.md |
 | Phase D re-run (after the documentation changes and two test-reliability fixes) | 2026-11-01 | Phase D commit | **260 passed** (full check incl. build); **54 browser passed, 0 skipped** | PHASE_D_REPORT.md |
 | N-1 run (migration 0035 applied to the development database) | 2026-11-01 | `7569feb` | **315 passed, 0 failed** (36 files; full check incl. typecheck, lint, build); **56 browser passed, 0 failed, 0 skipped** | this register, section N-1 |
-| N-7 run (migration 0036 applied to the development database) | 2026-11-01 | uncommitted, on top of `7569feb` | **336 passed, 0 failed** (38 files; full check incl. typecheck, lint, build); **56 browser passed, 0 failed, 0 skipped** | this register, section N-7 |
+| N-7 run (migration 0036 applied to the development database) | 2026-11-01 | `8038ec9` | **336 passed, 0 failed** (38 files; full check incl. typecheck, lint, build); **56 browser passed, 0 failed, 0 skipped** | this register, section N-7 |
+| N-8 run (migration 0037 applied to the development database) | 2026-11-03 | uncommitted, on top of `8038ec9` | **363 passed, 0 failed** (41 files; full check incl. typecheck, lint, build; repeated: 363 passed twice); **57 browser passed, 0 failed, 0 skipped** | this register, section N-8 |
 
 ## Evidence by area
 Each test was run on 2026-11-01. Columns: evidence ID, control, test or source (file), result, commit.
@@ -117,23 +118,43 @@ Each test was run on 2026-11-01. Columns: evidence ID, control, test or source (
 
 **Known deviation (N-1):** the planned extra caps on portal sign-in codes (1 per minute, 5 per 15 minutes) were **not** built. They conflict with existing tested behaviour (`phase-i.test.ts`); the existing limit of 5 per hour per identifier stays.
 
-**Finding N-7:** fixed in development by migration 0036 (see the next section).
+**Finding N-7:** fixed by migration 0036, commit `8038ec9` (see the next section). **Finding N-8:** fixed in development by migration 0037, uncommitted (section N-8).
 
-### N-7: secure portal link queue (migration 0036, **uncommitted**, 1 Nov 2026)
+### N-7: secure portal link queue (migration 0036, commit `8038ec9`, 1 Nov 2026)
 | ID | Control | Test / source | Result | Commit |
 |---|---|---|---|---|
-| E-P1 | Database security of 0036: new functions SECURITY DEFINER with fixed `search_path`; PUBLIC executes none; `erp_app` executes exactly the 4 application functions and no internal or trigger function; queue closed to `erp_app` (no USAGE, no privilege, no grant); public policies 149 and RLS tables 89 unchanged; `messages_select` hides both portal-link kinds from every branch | `tests/integration/portal-link-db-security.test.ts` | Pass | uncommitted |
-| E-P2 | **Exact rollback** in the throwaway test database: the 3 replaced functions (definition and access list) and the `messages_select` policy (qual, roles, command) match the pre-0036 development fingerprints; new objects removed. A real legacy exposure, created with the restored old function, is scrubbed on re-apply: link removed, message skipped, exposed link no longer valid, audited. **The development database was not rolled back.** | same file | Pass | uncommitted |
-| E-P3 | Set-up link stored encrypted, delivered once by the company sender, then wiped; it appears in no outbox, audit log, student event or alert, and not to the manager, the MD or a counsellor; the student completes set-up and signs in; staff see the delivery status only | `tests/integration/portal-link-queue.test.ts` | Pass | uncommitted |
-| E-P4 | Forgot password: the reset link reaches only the student; the reset works; replay is refused; neither contact-details nor outbox holders can read it | same file | Pass | uncommitted |
-| E-P5 | Test mode → status "test", link wiped, nothing sent (allow-listed addresses do receive it); email not configured → skipped and wiped; expired before sending → never sent; an expired delivered link cannot be used; re-issue revokes the older queued email and link; disabling revokes; claim-time re-check catches a revocation the trigger did not see | same file | Pass | uncommitted |
-| E-P6 | 3 parallel senders deliver each message exactly once; temporary failure → retry with back-off, link kept encrypted while pending, failed after 5 attempts, wiped and audited; permanent failure → failed at once | same file | Pass | uncommitted |
-| E-P7 | Direct access denied: `erp_app` and staff (MD, admin, manager, counsellor) cannot read the queue; sender functions refuse staff contexts; plain links refused (22023); the CHECK refuses plain or pending links in final states; portal-link messages cannot be inserted into the outbox; status function respects company isolation; legacy rows hidden and stripped in every status (test, queued, sent, failed, skipped) | same file | Pass | uncommitted |
-| E-P8 | Existing portal tests adapted to the secure queue (forgot password: one queue row, none in the outbox, queue unreadable to counsellor and manager) | `tests/integration/phase-6-portal-v2.test.ts` | Pass | uncommitted |
+| E-P1 | Database security of 0036: new functions SECURITY DEFINER with fixed `search_path`; PUBLIC executes none; `erp_app` executes exactly the 4 application functions and no internal or trigger function; queue closed to `erp_app` (no USAGE, no privilege, no grant); public policies 149 and RLS tables 89 unchanged; `messages_select` hides both portal-link kinds from every branch | `tests/integration/portal-link-db-security.test.ts` | Pass | `8038ec9` |
+| E-P2 | **Exact rollback** in the throwaway test database: the 3 replaced functions (definition and access list) and the `messages_select` policy (qual, roles, command) match the pre-0036 development fingerprints; new objects removed. A real legacy exposure, created with the restored old function, is scrubbed on re-apply: link removed, message skipped, exposed link no longer valid, audited. **The development database was not rolled back.** | same file | Pass | `8038ec9` |
+| E-P3 | Set-up link stored encrypted, delivered once by the company sender, then wiped; it appears in no outbox, audit log, student event or alert, and not to the manager, the MD or a counsellor; the student completes set-up and signs in; staff see the delivery status only | `tests/integration/portal-link-queue.test.ts` | Pass | `8038ec9` |
+| E-P4 | Forgot password: the reset link reaches only the student; the reset works; replay is refused; neither contact-details nor outbox holders can read it | same file | Pass | `8038ec9` |
+| E-P5 | Test mode → status "test", link wiped, nothing sent (allow-listed addresses do receive it); email not configured → skipped and wiped; expired before sending → never sent; an expired delivered link cannot be used; re-issue revokes the older queued email and link; disabling revokes; claim-time re-check catches a revocation the trigger did not see | same file | Pass | `8038ec9` |
+| E-P6 | 3 parallel senders deliver each message exactly once; temporary failure → retry with back-off, link kept encrypted while pending, failed after 5 attempts, wiped and audited; permanent failure → failed at once | same file | Pass | `8038ec9` |
+| E-P7 | Direct access denied: `erp_app` and staff (MD, admin, manager, counsellor) cannot read the queue; sender functions refuse staff contexts; plain links refused (22023); the CHECK refuses plain or pending links in final states; portal-link messages cannot be inserted into the outbox; status function respects company isolation; legacy rows hidden and stripped in every status (test, queued, sent, failed, skipped) | same file | Pass | `8038ec9` |
+| E-P8 | Existing portal tests adapted to the secure queue (forgot password: one queue row, none in the outbox, queue unreadable to counsellor and manager) | `tests/integration/phase-6-portal-v2.test.ts` | Pass | `8038ec9` |
 
 **N-7 not tested / externally dependent:** real email delivery (stub provider only); the per-minute scheduled job on a real host; a browser test of an emailed link. Development has no email provider, so the emailed path is covered by the integration tests only.
 
-**Adjacent observation (not part of N-7, awaiting decision):** in test mode, portal sign-in codes and email-verification links remain readable to `notifications.view` holders.
+### N-8: secure authentication-message queue (migration 0037, **uncommitted**, 3 Nov 2026)
+Portal sign-in codes and email-verification links are no longer in the staff-visible outbox. **Not committed; awaiting the owner's review.**
+
+| ID | Control | Test / source | Result | Commit |
+|---|---|---|---|---|
+| E-A1 | Database security of 0037: functions SECURITY DEFINER with fixed `search_path`; PUBLIC executes none of the new ones; `erp_app` executes exactly the 4 application functions; queue closed to `erp_app`; policy count 149 unchanged; `messages_select` hides all four secret kinds; the CHECK refuses badly formed ciphertext and secrets in final states; secret kinds cannot be inserted into the outbox (42501); a re-queue from a final status is refused (23514) | `tests/integration/auth-message-db-security.test.ts` | Pass | uncommitted |
+| E-A2 | **Exact rollback** in the throwaway test database: the replaced functions and policy match the pre-0037 fingerprints; new objects removed. A real legacy exposure, created with the restored old functions, is scrubbed on re-apply (code and link invalid, audited). **The development database was not rolled back.** | same file | Pass | uncommitted |
+| E-A3 | MD, CEO, Admin, Manager, Counsellor, Finance and the other company's manager see **no** code or link in **any** status (queued, sending, sent, failed, skipped, test, expired, cancelled), across Messages, the outbox, the redacted log, audit, events and alerts; managers keep a redacted status row (no text, no Retry); company isolation | `tests/integration/auth-message-queue.test.ts` | Pass | uncommitted |
+| E-A4 | The right student signs in with the delivered code and verifies the email with the delivered link; replay refused; expired, used, replaced, 5-attempt and email-changed codes and links are revoked and never sent, including on retry | same file | Pass | uncommitted |
+| E-A5 | 3 concurrent senders deliver each message exactly once; back-off retry, failure after 5 attempts (wiped, audited); permanent failure at once; Gallabox: the code is only in the request body, and an echoing error is stored masked; authenticated decryption rejects tampered, wrong-kind and N-1/N-7-format ciphertext; the cron response and console contain no secret | same file | Pass | uncommitted |
+| E-A6 | Test mode: wiped, nothing stored; local test mailbox only with `NODE_ENV≠production` and `NOTIFICATIONS_TEST_MAILBOX=1` (folder 0700, files 0600); production requires exactly `NOTIFICATIONS_MODE=live` | `tests/unit/notifications-config.test.ts`, same file | Pass | uncommitted |
+| E-A7 | Production build with a disallowed mode serves nothing (HTTP 500 to every request, "Refusing to start" in the log); with `live`, `/api/health` 200 | manual run of the production build, 2 Nov 2026 (port 3100) | Pass (fail-closed; the process does not exit) | uncommitted |
+| E-A8 | Browser: the MD's Messages page shows only a redacted row with no code; the student signs in with the code from the local test mailbox; existing sign-in and email-verification browser tests adapted | `tests/e2e/n8-auth-messages.spec.ts`, `phase-i`, `courier`, `phase-2-passport-contacts` | Pass | uncommitted |
+| E-A9 | Development database after 0037 and the browser runs: 0 secrets in final states, 0 pending; 0 new secret-kind messages in the outbox; 80 legacy messages with 0 codes and 0 real tokens (masked); 0 audit entries with secrets; `erp_app` has no access to `auth_private` | read-only queries, 3 Nov 2026 | Pass | uncommitted |
+
+**Test reliability fixes made while finishing N-8 (tests only):**
+- `phase-h.test.ts`: three lookups did not say "student" and could pick the parent's message (always *skipped*, "no phone number"). Intermittent failure; it now filters by recipient, as its other lookups do.
+- `portal-link-db-security.test.ts`: still requires both portal-link kinds to be hidden, and now accepts the kinds added by 0037.
+- `auth-message-queue.test.ts`: phone numbers made unique (no duplicate-detection collisions with other tests).
+
+**N-8 not tested / externally dependent:** real email and WhatsApp delivery (stub provider; Gallabox request built by the real code with a stubbed network); the per-minute scheduled job on a real host; behaviour behind a real reverse proxy. Request logs may record the URL of a student's own (single-use) link visit (audit finding A-04).
 
 ## Controls without test evidence
 These are implemented or documented, but **no automated test proves them**:

@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { after } from 'next/server'
 import { redirect } from 'next/navigation'
 import { newDeviceToken, PORTAL_DEVICE_COOKIE, setDeviceCookie } from '@/server/auth/trusted-device'
+import { deliverAuthMessages } from '@/server/notifications/auth-message'
 import { deliverPortalEmails } from '@/server/notifications/portal-email'
 import type { ActionResult } from '@/components/action-types'
 import { chooseStudent, markNoticesRead, portalSubmitReferral, publicSubmitReferral, passwordLogin, portalLogout, portalSubmitCourier, portalUpload, requestCode, requestPasswordReset, setPasswordWithLink, verifyCode } from '@/server/portal'
@@ -12,7 +13,11 @@ import { runAction } from '../actions/run-action'
 
 export async function requestCodeAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
   let challenge: string | null = null
-  const res = await runAction(async () => { challenge = await requestCode(String(fd.get('identifier') ?? '')) })
+  const res = await runAction(async () => {
+    challenge = await requestCode(String(fd.get('identifier') ?? ''))
+    // always scheduled (whether or not a student matched), so the response reveals nothing; cron delivers anyway
+    after(() => deliverAuthMessages(10).then(() => undefined, () => undefined))
+  })
   if (challenge) redirect(`/portal/verify?c=${challenge}`)
   return res
 }

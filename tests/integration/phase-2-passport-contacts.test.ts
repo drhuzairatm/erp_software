@@ -1,4 +1,5 @@
 /** Phase 2: passport versions & expiry monitoring, international phones, contact history, email verification. */
+import { decryptAuthSecret } from '@/server/auth/auth-message-crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { db } from '@/server/db'
 import { ServiceError } from '@/server/errors'
@@ -184,8 +185,9 @@ describe('passport records', () => {
 
 describe('email verification', () => {
   const tokenFor = async (id: string) => {
-    const [m] = await adminSql()`select params ->> 'link' as link from notification_messages where student_id = ${id} and event_key = 'email_verification' order by created_at desc limit 1`
-    return new URL(m.link).searchParams.get('token')!
+    // N-8: the link is queued ENCRYPTED in the secure authentication queue (read here as the delivery would)
+    const [m] = await adminSql()`select secret_encrypted from auth_private.auth_message_outbox where student_id = ${id} and kind = 'email_verification' and status = 'queued' order by created_at desc limit 1`
+    return new URL(decryptAuthSecret('email_verification', m.secret_encrypted)).searchParams.get('token')!
   }
 
   it('entered → pending → verified, only by opening the link; a changed address goes back to entered', async () => {

@@ -99,8 +99,8 @@ The history is append-only and visible on the Overview tab to staff with contact
 
 - Staff with contact and update permission use **Send verification email** (at most 3 per hour per student).
 - The confirmation page needs a button press, so automatic link scanners cannot verify an address.
-- Links are single-use and stored only as a hash. They are hidden in the outbox once sent, and are never shown to staff without outbox permission.
-- Only the verification functions can change the status. In test mode the email isn't sent; the link can be seen in the outbox (Messages) for testing.
+- Links are single-use and stored only as a hash. **The email goes through the encrypted authentication queue (finding N-8), not the Messages outbox.** No staff member can see the link in any status, the MD included. Managers see a redacted status row (*Verification link – hidden for security*). A new verification, a used or expired link, or a change of email cancels a queued email at once.
+- Only the verification functions can change the status. In test mode the email isn't sent and the link is wiped. In development only, `NOTIFICATIONS_TEST_MAILBOX=1` writes it to the local test mailbox (docs/NOTIFICATIONS.md).
 
 ## Database
 

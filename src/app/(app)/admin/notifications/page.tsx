@@ -22,6 +22,13 @@ export default async function NotificationSettingsPage() {
         <Alert tone={status.mode === 'test' ? 'amber' : 'green'} title={status.mode === 'test' ? 'Test mode is on' : 'Live mode'}>
           {status.mode === 'test' ? 'Nothing is sent to students or parents (except test recipients). Switch to live mode in the server settings (NOTIFICATIONS_MODE=live) once the wording and providers are confirmed.' : 'Messages are being delivered.'}
         </Alert>
+        {/* configuration status (finding N-8): production refuses to start unless NOTIFICATIONS_MODE=live */}
+        <Alert tone={status.config.errors.length ? 'red' : status.config.warnings.length ? 'amber' : 'green'} title={`Configuration: ${status.config.environment}`}>
+          <span className="block">NOTIFICATIONS_MODE is {status.config.explicit ? `set to "${status.mode}"` : 'not set to a valid value (test mode)'}.
+            {' '}Production requires NOTIFICATIONS_MODE=live; staging and development may use test mode.</span>
+          {[...status.config.errors, ...status.config.warnings].map((w) => <span key={w} className="block">{w}</span>)}
+          <span className="block">Sign-in codes and email-verification links are never shown here or in Messages; in test mode they are not sent and not stored.</span>
+        </Alert>
         <Card title="Channels">
           <table className="text-sm"><thead><tr><th>Company</th><th>Email (SMTP)</th><th>WhatsApp (Gallabox)</th><th>SMS</th></tr></thead>
             <tbody>{status.channels.map((c) => (

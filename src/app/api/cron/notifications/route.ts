@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { deliverStaffEmails } from '@/server/auth/staff-email'
 import { processQueue } from '@/server/notifications/dispatcher'
+import { deliverAuthMessages } from '@/server/notifications/auth-message'
 import { deliverPortalEmails } from '@/server/notifications/portal-email'
 import { emailSecurityAlerts } from '@/server/security/jobs'
 
@@ -20,5 +21,7 @@ export async function GET(req: Request) {
   const staffEmails = await deliverStaffEmails(50).catch(() => ({ error: true }))
   // student-portal set-up / reset link emails (dedicated encrypted queue, finding N-7)
   const portalLinkEmails = await deliverPortalEmails(50).catch(() => ({ error: true }))
-  return NextResponse.json({ ...result, securityAlerts, staffEmails, portalLinkEmails }, { headers: { 'Cache-Control': 'no-store' } })
+  // portal sign-in codes and email-verification links (dedicated encrypted queue, finding N-8)
+  const authMessages = await deliverAuthMessages(50).catch(() => ({ error: true }))
+  return NextResponse.json({ ...result, securityAlerts, staffEmails, portalLinkEmails, authMessages }, { headers: { 'Cache-Control': 'no-store' } })
 }

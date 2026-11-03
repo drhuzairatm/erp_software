@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { adminDb, login, securityClearAsMd } from './helpers'
+import { adminDb, codeFrom, fromTestMailbox, login, securityClearAsMd } from './helpers'
 
 const admin = adminDb()
 test.afterAll(async () => { await admin.end() })
@@ -32,9 +32,11 @@ test('scan → approval → courier: address released only after approval; stude
   const student = await page.context().browser()!.newPage({ viewport: { width: 390, height: 844 } })
   await student.goto('/portal')
   await student.getByLabel('Email or mobile number you registered with').fill(s.email)
+  const since = Date.now()
   await student.getByRole('button', { name: 'Send me a code' }).click()
   await expect(student).toHaveURL(/\/portal\/verify\?c=/)
-  const [m] = await admin`select params->>'code' as code from notification_messages where student_id = ${s.id} and event_key = 'portal_login_code' order by created_at desc limit 1`
+  // test mode: the code is never stored; the dev server's local test mailbox has it (fictional student)
+  const m = { code: codeFrom(await fromTestMailbox(s.email, 'portal_login_code', since)) }
   await student.getByLabel('6-digit code').fill(m.code)
   await student.getByRole('button', { name: 'Sign in' }).click()
   const courier = student.locator('section', { has: student.getByRole('heading', { name: 'Sending your original documents' }) })

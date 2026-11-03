@@ -1,4 +1,6 @@
 import { type Page, expect } from '@playwright/test'
+import { readdirSync, readFileSync, rmSync } from 'node:fs'
+import path from 'node:path'
 import postgres from 'postgres'
 
 process.loadEnvFile('.env')
@@ -29,3 +31,29 @@ export async function securityClearAsMd(admin: ReturnType<typeof adminDb>, docum
     }
   })
 }
+
+/**
+ * N-8: in test mode sign-in codes and verification links are never stored. With NOTIFICATIONS_TEST_MAILBOX=1 (development
+ * only) the dev server writes them to the local, owner-only test mailbox (.data/test-mailbox/). Waits for the newest
+ * message of that kind to that (fictional) recipient written after `since`, removes the file and returns the body.
+ * The app server must be started with NOTIFICATIONS_TEST_MAILBOX=1 (see docs/NOTIFICATIONS.md).
+ */
+const MAILBOX = path.resolve('.data/test-mailbox')
+export async function fromTestMailbox(to: string, kind: 'portal_login_code' | 'email_verification', since: number, timeoutMs = 20_000) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    let files: string[] = []
+    try { files = readdirSync(MAILBOX).filter((f) => f.endsWith('.json') && f.includes(kind)) } catch { /* not created yet */ }
+    const hits = files.map((f) => ({ f, m: JSON.parse(readFileSync(path.join(MAILBOX, f), 'utf8')) as { to: string; body: string; at: string } }))
+      .filter((x) => x.m.to.toLowerCase() === to.toLowerCase() && Date.parse(x.m.at) >= since - 1000)
+      .sort((a, b) => Date.parse(b.m.at) - Date.parse(a.m.at))
+    if (hits.length) {
+      for (const h of hits) rmSync(path.join(MAILBOX, h.f), { force: true })
+      return hits[0].m.body
+    }
+    await new Promise((r) => setTimeout(r, 250))
+  }
+  throw new Error(`No ${kind} message for the test recipient in the local test mailbox – is the dev server running with NOTIFICATIONS_TEST_MAILBOX=1?`)
+}
+export const codeFrom = (body: string) => body.match(/\b(\d{6})\b/)![1]
+export const linkFrom = (body: string) => body.match(/https?:\/\/\S+\/verify-email\?token=[A-Za-z0-9_-]+/)![0]

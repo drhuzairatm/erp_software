@@ -4,8 +4,8 @@ import { Badge, type Tone } from '@/components/ui'
 import type { MessageRow } from '@/server/services/notifications'
 import { RetryButton } from './message-forms'
 
-export const STATUS_TONE: Record<string, Tone> = { queued: 'blue', sending: 'blue', sent: 'green', delivered: 'green', read: 'green', failed: 'red', skipped: 'slate', test: 'purple' }
-export const STATUS_LABEL: Record<string, string> = { test: 'Test – not sent', skipped: 'Skipped', queued: 'Queued', sending: 'Sending', sent: 'Sent', delivered: 'Delivered', read: 'Read', failed: 'Failed' }
+export const STATUS_TONE: Record<string, Tone> = { queued: 'blue', sending: 'blue', sent: 'green', delivered: 'green', read: 'green', failed: 'red', skipped: 'slate', test: 'purple', expired: 'slate', revoked: 'slate' }
+export const STATUS_LABEL: Record<string, string> = { test: 'Test – not sent', skipped: 'Skipped', queued: 'Queued', sending: 'Sending', sent: 'Sent', delivered: 'Delivered', read: 'Read', failed: 'Failed', expired: 'Expired', revoked: 'Cancelled' }
 
 export function MessageTable({ rows, back, showStudent = true }: { rows: MessageRow[]; back: string; showStudent?: boolean }) {
   return (
@@ -17,11 +17,12 @@ export function MessageTable({ rows, back, showStudent = true }: { rows: Message
           {showStudent && <td>{m.student_code ? <Link href={`/students/${m.student_id}?tab=messages`}>{m.student_name}</Link> : '—'}<div className="font-mono text-xs text-slate-500">{m.student_code}</div></td>}
           <td className="text-xs">{label(m.event_key)}</td>
           <td className="text-xs">{m.channel === 'whatsapp' ? 'WhatsApp' : label(m.channel)} · {m.recipient_type}<div className="text-slate-500">{m.to_address ?? '—'}</div></td>
-          <td className="max-w-md text-xs">{m.subject && <p className="font-medium">{m.subject}</p>}<p className="line-clamp-3 whitespace-pre-wrap text-slate-700">{m.body ?? <span className="text-slate-400">(prepared when processed)</span>}</p></td>
+          <td className="max-w-md text-xs">{m.subject && <p className="font-medium">{m.subject}</p>}<p className={`line-clamp-3 whitespace-pre-wrap ${m.redacted ? 'italic text-slate-500' : 'text-slate-700'}`}>{m.body ?? <span className="text-slate-400">(prepared when processed)</span>}</p></td>
           <td><Badge tone={STATUS_TONE[m.status] ?? 'slate'}>{STATUS_LABEL[m.status] ?? m.status}</Badge>
             {(m.skip_reason || m.last_error) && <div className="mt-1 max-w-48 text-xs text-slate-500">{m.skip_reason ?? m.last_error}</div>}
             {m.attempts > 1 && <div className="text-xs text-slate-500">{m.attempts} attempts</div>}</td>
-          <td>{['failed', 'skipped', 'test'].includes(m.status) && <RetryButton id={m.id} back={back} />}</td>
+          {/* redacted sign-in code / verification rows (N-8) cannot be retried: the student requests a new code, staff resend the verification */}
+          <td>{!m.redacted && ['failed', 'skipped', 'test'].includes(m.status) && <RetryButton id={m.id} back={back} />}</td>
         </tr>))}
       </tbody>
     </table></div>

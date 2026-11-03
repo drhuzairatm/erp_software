@@ -11,7 +11,7 @@
   - A wrong ID, a wrong password and a locked account all get the same answer.
   - **5 wrong attempts lock the account for 15 minutes.**
 - **Forgot password:** emails a 1-hour reset link, but **only to a verified address**. The page never reveals whether an account exists.
-- **One-time code login is still available** on the same page, as before.
+- **One-time code login is still available** on the same page, as before. **The code goes through the encrypted authentication queue (finding N-8), not the Messages outbox.** Staff never see it, and it is cancelled when used, after 5 wrong attempts, when replaced, when it expires, or when the address changes.
 - **Disable / enable** (a reason is required): disabling signs the student out at once and cancels open links.
 - **Secure portal email queue (finding N-7, migration 0036):** set-up and reset emails no longer go through the staff-visible *Messages* outbox.
   - **Storage:** the link is stored encrypted in `auth_private.portal_email_outbox`. No staff member can read it, the MD included, and neither can the application's database role.

@@ -1,8 +1,9 @@
 /** Phase I: student portal — sign-in codes, own-data-only access, uploads, privacy of codes. */
 import { createHmac, randomBytes } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { decryptAuthSecret, encryptAuthSecret } from '@/server/auth/auth-message-crypto'
 import { anonymous, db } from '@/server/db'
-import { processQueue } from '@/server/notifications/dispatcher'
+import { deliverAuthMessages } from '@/server/notifications/auth-message'
 import * as notifications from '@/server/services/notifications'
 import * as students from '@/server/services/students'
 import { adminSql, ctxFor, expectDbError, orgId } from '../support/helpers'
@@ -26,7 +27,8 @@ async function newStudent() {
 
 async function requestCode(identifier: string, ip = `10.0.${rand().slice(0, 2)}.1`) {
   const code = String(Math.floor(Math.random() * 1e6)).padStart(6, '0')
-  const [{ id }] = await anonymous((tx) => tx<{ id: string }[]>`select app.portal_request_code(${identifier}, ${code}, ${hmac(code)}, ${ip}) as id`)
+  // N-8: the database accepts only the encrypted code (as src/server/portal.ts sends it)
+  const [{ id }] = await anonymous((tx) => tx<{ id: string }[]>`select app.portal_request_code(${identifier}, ${encryptAuthSecret('portal_login_code', code)}, ${hmac(code)}, ${ip}) as id`)
   return { challenge: id, code }
 }
 async function verify(challenge: string, code: string) {
@@ -41,9 +43,11 @@ describe('sign-in with a one-time code', () => {
   it('a registered email gets a code message; the right code opens a session for that student only', async () => {
     const s = await newStudent()
     const { challenge, code } = await requestCode(s.email)
-    const [m] = await adminSql()`select * from notification_messages where student_id = ${s.id} and event_key = 'portal_login_code'`
-    expect(m).toMatchObject({ channel: 'email', to_address: s.email, status: 'queued' })
-    expect(m.params.code).toBe(code)
+    // N-8: queued in the secure authentication queue (encrypted), never in the staff-visible outbox
+    expect(await adminSql()`select 1 from notification_messages where student_id = ${s.id} and event_key = 'portal_login_code'`).toHaveLength(0)
+    const [m] = await adminSql()`select * from auth_private.auth_message_outbox where student_id = ${s.id} and kind = 'portal_login_code'`
+    expect(m).toMatchObject({ channel: 'email', to_address: s.email, status: 'queued', challenge_id: challenge })
+    expect(decryptAuthSecret('portal_login_code', m.secret_encrypted)).toBe(code)
     expect((await verify(challenge, code === '000000' ? '111111' : '000000')).ok).toBe(false)
     const ok = await verify(challenge, code)
     expect(ok.ok).toBe(true)
@@ -68,7 +72,7 @@ describe('sign-in with a one-time code', () => {
     expect(r.locked).toBe(true)
     expect((await verify(challenge, code)).ok).toBe(false)
     for (let i = 0; i < 6; i++) await requestCode(s.email)
-    const [{ n }] = await adminSql()`select count(*)::int as n from notification_messages where student_id = ${s.id} and event_key = 'portal_login_code'`
+    const [{ n }] = await adminSql()`select count(*)::int as n from auth_private.auth_message_outbox where student_id = ${s.id} and kind = 'portal_login_code'`
     expect(n).toBe(5) // 1 + 4 more before the hourly limit of 5 per identifier
   })
 
@@ -126,16 +130,18 @@ describe('the portal shows only the student\'s own, student-facing data', () => 
 })
 
 describe('sign-in codes are protected in the outbox', () => {
-  it('only staff with outbox permission see code messages; codes are removed once handed to a provider', async () => {
+  it('counsellors see no code messages, managers only a redacted status row; codes are wiped once handed to a provider', async () => {
     const s = await newStudent()
-    await requestCode(s.email)
+    const { code } = await requestCode(s.email)
     const counsellor = await ctxFor('edx.counsellor@demo.test') // can see contact details, not the outbox
     expect((await notifications.listMessages(counsellor, [EDX], { studentId: s.id })).rows.filter((m) => m.event_key === 'portal_login_code')).toHaveLength(0)
-    process.env.NOTIFICATIONS_MODE = 'live' // email not configured → skipped → code removed
-    await processQueue(200)
-    const [m] = await adminSql()`select status, body, params from notification_messages where student_id = ${s.id} and event_key = 'portal_login_code'`
-    expect(m.status).toBe('skipped')
-    expect(m.params.code).toBeUndefined()
-    expect(m.body ?? '').not.toMatch(/\d{6}/)
+    const manager = (await notifications.listMessages(await ctxFor('edx.manager@demo.test'), [EDX], { studentId: s.id })).rows.filter((m) => m.event_key === 'portal_login_code')
+    expect(manager).toHaveLength(1)
+    expect(manager[0]).toMatchObject({ redacted: true, status: 'queued', subject: null })
+    expect(JSON.stringify(manager)).not.toContain(code)
+    process.env.NOTIFICATIONS_MODE = 'live' // email not configured → skipped → code wiped
+    await deliverAuthMessages(100)
+    const [m] = await adminSql()`select status, secret_encrypted from auth_private.auth_message_outbox where student_id = ${s.id} and kind = 'portal_login_code'`
+    expect(m).toEqual({ status: 'skipped', secret_encrypted: null })
   })
 })

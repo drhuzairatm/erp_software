@@ -133,11 +133,23 @@ This is an internal assessment by the developer, **not an independent audit or c
   - **T:** every file download is audited
 - **I:** error messages are generic, and request bodies, passwords and document contents are not logged.
 
-**Finding N-7 (High, found 1 Nov 2026; fixed in development by migration 0036, not yet committed or deployed):**
+**Finding N-7 (High, found 1 Nov 2026; fixed by migration 0036, commit `8038ec9`; not deployed):**
 - **Exposure before the fix:** while a student-portal **set-up or password-reset** message was queued or sending, and in test mode, staff with `notifications.view` (MD and Manager roles) could read its one-time link in the notification outbox. A staff member could open the link and set the student's portal password. Staff with only contact-details access were already excluded from these two message types (migration 0025). The first description of N-7 wrongly included them.
 - **Fix:** the links go only through an encrypted portal email queue that no staff member and not the application role can read. They are wiped when sent, failed, skipped, recorded in test mode, expired or revoked. The outbox policy hides the two message types from every role, and existing exposed links were invalidated by the migration (none existed in development).
 - **Tests:** `portal-link-queue.test.ts`, `portal-link-db-security.test.ts`.
-- **Still open (adjacent, not part of N-7):** in **test mode**, portal **sign-in codes** and **email-verification links** stay readable to `notifications.view` holders, because they are masked only once sent, failed or skipped. This awaits an owner decision.
+- **Adjacent exposure:** handled as finding N-8 (below).
+
+**Finding N-8 (High, found 1 Nov 2026; fixed in development by migration 0037, NOT yet committed or deployed):**
+- **Exposure before the fix:** portal **sign-in codes** and **email-verification links** were stored in plain text in the notification outbox. The rendered subject kept the code in **every** status (not only in test mode, as first assumed). Staff with `notifications.view` (MD and Manager roles) could read them in *Messages*, sign in to a student's portal, or verify an address the student does not control.
+- **Fix:** both go only through `auth_private.auth_message_outbox`, which the application role cannot read:
+  - The code or link is stored AES-256-GCM encrypted (key derived by HKDF from `MFA_ENCRYPTION_KEY`, label `erp-auth-message-v1`, bound to the message kind) and decrypted only in server memory to send it.
+  - The database refuses badly formed ciphertext. The server's authenticated decryption rejects tampered ciphertext; the database cannot check that.
+  - The secret is wiped in every final status. It is revoked at once when the code is used, after 5 wrong attempts, when replaced, expired, used or revoked, or when the email or phone changes. It is re-checked before every send and retry.
+  - The outbox policy hides both kinds. Inserting them into the outbox is refused. Provider errors are masked.
+  - Managers see a redacted status row for their own company only.
+  - Legacy rows were scrubbed (development: 80 messages; 0 open codes or links).
+  - Production requires exactly `NOTIFICATIONS_MODE=live`, otherwise the server serves nothing (HTTP 500). The local test mailbox is development-only.
+- **Tests:** `auth-message-queue.test.ts`, `auth-message-db-security.test.ts` (including an exact rollback), `notifications-config.test.ts`, e2e `n8-auth-messages.spec.ts`.
 
 **Remaining gaps:**
 - Anyone allowed to view a document can screenshot or save it. There is no watermarking.

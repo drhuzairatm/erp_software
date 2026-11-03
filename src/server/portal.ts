@@ -5,6 +5,7 @@ import { createHmac, randomBytes, randomInt } from 'node:crypto'
 import { cookies, headers } from 'next/headers'
 import { anonymous } from './db'
 import { checkPasswordStrength, getDummyHash, hashPassword, verifyPassword } from './auth/password'
+import { encryptAuthSecret } from './auth/auth-message-crypto'
 import { encryptSecret } from './auth/mfa'
 import { hashToken, newTokenValue } from './auth/tokens'
 import { deviceHash, newDeviceToken, PORTAL_DEVICE_COOKIE, readDeviceToken, setDeviceCookie } from './auth/trusted-device'
@@ -39,9 +40,10 @@ export async function requestCode(identifier: string) {
     throw invalid('Enter the email address or mobile number you gave us.')
   }
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
+  // the code goes to the secure authentication queue ENCRYPTED (finding N-8); only its HMAC is kept for checking
   const { ip } = await ipAndAgent()
   const [{ id: challenge }] = await anonymous((tx) => tx<{ id: string }[]>`
-    select app.portal_request_code(${id}, ${code}, ${hmac(code)}, ${ip}) as id`)
+    select app.portal_request_code(${id}, ${encryptAuthSecret('portal_login_code', code)}, ${hmac(code)}, ${ip}) as id`)
   return challenge
 }
 

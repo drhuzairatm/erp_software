@@ -1,5 +1,6 @@
 import { can } from '../auth/context'
 import { forbidden, invalid } from '../errors'
+import { notificationConfigStatus } from '../config/notifications-config'
 import { notificationsMode, processQueue } from '../notifications/dispatcher'
 import { channelConfigured, type Channel } from '../notifications/providers'
 import { PLACEHOLDERS } from '../notifications/render'
@@ -23,6 +24,7 @@ export const EVENTS: { key: string; label: string }[] = [
 export function channelStatus(orgCodes: string[]) {
   return {
     mode: notificationsMode(),
+    config: notificationConfigStatus(),
     channels: orgCodes.map((code) => ({ code, email: channelConfigured('email', code), whatsapp: channelConfigured('whatsapp', code), sms: false })),
     placeholders: PLACEHOLDERS,
   }
@@ -53,6 +55,8 @@ export interface MessageRow {
   id: string; org_name: string; student_id: string | null; student_code: string | null; student_name: string | null; event_key: string
   channel: string; recipient_type: string; to_address: string | null; subject: string | null; body: string | null; status: string
   skip_reason: string | null; last_error: string | null; attempts: number; provider: string | null; created_at: Date; sent_at: Date | null; total?: string
+  /** a sign-in code / verification message from the secure queue (N-8): status only, the secret is never available */
+  redacted?: boolean
 }
 
 export async function listMessages(ctx: Ctx, orgIds: string[], f: { status?: string; channel?: string; event?: string; studentId?: string; page?: string | number }) {
@@ -64,13 +68,23 @@ export async function listMessages(ctx: Ctx, orgIds: string[], f: { status?: str
     if (f.event && /^[a-z_]+$/.test(f.event)) conds.push(tx`m.event_key = ${f.event}`)
     if (f.studentId && /^[0-9a-f-]{36}$/i.test(f.studentId)) conds.push(tx`m.student_id = ${f.studentId}`)
     const where = conds.reduce((a, c) => tx`${a} and ${c}`)
+    const ok = (v: string | undefined, re: RegExp) => (v && re.test(v) ? v : null)
+    const studentId = f.studentId && /^[0-9a-f-]{36}$/i.test(f.studentId) ? f.studentId : null
+    // Sign-in codes and email-verification links (finding N-8) come from the secure queue as REDACTED status rows:
+    // the database function returns no secret and no rendered text, only to notifications.view holders, per company.
     const rows = await tx<MessageRow[]>`
-      select m.id, o.name as org_name, m.student_id, s.student_code, s.full_name as student_name, m.event_key, m.channel, m.recipient_type,
-             m.to_address, m.subject, m.body, m.status, m.skip_reason, m.last_error, m.attempts, m.provider, m.created_at, m.sent_at,
-             count(*) over () as total
-        from notification_messages m join organizations o on o.id = m.org_id
-        left join students s on s.id = m.student_id and app.can_read_student(s.id)
-       where ${where} order by m.created_at desc limit ${PAGE_SIZE} offset ${(page - 1) * PAGE_SIZE}`
+      select x.*, count(*) over () as total from (
+        select m.id, o.name as org_name, m.student_id, s.student_code, s.full_name as student_name, m.event_key, m.channel, m.recipient_type,
+               m.to_address, m.subject, m.body, m.status, m.skip_reason, m.last_error, m.attempts, m.provider, m.created_at, m.sent_at, false as redacted
+          from notification_messages m join organizations o on o.id = m.org_id
+          left join students s on s.id = m.student_id and app.can_read_student(s.id)
+         where ${where}
+        union all
+        select l.id, l.org_name, l.student_id, l.student_code, l.student_name, l.event_key, l.channel, 'student',
+               l.to_address, null, case l.event_key when 'portal_login_code' then 'Sign-in code – hidden for security' else 'Verification link – hidden for security' end,
+               l.status, null, l.last_error, l.attempts, l.provider, l.created_at, l.sent_at, true
+          from app.auth_message_log(${tx.array(orgIds)}::uuid[], ${studentId}, ${ok(f.status, /^[a-z]+$/)}, ${ok(f.channel, /^[a-z]+$/)}, ${ok(f.event, /^[a-z_]+$/)}, 500) l
+      ) x order by x.created_at desc limit ${PAGE_SIZE} offset ${(page - 1) * PAGE_SIZE}`
     return { rows, total: Number(rows[0]?.total ?? 0), page, pageSize: PAGE_SIZE }
   })
 }

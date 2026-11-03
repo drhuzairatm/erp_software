@@ -120,6 +120,7 @@ By default **both are members of both companies**. This is intentional, but the 
 - **Check:** many failures they did not cause mean someone is guessing. Look at the login history and follow INCIDENT_RESPONSE_PLAN.md §4.1.
 - **Reset links are private:** reset emails go through an encrypted queue that no staff member can read, the MD included, and the link is erased once sent, failed or expired.
 - **Student-portal links are private too (N-7):** emailed portal set-up and reset links are not in *Messages*. The student's **Student portal account** card shows only whether the latest link email was sent. If it failed or was not sent, issue a new link. An unverified email address still shows the link once to the issuing staff member, for personal hand-over (never through ordinary chat or email).
+- **Sign-in codes and verification links are private too (N-8):** in *Messages* they appear only as *Sign-in code – hidden for security* or *Verification link – hidden for security*, with their delivery status. No one can see the code or the link, the MD included. There is no *Retry*: the student asks for a new code, and staff use *Send verification email* again.
 
 ## 7. Manual document clearance and quarantine
 **While no virus scanner is configured,** every uploaded file is *Not virus-scanned*. Approval and courier release need **manual clearance**.

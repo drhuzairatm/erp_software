@@ -1,6 +1,7 @@
 import { anonymous } from '../db'
 import { appUrl } from '../email'
 import { can } from '../auth/context'
+import { encryptAuthSecret } from '../auth/auth-message-crypto'
 import { hashToken, newTokenValue } from '../auth/tokens'
 import { forbidden, invalid } from '../errors'
 import { type Ctx, run } from './base'
@@ -114,7 +115,8 @@ export async function getContactHistory(ctx: Ctx, studentId: string) {
 export async function sendEmailVerification(ctx: Ctx, studentId: string) {
   const token = newTokenValue()
   const link = appUrl(`/verify-email?token=${token}`)
-  await run(ctx, (tx) => tx`select app.request_email_verification(${studentId}, ${hashToken(token)}, ${link})`)
+  // the link goes to the secure authentication queue ENCRYPTED (finding N-8); staff never see it
+  await run(ctx, (tx) => tx`select app.request_email_verification(${studentId}, ${hashToken(token)}, ${encryptAuthSecret('email_verification', link)})`)
 }
 
 /** Public: the student opened the link. Returns verified | expired | invalid. */

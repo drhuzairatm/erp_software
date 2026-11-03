@@ -1,8 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import type { ActionResult } from '@/components/action-types'
 import { requireUser } from '@/server/auth/session'
+import { deliverAuthMessages } from '@/server/notifications/auth-message'
 import * as pp from '@/server/services/passport'
 import { formObject } from '@/server/validation'
 import { runAction } from './run-action'
@@ -31,7 +33,11 @@ export async function passportFollowupAction(studentId: string, _: ActionResult,
 
 export async function sendEmailVerificationAction(studentId: string, _: ActionResult): Promise<ActionResult> {
   const ctx = await requireUser()
-  return runAction(async () => { await pp.sendEmailVerification(ctx, studentId); revalidatePath(studentPath(studentId)) },
+  return runAction(async () => {
+    await pp.sendEmailVerification(ctx, studentId)
+    after(() => deliverAuthMessages(10).then(() => undefined, () => undefined)) // faster delivery; cron delivers anyway
+    revalidatePath(studentPath(studentId))
+  },
     'Verification email queued. The address is verified only when the student opens the link.')
 }
 

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { adminDb, login } from './helpers'
+import { adminDb, fromTestMailbox, linkFrom, login } from './helpers'
 
 const admin = adminDb()
 test.afterAll(async () => { await admin.end() })
@@ -26,9 +26,11 @@ test('register with phones in different countries (searchable country picker); m
   await expect(page.getByText('Not verified', { exact: true }).first()).toBeVisible()
 
   // email verification: queued; the student confirms on the public page
+  const since = Date.now()
   await page.getByRole('button', { name: 'Send verification email' }).click()
   await expect(page.getByText('Verification pending')).toBeVisible()
-  const [m] = await admin`select params ->> 'link' as link from notification_messages where to_address = ${`phones.${n}@example.test`} and event_key = 'email_verification'`
+  // test mode: the link is never stored; the dev server's local test mailbox has it (fictional student)
+  const m = { link: linkFrom(await fromTestMailbox(`phones.${n}@example.test`, 'email_verification', since)) }
   const student = await page.context().newPage()
   await student.goto(new URL(m.link).pathname + new URL(m.link).search)
   await student.getByRole('button', { name: 'Confirm my email address' }).click()

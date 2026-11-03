@@ -24,6 +24,45 @@ event (stage change, document review, registration, visa outcome)
   sent* with the exact wording. Numbers/addresses in `NOTIFICATIONS_TEST_RECIPIENTS` (e.g. your own phone)
   do receive real messages, so you can try the providers safely.
 
+## Modes and the required configuration (finding N-8)
+
+| Environment | How it is recognised | `NOTIFICATIONS_MODE` | Local test mailbox |
+|---|---|---|---|
+| **Production** | `NODE_ENV=production` and `APP_ENV` unset, empty or `production` | **must be exactly `live`**. Missing, empty, `test`, `LIVE` or anything else → **the server serves nothing** (HTTP 500 to every request) | refused (server does not start) |
+| **Staging / preview** | `NODE_ENV=production` and `APP_ENV=staging` | must be exactly `test` or `live` | refused |
+| **Development / automated tests** | any other `NODE_ENV` | `test` or `live`; unset or invalid = test mode, with a warning | allowed with `NOTIFICATIONS_TEST_MAILBOX=1` |
+
+Any other `APP_ENV` value in a production build is refused, so the rule cannot be bypassed by a misspelling. "Refused" means the
+server **will not serve the application**: every request, `/api/health` included, is answered with HTTP 500, and the log shows "Refusing to start: …". The process itself keeps running, so set up your health check on `/api/health` so that the failure is noticed. The check
+runs once when the server starts (`src/instrumentation.ts` → `src/server/config/notifications-config.ts`). It does not
+run during `next build`. *Notification settings* shows the current configuration with any error or warning.
+
+**Running a production build locally** (`npm run build && npm start`) is "production" too. Set `NOTIFICATIONS_MODE=live`
+(without email/WhatsApp credentials nothing is delivered; messages are marked *Skipped – not configured*) or set
+`APP_ENV=staging` with `NOTIFICATIONS_MODE=test`.
+
+### Sign-in codes and email-verification links (secure authentication queue, N-8)
+Portal sign-in codes (email or WhatsApp) and email-verification links are **not in the outbox**. They go through
+`auth_private.auth_message_outbox`, which the application's database role cannot read. The code or link is stored only
+**encrypted** (AES-256-GCM, key derived from `MFA_ENCRYPTION_KEY` with HKDF label `erp-auth-message-v1`, bound to the
+message kind). It is decrypted only in server memory when it is sent. It is **wiped** as soon as the message is sent,
+fails finally, is skipped, is recorded in test mode, expires or is cancelled. A queued message is **cancelled at once**
+when the code is used, its 5 attempts are used up, a newer code or link replaces it, the link is used, the student's
+email (or the phone or email it was sent to) changes, the student is archived or merged, or the code or link expires.
+It is re-checked again just before every send and retry, so an expired, used or replaced secret is never sent, not even
+on a retry. Staff see a status row only (*Sign-in code – hidden for security*), with no text and no *Retry*. The
+student asks for a new code, and staff use *Send verification email* again.
+
+In **test mode** these messages are recorded as *Test – not sent* and the code or link is wiped. It is not stored anywhere.
+
+### Local test mailbox (development only)
+To complete sign-in and email verification with **fictional** accounts in development, start the dev server with
+`NOTIFICATIONS_TEST_MAILBOX=1 npm run dev` (and `NOTIFICATIONS_MODE=test`). Codes and links are then written to
+`.data/test-mailbox/` (git-ignored; folder `0700`, files `0600`, owner only) instead of being sent. They never go to the
+database, a staff screen or an API. The browser tests (`npm run e2e`) need this, and the helper deletes each message once
+it has read it. The mailbox is off unless the value is exactly `1` and `NODE_ENV` is not `production`. Production and
+staging serve nothing (HTTP 500) when the variable is set. Never use it with real student data.
+
 ## Setting up the channels (technical administrator)
 
 Credentials live only in the server environment (never in the database or the code).
@@ -67,21 +106,23 @@ Production calls `GET /api/cron/notifications` every minute with `Authorization:
 On Vercel this is configured in `vercel.json` (per-minute cron needs the Pro plan) and Vercel adds the header
 automatically when `CRON_SECRET` is set. Without it, messages are still sent right after staff actions,
 but retries wait until the next action. Staff with outbox access can also click *Process queue now*.
-The same job also delivers staff password-reset emails (N-1) and student-portal set-up and reset emails (N-7) from their
-encrypted queues. Without it they wait until the next request, and they expire (staff: 1 hour; portal: 1 or 72 hours).
+The same job also delivers staff password-reset emails (N-1), student-portal set-up and reset emails (N-7), and portal
+sign-in codes and email-verification links (N-8) from their encrypted queues. Without it they wait until the next request, and they expire (staff: 1 hour; portal: 1 or 72 hours).
 
 ## Switching to live
 1. Wording of every enabled template approved (WhatsApp templates approved by Meta in Gallabox).
 2. Channels configured and tested with your own number/address (test list).
 3. Consent being recorded for real students.
-4. Set `NOTIFICATIONS_MODE=live` and redeploy.
+4. Set `NOTIFICATIONS_MODE=live` and redeploy. (Production does not start without it; see *Modes* above.)
 
 ## Who can see what
 - *Messages* (outbox) — `notifications.view` (managers, MD) and anyone who may see a student's contact
   details (the student's Messages tab). Finance and staff without contact permission see nothing.
   **Student-portal set-up and password-reset emails are not in the outbox at all** (finding N-7). They go through the
   encrypted portal email queue that no staff member can read, and staff see only their delivery status on the
-  student's portal account card (docs/STUDENT_PORTAL_V2.md). Portal sign-in codes and email-verification messages are
-  unchanged: they remain hidden from contact-details holders, and their code or link is removed once sent, failed or skipped.
+  student's portal account card (docs/STUDENT_PORTAL_V2.md). **Portal sign-in codes and email-verification links are
+  not in the outbox either** (finding N-8). They go through the encrypted authentication queue above. `notifications.view`
+  holders (MD, managers) see a redacted status row for their own company only. Contact-details holders do not see them,
+  and no staff member, the MD included, can see a code, a link or the rendered message in any status.
 - *Notification settings* — `notifications.manage` (MD, system administrator).
 - Recording consent — `notifications.consent` (managers, counsellors, MD).

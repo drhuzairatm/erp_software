@@ -139,7 +139,7 @@ describe('sending (providers simulated)', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('busy', { status: 503 })))
     await students.changeStage(s.mgr, s.id, { toStage: 'registration' })
     await processQueue(100)
-    let w = (await messagesOf(s.id)).find((x) => x.channel === 'whatsapp' && x.event_key === 'stage_changed')!
+    let w = (await messagesOf(s.id)).find((x) => x.channel === 'whatsapp' && x.event_key === 'stage_changed' && x.recipient_type === 'student')!
     expect(w).toMatchObject({ status: 'queued', attempts: 1 })
     expect(w.last_error).toContain('503')
     expect(new Date(w.next_attempt_at).getTime()).toBeGreaterThan(Date.now())
@@ -161,7 +161,7 @@ describe('sending (providers simulated)', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{"id":"t1"}', { status: 200 })))
     await students.changeStage(s.mgr, s.id, { toStage: 'registration' })
     await processQueue(100)
-    expect((await messagesOf(s.id)).find((x) => x.channel === 'whatsapp' && x.event_key === 'stage_changed')?.status).toBe('sent')
+    expect((await messagesOf(s.id)).find((x) => x.channel === 'whatsapp' && x.event_key === 'stage_changed' && x.recipient_type === 'student')?.status).toBe('sent')
   })
 
   it('SMS has no provider: recorded as skipped with the reason', async () => {
@@ -190,7 +190,7 @@ describe('outbox privacy', () => {
   it('a message can only be retried once consent exists', async () => {
     const s = await student([])
     await students.changeStage(s.mgr, s.id, { toStage: 'registration' })
-    const m = (await messagesOf(s.id)).find((x) => x.channel === 'whatsapp' && x.event_key === 'stage_changed')!
+    const m = (await messagesOf(s.id)).find((x) => x.channel === 'whatsapp' && x.event_key === 'stage_changed' && x.recipient_type === 'student')!
     await expectServiceError(notifications.retryMessage(s.mgr, m.id), 'invalid')
     await notifications.recordConsent(s.mgr, s.id, 'whatsapp', 'student', true, 'Verbal on call')
     await notifications.retryMessage(s.mgr, m.id)

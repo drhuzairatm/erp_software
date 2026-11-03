@@ -51,12 +51,30 @@ close to your users and compliant with your requirements (e.g. Mumbai `ap-south-
    `APP_URL`, `DATABASE_URL` (erp_app pooled URL), `DATABASE_POOLED=true`, `STORAGE_DRIVER=s3`, the `S3_*`
    values, `STORAGE_SIGNING_SECRET` (random 32+ chars), `MFA_ENCRYPTION_KEY` (32 random bytes, base64 —
    **back it up in the password manager; losing it means everyone must re-enrol 2FA**), `MFA_ENFORCE=all` (production enforces two-step login for everyone regardless), `CRON_SECRET` (32+ random chars), `PORTAL_SECRET` (32+ random chars), the notification settings in docs/NOTIFICATIONS.md
-   (`NOTIFICATIONS_MODE=test` until approved), `APP_TIMEZONE=Asia/Kolkata`, optional
+   (**Production must set `NOTIFICATIONS_MODE=live` exactly. Otherwise the server **will not serve the application**: every request, `/api/health` included, is answered with HTTP 500, and the log shows "Refusing to start: …". The process itself keeps running, so set up your health check on `/api/health`.** Until the go-live
+   approval, use a staging/preview deployment with `APP_ENV=staging` and `NOTIFICATIONS_MODE=test`. Never set
+   `NOTIFICATIONS_TEST_MAILBOX` outside development; see docs/NOTIFICATIONS.md, *Modes*), `APP_TIMEZONE=Asia/Kolkata`, optional
    `RESEND_API_KEY` and `EMAIL_FROM`.
    **Never** add `DATABASE_ADMIN_URL`, `APP_DB_PASSWORD` or `SEED_DEMO_PASSWORD` to Vercel.
 4. Deploy, then add your domain (e.g. `staff.yourcompany.com`) and confirm HTTPS.
 5. Optional: enable Vercel Firewall rate limiting for `/login` and `/forgot-password`.
-6. **Scheduled jobs (required):** `/api/cron/notifications` must run **every minute**. It also delivers staff password-reset emails and student-portal set-up and reset emails from their encrypted queues (`auth_private.staff_email_outbox`, `auth_private.portal_email_outbox`); the sign-in action only tries a faster delivery. `/api/cron/daily` runs once a day and also removes expired trusted-browser and reset-request records. On Vercel, `vercel.json` sets both (per-minute needs Pro). On a **Hostinger VPS**, add a system cron (or systemd timer), for example `* * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/notifications`, plus a daily call to `/api/cron/daily`. Without it, reset emails are never sent and expire after 1 hour.
+6. **Scheduled jobs (required):** `/api/cron/notifications` must run **every minute**. It also delivers staff password-reset emails, student-portal set-up and reset emails, and portal sign-in codes and email-verification links from their encrypted queues (`auth_private.staff_email_outbox`, `auth_private.portal_email_outbox`, `auth_private.auth_message_outbox`); the sign-in action only tries a faster delivery. `/api/cron/daily` runs once a day and also removes expired trusted-browser and reset-request records. On Vercel, `vercel.json` sets both (per-minute needs Pro). On a **Hostinger VPS**, add a system cron (or systemd timer), for example `* * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/notifications`, plus a daily call to `/api/cron/daily`. Without it, reset emails are never sent and expire after 1 hour.
+
+### 3.1 Encryption key rotation (`MFA_ENCRYPTION_KEY`)
+
+`MFA_ENCRYPTION_KEY` lives only in the server environment, never in the database. It protects: two-step login secrets;
+the staff reset-link queue (N-1) and the portal set-up/reset-link queue (N-7), both encrypted with the key directly; and
+the sign-in code and verification-link queue (N-8), encrypted with a sub-key derived by HKDF-SHA256 (label
+`erp-auth-message-v1`). The key is never logged. Neither are the decrypted codes or links. There is no automatic
+dual-key rotation. Changing the key means:
+
+- **Every staff member must re-enrol two-step login** (existing secrets can no longer be read).
+- **Queued, not yet sent** reset links, portal set-up/reset links, sign-in codes and verification links can no longer be
+  read. The sender marks each one *Failed* ("could not be read"), sends nothing and wipes it. Nothing is exposed.
+  Users simply request a new one: a sign-in code lasts 10 minutes, a staff reset link 1 hour, a portal link 1 or
+  72 hours, and a verification link 48 hours.
+- To keep the disruption small: rotate in a quiet hour, after the queues are empty (Messages page: no *Queued* sign-in
+  rows). Change the key, restart, then have staff re-enrol two-step login.
 
 ## 3a. Client address and reverse proxy (`TRUST_PROXY`)
 
@@ -144,4 +162,4 @@ staff from **Staff** in the app.
 - [ ] `MFA_ENCRYPTION_KEY` stored in the company password manager
 - [ ] Retention policy and privacy notice for students agreed
 - [ ] Demo accounts absent from production (never run `db:seed` there)
-- [ ] Notifications: templates approved, channels tested with own number/address, then `NOTIFICATIONS_MODE=live`
+- [ ] Notifications: templates approved, channels tested with own number/address, then `NOTIFICATIONS_MODE=live` (required in production: otherwise every request gets HTTP 500, including `/api/health`; `NOTIFICATIONS_TEST_MAILBOX` not set)

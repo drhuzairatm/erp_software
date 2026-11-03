@@ -60,11 +60,11 @@
 - two-step login became mandatory for all
 - the browser policy became nonce-based (no inline scripts)
 - virus-scan status, quarantine and security alerts were added
+- **N-7 (migration 0036, commit `8038ec9`):** student-portal set-up and reset links go only through an encrypted queue that staff cannot read
 - **N-1 (migration 0035):** password resets no longer lock people out; trusted browsers keep their own sign-in limit; reset requests are rate-limited; reset links go through an encrypted queue that staff cannot read (SECURITY_THREAT_ASSESSMENT.md T1)
 
 Still open:
-- **N-7 (High):** fixed in development (migration 0036, not yet committed): student-portal set-up and reset links now go only through an encrypted queue that staff cannot read (SECURITY_THREAT_ASSESSMENT.md T3)
-- **Adjacent to N-7:** in test mode, portal sign-in codes and email-verification links stay readable to outbox holders (awaiting decision)
+- **N-8 (High):** fixed in development (migration 0037, **not yet committed**, awaiting review): portal sign-in codes and email-verification links now go only through an encrypted queue that staff cannot read. Before the fix, staff with `notifications.view` (MD, managers) could read them in *Messages* in every status (SECURITY_THREAT_ASSESSMENT.md)
 - edge rate limiting
 - a real virus scanner
 - watermarking

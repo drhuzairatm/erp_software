@@ -76,7 +76,9 @@ describe('0036: EXECUTE permissions, search_path, least privilege', () => {
     expect((await adminSql()`select count(*)::int as n from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity`)[0].n).toBe(89)
     const [p] = await adminSql()`select qual, roles::text from pg_policies where tablename = 'notification_messages' and policyname = 'messages_select'`
     expect(p.roles).toBe('{erp_app}')
-    expect(p.qual).toMatch(/^\(\(event_key <> ALL \(ARRAY\['portal_account_setup'::text, 'portal_password_reset'::text\]\)\) AND/)
+    // both portal-link kinds stay hidden; later migrations may hide more kinds (0037 adds the two authentication kinds, asserted
+    // exactly in auth-message-db-security.test.ts)
+    expect(p.qual).toMatch(/^\(\(event_key <> ALL \(ARRAY\['portal_account_setup'::text, 'portal_password_reset'::text(, '[a-z_]+'::text)*\]\)\) AND/)
   })
 })
 
