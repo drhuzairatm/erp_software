@@ -76,12 +76,12 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
     )
   }
   return (
-    <div data-brand={brand} className="min-h-screen bg-[#f3f6fb] pb-16">
-      <header className="bg-hero text-white">
+    <div data-brand={brand} className="min-h-dvh bg-[#f3f6fb] pb-[calc(4rem+env(safe-area-inset-bottom))]">
+      <header className="bg-hero pt-[env(safe-area-inset-top)] text-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4">
           <div><BrandMark brand={brand} /><p className="mt-0.5 text-xs text-cyan-brand">Student portal</p></div>
           <div className="flex items-center gap-2">
-          <a href="#notices-h" className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 no-underline hover:bg-white/20" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
+          <a href="#notices-h" className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 no-underline hover:bg-white/20" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
             <Icon name="bell" className="h-5 w-5" />{unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold">{unread}</span>}</a>
           <form action={logoutAction}><button className="btn border border-white/25 bg-white/10 text-white hover:bg-white/20 btn-sm" type="submit">Sign out</button></form>
           </div>
