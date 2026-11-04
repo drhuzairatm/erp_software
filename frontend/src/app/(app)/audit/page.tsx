@@ -46,7 +46,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       <ViewTabs label="Outcome" items={[['', 'All entries'], ['denied', 'Denied attempts'], ['failure', 'Failures'], ['success', 'Successful']].map(([k, l]) => ({
         href: '?' + new URLSearchParams(Object.entries({ ...sp, page: undefined, outcome: k || undefined } as Record<string, string | undefined>).filter((x): x is [string, string] => !!x[1])).toString(),
         label: l, active: (sp.outcome ?? '') === k }))} />
-      <form method="get" className="card mb-4 grid grid-cols-2 gap-3 p-4 md:grid-cols-6">
+      <form method="get" className="card mb-4 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:grid-cols-6">
         <div><label className="label" htmlFor="action">Action</label>
           <select className="input" id="action" name="action" defaultValue={sp.action ?? ''}><option value="">Any</option>{data.actions.map((a) => <option key={a} value={a}>{label(a)}</option>)}</select></div>
         <div><label className="label" htmlFor="entity">Record type</label>

@@ -28,7 +28,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
       <PageHeader title={result.report.title} description={`${scope.label} · ${result.report.description}`} back={{ href: '/reports', label: 'Reports' }}
         actions={result.canExport && <a className="btn-secondary" href={`/api/reports/${key}${qs ? `?${qs}` : ''}`}>Export CSV</a>} />
       {STUDENT_FILTER_REPORTS.includes(key) && (
-        <form method="get" className="card mb-4 grid grid-cols-2 gap-3 p-4 md:grid-cols-6">
+        <form method="get" className="card mb-4 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:grid-cols-6">
           {key === 'documents' && (
             <div><label className="label" htmlFor="status">Document status</label>
               <select className="input" id="status" name="status" defaultValue={sp.status ?? ''}>

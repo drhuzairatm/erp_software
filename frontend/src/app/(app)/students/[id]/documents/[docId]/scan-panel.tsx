@@ -22,7 +22,7 @@ export function ScanPanel({ file, canClear, me }: { file: F; canClear: boolean; 
       {needs && canClear && file.uploaded_by !== me && (
         <ActionForm action={clearFileAction.bind(null, file.id)} className="mt-2 flex flex-wrap items-end gap-2">
           {(s) => (<>
-            <div className="min-w-72 flex-1"><label className="label" htmlFor="clear-reason">Manual clearance reason *</label>
+            <div className="min-w-full flex-1 sm:min-w-72"><label className="label" htmlFor="clear-reason">Manual clearance reason *</label>
               <input id="clear-reason" name="reason" className="input" minLength={10} maxLength={500} required placeholder="e.g. Original seen in person; file opened in an isolated viewer" />
               <FieldError state={s} name="reason" /></div>
             <ConfirmSubmit className="btn-secondary btn-sm" confirmText="Record a MANUAL security clearance (not a virus scan)?">Give manual clearance</ConfirmSubmit>

@@ -95,9 +95,9 @@ export function TemplateButtons({ id, status, canApprove }: { id: string; status
 }
 export function AcademicCheckSelect({ stageKey, value }: { stageKey: string; value: string }) {
   return (
-    <ActionForm action={academicCheckAction.bind(null, stageKey)} className="flex items-center gap-2">
+    <ActionForm action={academicCheckAction.bind(null, stageKey)} className="flex flex-wrap items-center gap-2">
       <label className="sr-only" htmlFor={`ac-${stageKey}`}>Academic check</label>
-      <select className="input w-auto py-1 text-sm" id={`ac-${stageKey}`} name="check" defaultValue={value}>
+      <select className="input w-auto max-w-full py-1 text-sm" id={`ac-${stageKey}`} name="check" defaultValue={value}>
         <option value="none">No reminder</option><option value="warn">Remind (warning)</option>
       </select>
       <SubmitButton className="btn-ghost btn-sm" pendingText="…">Save</SubmitButton>

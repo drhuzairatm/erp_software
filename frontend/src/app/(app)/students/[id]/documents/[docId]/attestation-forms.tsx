@@ -67,7 +67,7 @@ export function StepForms({ studentId, docId, step, canException, staff }: {
         <ActionForm action={act} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name="action" value={mode} />
           <label className="sr-only" htmlFor={`rs-${step.id}`}>Reason</label>
-          <input id={`rs-${step.id}`} name="comment" className="input min-w-60 flex-1 py-1 text-sm" placeholder="Reason (required, recorded and audited)" required />
+          <input id={`rs-${step.id}`} name="comment" className="input min-w-full flex-1 py-1 text-sm sm:min-w-60" placeholder="Reason (required, recorded and audited)" required />
           <ConfirmSubmit className={mode === 'exception' ? 'btn-danger btn-sm' : 'btn-secondary btn-sm'} confirmText={mode === 'exception' ? 'Skip this mandatory stage?' : 'Mark as not required?'}>
             {mode === 'exception' ? 'Record exception' : 'Mark not required'}</ConfirmSubmit>
         </ActionForm>
@@ -80,7 +80,7 @@ export function CancelAttestationForm({ studentId, docId, attestationId }: { stu
   return (
     <ActionForm action={cancelAttestationAction.bind(null, studentId, docId, attestationId)} className="flex flex-wrap items-center gap-2">
       <label className="sr-only" htmlFor="cancel-reason">Reason</label>
-      <input id="cancel-reason" name="reason" className="input min-w-60 flex-1 py-1 text-sm" placeholder="Reason for cancelling" required />
+      <input id="cancel-reason" name="reason" className="input min-w-full flex-1 py-1 text-sm sm:min-w-60" placeholder="Reason for cancelling" required />
       <ConfirmSubmit className="btn-secondary btn-sm" confirmText="Cancel this attestation?">Cancel attestation</ConfirmSubmit>
     </ActionForm>
   )

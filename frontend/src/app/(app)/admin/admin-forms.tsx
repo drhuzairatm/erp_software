@@ -129,7 +129,7 @@ export function StaffStatusForm({ userId, status }: { userId: string; status: st
               {status !== 'suspended' && <option value="suspended">Suspend (temporary)</option>}
               {status !== 'terminated' && <option value="terminated">Terminate employment</option>}
             </select></div>
-          {needsReason && <div className="min-w-64 flex-1"><label className="label" htmlFor="st-reason">Reason *</label>
+          {needsReason && <div className="min-w-full flex-1 sm:min-w-64"><label className="label" htmlFor="st-reason">Reason *</label>
             <input id="st-reason" name="reason" className="input" maxLength={500} required /><FieldError state={s} name="reason" /></div>}
           {needsReason
             ? <ConfirmSubmit className="btn-danger btn-sm" confirmText={next === 'terminated' ? 'Terminate and sign out everywhere?' : 'Suspend and sign out everywhere?'}>{next === 'terminated' ? 'Terminate' : 'Suspend'}</ConfirmSubmit>

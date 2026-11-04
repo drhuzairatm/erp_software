@@ -10,7 +10,7 @@ export function CountryForm({ c, currencies }: { c: { id: string; code: string; 
   const k = c?.id ?? 'new'
   const use = c ? (c.is_destination && c.is_education_origin ? 'both' : c.is_education_origin ? 'origin' : 'destination') : 'destination'
   return (
-    <ActionForm action={saveCountryAction.bind(null, c?.id ?? null)} className="grid grid-cols-2 gap-2 md:grid-cols-6" resetOnSuccess={!c}>
+    <ActionForm action={saveCountryAction.bind(null, c?.id ?? null)} className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-6" resetOnSuccess={!c}>
       {(s) => (
         <>
           <div><label className="label text-xs" htmlFor={`cc-${k}`}>ISO code *</label><input className="input py-1.5 font-mono uppercase" id={`cc-${k}`} name="code" defaultValue={c?.code} maxLength={2} required /><FieldError state={s} name="code" /></div>
@@ -20,7 +20,7 @@ export function CountryForm({ c, currencies }: { c: { id: string; code: string; 
             <select className="input py-1.5" id={`ccur-${k}`} name="currencyCode" defaultValue={c?.currency_code ?? ''}><option value="">—</option>{currencies.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}</select></div>
           <div><label className="label text-xs" htmlFor={`cu-${k}`}>Used as</label>
             <select className="input py-1.5" id={`cu-${k}`} name="use" defaultValue={use}><option value="destination">Destination</option><option value="origin">Previous education country</option><option value="both">Both</option></select></div>
-          <div className="col-span-2 md:col-span-5"><label className="label text-xs" htmlFor={`cno-${k}`}>Notes</label><input className="input py-1.5" id={`cno-${k}`} name="notes" defaultValue={c?.notes ?? ''} /></div>
+          <div className="sm:col-span-2 md:col-span-5"><label className="label text-xs" htmlFor={`cno-${k}`}>Notes</label><input className="input py-1.5" id={`cno-${k}`} name="notes" defaultValue={c?.notes ?? ''} /></div>
           <div className="flex items-end"><SubmitButton className="btn-secondary btn-sm">{c ? 'Save' : 'Add country'}</SubmitButton></div>
         </>
       )}
@@ -45,7 +45,7 @@ export function CourseForm({ c, courses, countries, categories }: {
   const k = c?.id ?? 'new'
   const [sel, setSel] = useState<string[]>(c?.country_ids ?? [])
   return (
-    <ActionForm action={saveCourseAction.bind(null, c?.id ?? null)} className="grid grid-cols-2 gap-2 md:grid-cols-6" resetOnSuccess={!c} onSuccess={() => { if (!c) setSel([]) }}>
+    <ActionForm action={saveCourseAction.bind(null, c?.id ?? null)} className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-6" resetOnSuccess={!c} onSuccess={() => { if (!c) setSel([]) }}>
       {(s) => (
         <>
           <div className="md:col-span-2"><label className="label text-xs" htmlFor={`kn-${k}`}>Course name *</label><input className="input py-1.5" id={`kn-${k}`} name="name" defaultValue={c?.name} required /><FieldError state={s} name="name" /></div>
@@ -58,15 +58,15 @@ export function CourseForm({ c, courses, countries, categories }: {
           <div><label className="label text-xs" htmlFor={`kd-${k}`}>Duration (years)</label><input className="input py-1.5" id={`kd-${k}`} name="duration" inputMode="decimal" defaultValue={c?.default_duration_years ? String(Number(c.default_duration_years)) : ''} /><FieldError state={s} name="duration" /></div>
           {!c && <div><label className="label text-xs" htmlFor={`kpr-${k}`}>Academic details</label>
             <select className="input py-1.5" id={`kpr-${k}`} name="profile" defaultValue="school"><option value="school">Plus Two based</option><option value="pg_medical">MBBS based (PG medical)</option></select></div>}
-          <div className="col-span-2 md:col-span-3"><label className="label text-xs" htmlFor={`ke-${k}`}>Eligibility (general)</label><input className="input py-1.5" id={`ke-${k}`} name="eligibility" defaultValue={c?.eligibility ?? ''} /></div>
-          <div className="col-span-2 md:col-span-3"><label className="label text-xs" htmlFor={`kno-${k}`}>Notes</label><input className="input py-1.5" id={`kno-${k}`} name="notes" defaultValue={c?.notes ?? ''} /></div>
-          <fieldset className="col-span-2 md:col-span-6"><legend className="label text-xs">Offered in countries (optional – without a university, the student form limits courses to these)</legend>
+          <div className="sm:col-span-2 md:col-span-3"><label className="label text-xs" htmlFor={`ke-${k}`}>Eligibility (general)</label><input className="input py-1.5" id={`ke-${k}`} name="eligibility" defaultValue={c?.eligibility ?? ''} /></div>
+          <div className="sm:col-span-2 md:col-span-3"><label className="label text-xs" htmlFor={`kno-${k}`}>Notes</label><input className="input py-1.5" id={`kno-${k}`} name="notes" defaultValue={c?.notes ?? ''} /></div>
+          <fieldset className="sm:col-span-2 md:col-span-6"><legend className="label text-xs">Offered in countries (optional – without a university, the student form limits courses to these)</legend>
             <div className="flex flex-wrap gap-1.5">{countries.map((x) => (
               <label key={x.value} className={`cursor-pointer rounded-full px-2.5 py-0.5 text-xs ring-1 ${sel.includes(x.value) ? 'bg-brand-50 font-semibold text-brand-800 ring-brand-200' : 'bg-white text-slate-600 ring-slate-200'}`}>
                 <input type="checkbox" name="countryIds" value={x.value} className="sr-only" checked={sel.includes(x.value)}
                   onChange={(e) => setSel((v) => e.target.checked ? [...v, x.value] : v.filter((y) => y !== x.value))} />{x.label}</label>))}</div></fieldset>
           <datalist id="course-categories">{categories.map((x) => <option key={x} value={x} />)}</datalist>
-          <div className="col-span-2"><SubmitButton className="btn-secondary btn-sm">{c ? 'Save' : 'Add course'}</SubmitButton></div>
+          <div className="sm:col-span-2"><SubmitButton className="btn-secondary btn-sm">{c ? 'Save' : 'Add course'}</SubmitButton></div>
         </>
       )}
     </ActionForm>
