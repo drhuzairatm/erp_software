@@ -18,7 +18,7 @@ export function AdminTabs({ sections }: { sections: AdminSection[] }) {
   if (sections.length < 2) return null
   const groups = [...new Set(sections.map((s) => s.group))]
   return (
-    <nav ref={nav} aria-label="Administration sections" className="mb-6 -mx-1 overflow-x-auto px-1 pb-1">
+    <nav ref={nav} aria-label="Administration sections" className="relative mb-6 -mx-1 overflow-x-auto px-1 pb-1">
       <div className="inline-flex min-w-full items-center gap-1 rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-200/70">
         {groups.map((g, gi) => (
           <div key={g} className="flex items-center gap-1">
@@ -28,7 +28,7 @@ export function AdminTabs({ sections }: { sections: AdminSection[] }) {
               const active = path === s.href || path.startsWith(s.href + '/')
               return (
                 <Link key={s.href} href={s.href} aria-current={active ? 'page' : undefined}
-                  className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-[13px] font-medium no-underline hover:no-underline ${
+                  className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-[13px] font-medium no-underline hover:no-underline max-lg:min-h-10 ${
                     active ? 'bg-navy-950 text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
                   <Icon name={s.icon} className={`h-4 w-4 ${active ? 'text-cyan-brand' : 'text-slate-400'}`} />{s.label}
                 </Link>

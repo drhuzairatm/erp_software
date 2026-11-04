@@ -43,7 +43,7 @@ const TONES = {
 export type Tone = keyof typeof TONES
 
 export function Badge({ tone = 'slate', children }: { tone?: Tone; children: ReactNode }) {
-  return <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${TONES[tone]}`}>{children}</span>
+  return <span className={`inline-flex max-w-full items-center whitespace-normal rounded-full px-2 py-0.5 sm:whitespace-nowrap text-xs font-medium ring-1 ring-inset ${TONES[tone]}`}>{children}</span>
 }
 
 const STATUS: Record<string, [string, Tone]> = {
@@ -120,7 +120,7 @@ export function DL({ items }: { items: [ReactNode, ReactNode][] }) {
       {items.map(([k, v], i) => (
         <div key={i}>
           <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{k}</dt>
-          <dd className="mt-0.5 text-sm text-slate-900">{v ?? <span className="text-slate-400">—</span>}</dd>
+          <dd className="mt-0.5 text-sm text-slate-900 wrap-anywhere">{v ?? <span className="text-slate-400">—</span>}</dd>
         </div>
       ))}
     </dl>
@@ -132,7 +132,7 @@ export function Pagination({ page, total, pageSize, params }: { page: number; to
   const href = (p: number) => '?' + new URLSearchParams({ ...Object.fromEntries(Object.entries(params).filter(([, v]) => v)) as Record<string, string>, page: String(p) }).toString()
   const from = total ? (page - 1) * pageSize + 1 : 0
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-600">
+    <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-4 py-3 text-sm text-slate-600">
       <span>{total ? `Showing ${from}–${Math.min(page * pageSize, total)} of ${total}` : 'No results'}</span>
       <div className="flex gap-2">
         {page > 1 ? <Link className="btn-secondary btn-sm" href={href(page - 1)}>Previous</Link> : <span className="btn-secondary btn-sm opacity-50" aria-disabled>Previous</span>}
@@ -174,10 +174,10 @@ export function StatCard({ label, value, href, tone = 'slate', sub, icon, chart 
 /** Pill tabs for list views (links), with optional counts. */
 export function ViewTabs({ label, items }: { label: string; items: { href: string; label: string; active: boolean; count?: number; alert?: boolean }[] }) {
   return (
-    <nav aria-label={label} className="mb-4 -mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+    <nav aria-label={label} className="relative mb-4 -mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
       {items.map((i) => (
         <Link key={i.href} href={i.href} aria-current={i.active ? 'page' : undefined}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium no-underline transition hover:no-underline ${
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium no-underline transition hover:no-underline max-lg:min-h-10 ${
             i.active ? 'bg-navy-950 text-white shadow-sm' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'}`}>
           {i.label}
           {i.count !== undefined && (
