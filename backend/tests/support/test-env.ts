@@ -19,4 +19,10 @@ export const TEST_ENV = {
   MFA_ENFORCE: 'roles',
   // internal API credential (test-only value): used by the Next.js-side proxy and the Express API in tests
   INTERNAL_API_SECRET: 'test-internal-api-secret-0123456789-abcdefghij',
+  // never a real mail server: system email stays "not configured" unless a test sets values with a mocked transport
+  SYSTEM_MAIL_HOST: '',
+  SYSTEM_MAIL_PORT: '',
+  SYSTEM_MAIL_FROM_EMAIL: '',
+  SYSTEM_MAIL_USER: '',
+  SYSTEM_MAIL_PASSWORD: '',
 }

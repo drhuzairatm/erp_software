@@ -10,7 +10,7 @@ Nothing below has been created or configured. The labels are as in Part 17.
 | # | Decision | Status | Reference |
 |---|---|---|---|
 | PA-1 | Hosting provider and production domain (and staging) | NOT CONFIGURED | DEPLOYMENT.md; HOSTING_EMAIL_SCANNER_OPTIONS.md; VITE_MIGRATION_PHASE1.md D-V1 |
-| PA-2 | Email provider for system mail (Resend is integrated) and the per-brand SMTP for student mail | NOT CONFIGURED | HOSTING_EMAIL_SCANNER_OPTIONS.md §3 |
+| PA-2 | SMTP mailbox or relay for system mail (`SYSTEM_MAIL_*`, integrated) and the per-brand SMTP for student mail | NOT CONFIGURED | HOSTING_EMAIL_SCANNER_OPTIONS.md §3 |
 | PA-3 | Real MD, CEO and administrator people, and their official mailboxes | NOT CONFIGURED | Part 17.8 |
 | PA-4 | Named database administrator and hosting owner ("technical owner", two people) | NOT CONFIGURED | INCIDENT_RESPONSE_PLAN.md |
 | PA-5 | Emergency MD design: approve, and decide E1–E6 (custodians, email, unseal period, offline authenticator) | PENDING OWNER CONFIRMATION | EMERGENCY_MD_ACCOUNT_DESIGN.md |
@@ -29,7 +29,7 @@ Nothing below has been created or configured. The labels are as in Part 17.
 | # | Item | Depends on | Status |
 |---|---|---|---|
 | PC-1 | Mailboxes: `md@`, `ceo@`, one named mailbox per administrator, `support@` per brand, and `emergency-md@` if approved | PA-1, PA-3 | NOT CONFIGURED |
-| PC-2 | Sending domain(s) verified with SPF, DKIM and DMARC; `RESEND_API_KEY` and `EMAIL_FROM` (e.g. `no-reply@<domain>`) | PA-2 | NOT CONFIGURED |
+| PC-2 | Sending domain(s) verified with SPF, DKIM and DMARC; `SYSTEM_MAIL_HOST`, `SYSTEM_MAIL_PORT`, `SYSTEM_MAIL_FROM_EMAIL` (e.g. `no-reply@<domain>`), `SYSTEM_MAIL_USER` and `SYSTEM_MAIL_PASSWORD` | PA-2 | NOT CONFIGURED |
 | PC-3 | `EMAIL_SMTP_URL_EDX/GRD`, `EMAIL_FROM_EDX/GRD` (student mail, portal links and codes) | PA-2 | NOT CONFIGURED |
 | PC-4 | `APP_URL` = production HTTPS address (used in invitation `/invite/…` and reset `/reset-password/…` links) | PA-1 | NOT CONFIGURED |
 | PC-5 | `NOTIFICATIONS_MODE=live` (production refuses to start otherwise); cron every minute (sends invitations, resets, codes) and daily | PA-1, PC-2 | NOT CONFIGURED |

@@ -6,7 +6,7 @@
 |---|---|
 | Deployment | Not deployed. Cloud steps are documented but untested against real accounts. The S3 storage driver is implemented but has only been exercised through code review and type-checking, not against a real bucket. |
 | Authentication | Two-factor login via authenticator app (no SMS codes, no single sign-on). Self-service disabling/regenerating recovery codes is not available; an administrator resets 2FA. |
-| Email | Password-reset and account-setup emails require `RESEND_API_KEY`; without it, admins hand out one-time links. No other notifications are emailed. |
+| Email | Password-reset and account-setup emails require the `SYSTEM_MAIL_*` SMTP settings; without them, admins hand out one-time links. No other notifications are emailed. |
 | Notifications | Email (SMTP) and WhatsApp (Gallabox) built and tested with simulated providers only; the Gallabox request format must be confirmed with your account; no delivery/read receipts or inbound STOP handling yet (record withdrawals manually); SMS needs DLT registration and a provider. In-app alerts have no "read" state. |
 | Finance | Basic ledger only: no invoices, tax, receipts PDF, multi-currency conversion, or accounting integration. Balances are grouped per currency. |
 | Workflow | Stage rules are permission- and warning-based; no configurable approval chains or SLA timers per stage. Changing a workflow adds new required documents for students when their country/course changes, not retroactively for all students. |

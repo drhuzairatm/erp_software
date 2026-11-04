@@ -63,7 +63,7 @@ Nothing here has been deployed, purchased or subscribed to.
 | # | Decision | Recommendation / options | Status |
 |---|---|---|---|
 | O1 | Hosting option H1 / H2 / H3 | H3: Hostinger VPS (app + ClamAV) + Supabase (database + files), Mumbai | PENDING OWNER DECISION |
-| O2 | Email provider | Resend (already integrated; free tier for the pilot) | PENDING OWNER DECISION |
+| O2 | Email provider | An SMTP mailbox or relay for system email (`SYSTEM_MAIL_*`) | PENDING OWNER DECISION |
 | O3 | Virus scanner | ClamAV on the VPS (free; files stay in-house; already integrated) | PENDING OWNER DECISION |
 | O4 | Monthly budget and 24-month Hostinger prepay | See the budget table in the options document | PENDING OWNER DECISION |
 | O5 | Point-in-time recovery for production (about $100/mo) | Recommended once real data is stored | PENDING OWNER DECISION |

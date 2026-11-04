@@ -67,6 +67,24 @@ staging serve nothing (HTTP 500) when the variable is set. Never use it with rea
 
 Credentials live only in the server environment (never in the database or the code).
 
+### System email — staff invitations, staff password resets, security alerts
+Sent over SMTP with Nodemailer, separately from the per-company student and parent email below.
+1. Create or choose one sending mailbox, e.g. `no-reply@<domain>`. A domain does not include mailboxes: create it with your email provider.
+2. Get its SMTP settings. Google Workspace or Gmail: an *App password*, host `smtp.gmail.com`, port `465`. Microsoft 365:
+   host `smtp.office365.com`, port `587`, with SMTP AUTH enabled for that mailbox. Check your provider's daily sending limit.
+3. In the server environment only, set all five:
+   `SYSTEM_MAIL_HOST`, `SYSTEM_MAIL_PORT` (`465` = implicit TLS, `587` = STARTTLS required; other ports are refused),
+   `SYSTEM_MAIL_FROM_EMAIL` (one bare address, which your provider must allow this account to send from),
+   `SYSTEM_MAIL_USER` and `SYSTEM_MAIL_PASSWORD`. Then restart the application so it reads them.
+4. Make sure SPF, DKIM and DMARC for the sending domain include the mail provider.
+5. Make sure the server can reach the SMTP host on that port (some hosts restrict outbound mail ports).
+
+**If any setting is missing or invalid**, nothing is sent and no error appears at start-up. Invitation links are shown once
+to the administrator, the forgot-password page asks staff to contact an administrator, and alerts stay pending.
+
+**Test mode does not apply.** `NOTIFICATIONS_MODE=test` and `NOTIFICATIONS_TEST_RECIPIENTS` do not filter system email, so
+never set `SYSTEM_MAIL_*` on a development or staging server that holds real staff addresses.
+
 ### Email — your business mailboxes (Dr.Expert and GRADUATER)
 1. Create a sending mailbox per brand, e.g. `updates@<drexpert-domain>` and `updates@<graduater-domain>`.
 2. Get its SMTP settings from your email provider (Google Workspace: use an *App password* with

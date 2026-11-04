@@ -11,7 +11,7 @@
 | Web app hosting | Vercel (Pro plan for business use) | Render, Railway, Fly.io, any Node 24 host |
 | PostgreSQL | Supabase (Pro plan for daily backups + PITR option) | Neon, AWS RDS, DigitalOcean |
 | Private file storage | Supabase Storage (S3-compatible endpoint) | Cloudflare R2, AWS S3 |
-| Email (optional) | Resend | Postmark, SES |
+| System email | Any SMTP mailbox or relay, through `SYSTEM_MAIL_*` (docs/NOTIFICATIONS.md, *System email*) | Google Workspace, Microsoft 365, Zoho, Amazon SES |
 | Error monitoring (optional) | Vercel logs; Sentry can be added later | — |
 
 Create **two separate environments**: `staging` (fictional data, used for UAT) and `production`
@@ -58,8 +58,9 @@ close to your users and compliant with your requirements (e.g. Mumbai `ap-south-
    **back it up in the password manager; losing it means everyone must re-enrol 2FA**), `MFA_ENFORCE=all` (production enforces two-step login for everyone regardless), `CRON_SECRET` (32+ random chars), `PORTAL_SECRET` (32+ random chars), the notification settings in docs/NOTIFICATIONS.md
    (**Production must set `NOTIFICATIONS_MODE=live` exactly. Otherwise the server **will not serve the application**: every request, `/api/health` included, is answered with HTTP 500, and the log shows "Refusing to start: …". The process itself keeps running, so set up your health check on `/api/health`.** Until the go-live
    approval, use a staging/preview deployment with `APP_ENV=staging` and `NOTIFICATIONS_MODE=test`. Never set
-   `NOTIFICATIONS_TEST_MAILBOX` outside development; see docs/NOTIFICATIONS.md, *Modes*), `APP_TIMEZONE=Asia/Kolkata`, optional
-   `RESEND_API_KEY` and `EMAIL_FROM`.
+   `NOTIFICATIONS_TEST_MAILBOX` outside development; see docs/NOTIFICATIONS.md, *Modes*), `APP_TIMEZONE=Asia/Kolkata`, and for
+   emailed staff invitations, staff password resets and security alerts all of `SYSTEM_MAIL_HOST`, `SYSTEM_MAIL_PORT`,
+   `SYSTEM_MAIL_FROM_EMAIL`, `SYSTEM_MAIL_USER` and `SYSTEM_MAIL_PASSWORD` (see docs/NOTIFICATIONS.md, *System email*).
    **Never** add `DATABASE_ADMIN_URL`, `APP_DB_PASSWORD` or `SEED_DEMO_PASSWORD` to Vercel.
 4. Deploy, then add your domain (e.g. `staff.yourcompany.com`) and confirm HTTPS.
 5. Optional: enable Vercel Firewall rate limiting for `/login` and `/forgot-password`.
