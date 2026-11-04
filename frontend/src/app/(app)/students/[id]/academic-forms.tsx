@@ -86,7 +86,7 @@ export function RecordForm({ studentId, countries, kinds, initial, onDone }: { s
               <legend className="px-1 text-sm font-medium">Subjects</legend>
               <div className="space-y-2">
                 {rows.map((r, i) => (
-                  <div key={r.k} className="grid grid-cols-2 gap-2 md:grid-cols-8">
+                  <div key={r.k} className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-8">
                     <select className="input py-1 text-sm md:col-span-2" name="subjectKey" aria-label={`Subject ${i + 1} type`} defaultValue={r.subject_key}>
                       {Object.entries(SUBJECTS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
                     </select>
@@ -129,7 +129,7 @@ export function NameCheckReview({ studentId, checkId, mandatory }: { studentId: 
   return (
     <ActionForm action={reviewNameCheckAction.bind(null, studentId, checkId)} className="mt-2 flex flex-wrap items-center gap-2">
       <label className="sr-only" htmlFor={`nc-${checkId}`}>Note</label>
-      <input id={`nc-${checkId}`} name="note" className="input min-w-56 flex-1 py-1 text-sm" placeholder={mandatory ? 'Note (optional)' : 'Note (required if no document is needed)'} />
+      <input id={`nc-${checkId}`} name="note" className="input min-w-full flex-1 py-1 text-sm sm:min-w-56" placeholder={mandatory ? 'Note (optional)' : 'Note (required if no document is needed)'} />
       <SubmitButton name="decision" value="one_and_same" className="btn-secondary btn-sm">Require One and Same</SubmitButton>
       {!mandatory && <SubmitButton name="decision" value="no_action" className="btn-ghost btn-sm">Same person – no document needed</SubmitButton>}
     </ActionForm>
@@ -163,7 +163,7 @@ export function OasActions({ studentId, caseId, templates, templateId, hasPrevie
       {canCancel && (
         <details className="text-xs"><summary className="cursor-pointer text-slate-600">Cancel requirement (manager)…</summary>
           <ActionForm action={cancelOasAction.bind(null, studentId, caseId)} className="mt-1 flex flex-wrap items-center gap-2">
-            <input name="reason" aria-label="Reason for cancelling" className="input min-w-56 flex-1 py-1 text-sm" placeholder="Reason (recorded)" required />
+            <input name="reason" aria-label="Reason for cancelling" className="input min-w-full flex-1 py-1 text-sm sm:min-w-56" placeholder="Reason (recorded)" required />
             <ConfirmSubmit className="btn-secondary btn-sm" confirmText="Cancel this One and Same requirement?">Cancel requirement</ConfirmSubmit>
           </ActionForm>
         </details>

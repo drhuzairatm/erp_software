@@ -62,6 +62,18 @@ export function PdfViewer({ url, annotations, highlightTerms, page, onPageChange
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url])
 
+  // Below `lg`, open at the width of the screen instead of the desktop default (once per document; zoom still works)
+  useEffect(() => {
+    if (!pdf || window.innerWidth >= 1024) return
+    let cancelled = false
+    ;(async () => {
+      const width = (await pdf.getPage(1)).getViewport({ scale: 1 }).width
+      const available = (pageRef.current?.parentElement?.clientWidth ?? window.innerWidth) - 32 // the scroller's p-4
+      if (!cancelled && available > 0) setScale(Math.min(1.2, Math.max(0.3, +(available / width).toFixed(2))))
+    })()
+    return () => { cancelled = true }
+  }, [pdf])
+
   // Render the current page
   useEffect(() => {
     if (!pdf) return

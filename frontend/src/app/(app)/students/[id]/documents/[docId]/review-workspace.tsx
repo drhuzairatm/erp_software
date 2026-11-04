@@ -67,7 +67,7 @@ export function ReviewWorkspace(p: WorkspaceProps) {
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-      <div className="card h-[80vh] overflow-hidden xl:col-span-3">
+      <div className="card h-[80dvh] overflow-hidden xl:col-span-3">
         {!p.file ? <p className="p-6 text-sm text-slate-600">No file has been uploaded yet.</p>
           : isPdf ? (
             <PdfViewer url={contentUrl!} annotations={p.annotations} highlightTerms={highlightTerms} page={page}

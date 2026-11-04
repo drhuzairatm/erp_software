@@ -88,17 +88,17 @@
 
 ## 3. Email (invitations, password links, alerts, notifications)
 **Current code:**
-- **Invitations, password and alert emails:** sent through the **Resend API** (`RESEND_API_KEY`).
+- **Invitations, password and alert emails:** sent through **one SMTP account** (`SYSTEM_MAIL_*`). The earlier Resend API integration has been removed.
 - **Student and parent notifications:** sent through each brand's **SMTP mailbox** (`EMAIL_SMTP_URL_EDX` / `_GRD`).
 
 | Option | Price | Compatibility | Notes |
 |---|---|---|---|
-| **Resend** | Free: 3,000 emails/mo (100/day); Pro $20/mo for 50,000 | **Works now** (already integrated) | US provider; needs a verified sending domain (DNS: SPF, DKIM, DMARC). The free tier is enough for a pilot. |
-| **Amazon SES** (Mumbai region) | $0.10 per 1,000 emails | SMTP works for notifications now. Invitations would need a small code change to send through SMTP. | Very cheap; AWS account and domain verification; starts in a "sandbox" until AWS approves |
-| **Zoho ZeptoMail** | Pay-as-you-go credits (1 credit = 10,000 emails; *verify* INR price) | Same as SES | Indian company (Zoho); transactional only |
-| **Brand mailboxes** (Google Workspace / Zoho Mail SMTP) | Usually already paid | Works now for notifications | Daily sending limits; not ideal for system mail |
+| **Business mailboxes** (Google Workspace / Zoho Mail SMTP) | Usually already paid | Works for system and student email | Daily sending limits (*verify* for your plan) |
+| **Amazon SES** (Mumbai region) | $0.10 per 1,000 emails | Works over SMTP on port 465 or 587 | Very cheap; AWS account and domain verification; starts in a "sandbox" until AWS approves |
+| **Zoho ZeptoMail** | Pay-as-you-go credits (1 credit = 10,000 emails; *verify* INR price) | Works over SMTP, if your plan offers it (*verify*) | Indian company (Zoho); transactional only |
+| **Resend** | Free: 3,000 emails/mo (100/day); Pro $20/mo for 50,000 | Only through an SMTP service (*verify*); its API is no longer used | US provider; needs a verified sending domain |
 
-**Recommendation:** **Resend** for system emails (no code change; free for the pilot). Keep brand SMTP for student notifications once their wording is approved. Whichever you choose, the sending domain(s) need SPF, DKIM and DMARC DNS records.
+**Recommendation:** a dedicated sending mailbox or SMTP relay for system emails, chosen by the owner against its sending limits. Keep brand SMTP for student notifications once their wording is approved. Whichever you choose, the sending domain(s) need SPF, DKIM and DMARC DNS records. **Budget note:** the totals in section 5 were priced with Resend's free tier; add the cost of any paid mailbox or relay.
 
 ## 4. Virus scanner (your requirement: real, server-side, before real-student documents)
 | Option | Price | Data protection | Compatibility | Notes |

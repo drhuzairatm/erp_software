@@ -28,10 +28,10 @@ export function StudentPhoto({ studentId, name, initials, version, canEdit }: { 
           {version ? 'Replace photo' : 'Upload photo'}</button>}
       </div>
 
-      <dialog ref={view} className="m-auto max-w-[95vw] rounded-2xl p-0 shadow-2xl backdrop:bg-black/60" aria-label="Student photo">
+      <dialog ref={view} className="m-auto max-h-[100dvh] max-w-[95vw] overflow-y-auto rounded-2xl p-0 shadow-2xl backdrop:bg-black/60" aria-label="Student photo">
         <div className="space-y-3 p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {version && <img src={`/api/students/${studentId}/photo?size=portrait&v=${version}`} alt={`Photo of ${name}`} className="mx-auto max-h-[70vh] w-auto rounded-lg" />}
+          {version && <img src={`/api/students/${studentId}/photo?size=portrait&v=${version}`} alt={`Photo of ${name}`} className="mx-auto max-h-[70dvh] w-auto rounded-lg" />}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <a className="btn-primary btn-sm" href={`/api/students/${studentId}/photo/download`}>Download Passport Photo</a>
             <div className="flex gap-2">
@@ -46,7 +46,7 @@ export function StudentPhoto({ studentId, name, initials, version, canEdit }: { 
         </div>
       </dialog>
 
-      <dialog ref={edit} className="m-auto w-[min(92vw,34rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-black/60" aria-label={version ? 'Replace photo' : 'Upload photo'}>
+      <dialog ref={edit} className="m-auto max-h-[100dvh] w-[min(92vw,34rem)] overflow-y-auto rounded-2xl p-0 shadow-2xl backdrop:bg-black/60" aria-label={version ? 'Replace photo' : 'Upload photo'}>
         <ActionForm key={k} action={uploadStudentPhotoAction.bind(null, studentId)} className="space-y-3 p-5" onSuccess={() => edit.current?.close()}>
           <h2 className="text-base font-semibold">{version ? 'Replace photo' : 'Upload photo'} – {name}</h2>
           <PhotoCapture onChange={setChosen} />

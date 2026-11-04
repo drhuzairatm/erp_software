@@ -33,8 +33,8 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
     <>
       <PageHeader title="Students" description={`${scope.label} · ${data.total} matching record${data.total === 1 ? '' : 's'}`}
         actions={<>{canImport && <Link href="/students/import" className="btn-secondary">Import CSV</Link>}{canCreate && <Link href="/students/new" className="btn-primary">Register student</Link>}</>} />
-      <form method="get" className="card mb-4 grid grid-cols-2 gap-3 p-4 md:grid-cols-4 xl:grid-cols-8">
-        <div className="col-span-2">
+      <form method="get" className="card mb-4 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
+        <div className="sm:col-span-2">
           <label className="label" htmlFor="q">Search</label>
           <input className="input" id="q" name="q" defaultValue={sp.q} placeholder="Student ID, name, phone, email or passport no." />
         </div>
@@ -75,14 +75,14 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
         <div className="flex items-end gap-3">
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="archived" value="yes" defaultChecked={sp.archived === 'yes'} /> Archived</label>
         </div>
-        <div className="col-span-2 flex items-end gap-2">
+        <div className="flex items-end gap-2 sm:col-span-2">
           <button className="btn-primary" type="submit">Apply</button>
           <Link href="/students" className="btn-ghost">Clear</Link>
         </div>
       </form>
       <Card padded={false}>
         {data.rows.length === 0 ? <EmptyState title="No students found">Try changing the filters or search.</EmptyState> : (
-          <div className="table-wrap">
+          <div className="table-wrap table-stack">
             <table>
               <thead><tr>
                 <th scope="col">Student</th><th scope="col">Company</th><th scope="col">Destination / course</th><th scope="col">Stage</th>
@@ -104,16 +104,16 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                         </div>
                       </div>
                     </td>
-                    <td><Badge tone={s.org_code === 'GRD' ? 'purple' : 'blue'}>{s.org_name}</Badge></td>
-                    <td>{s.country_name ?? '—'}<div className="text-xs text-slate-500">{s.course_name ?? ''}{s.university_name ? ` · ${s.university_name}` : ''}</div></td>
-                    <td><span className="inline-flex whitespace-nowrap rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-800">{s.stage_name}</span>{s.status !== 'active' && <div className="mt-1"><StatusBadge status={s.status} /></div>}</td>
-                    <td>{s.counsellor_name ?? <span className="text-slate-400">—</span>}</td>
-                    <td>
+                    <td data-label="Company"><Badge tone={s.org_code === 'GRD' ? 'purple' : 'blue'}>{s.org_name}</Badge></td>
+                    <td data-label="Destination / course">{s.country_name ?? '—'}<div className="text-xs text-slate-500">{s.course_name ?? ''}{s.university_name ? ` · ${s.university_name}` : ''}</div></td>
+                    <td data-label="Stage"><span className="inline-flex whitespace-nowrap rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-800">{s.stage_name}</span>{s.status !== 'active' && <div className="mt-1"><StatusBadge status={s.status} /></div>}</td>
+                    <td data-label="Counsellor">{s.counsellor_name ?? <span className="text-slate-400">—</span>}</td>
+                    <td data-label="Next action">
                       <div className="max-w-56 truncate">{s.next_action ?? '—'}</div>
                       {s.next_action_due && <div className={`text-xs ${s.next_action_due < today && s.status === 'active' ? 'font-semibold text-red-700' : 'text-slate-500'}`}>
                         {s.next_action_due < today && s.status === 'active' ? 'Overdue · ' : ''}{fmtDate(s.next_action_due)}</div>}
                     </td>
-                    <td className="whitespace-nowrap text-slate-600">{fmtDate(s.created_at)}</td>
+                    <td data-label="Registered" className="whitespace-nowrap text-slate-600">{fmtDate(s.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

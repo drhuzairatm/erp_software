@@ -79,7 +79,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
           {profile.workflowStages.length > 0 && (() => {
             const idx = profile.workflowStages.findIndex((w) => w.stage_key === s.current_stage_key)
             return (
-              <ol aria-label="Admission progress" className="mt-5 flex gap-1 overflow-x-auto pb-1">
+              <ol aria-label="Admission progress" className="relative mt-5 flex gap-1 overflow-x-auto pb-1">
                 {profile.workflowStages.map((w, i) => {
                   const state = idx < 0 ? 'upcoming' : i < idx || s.status === 'completed' ? 'done' : i === idx ? 'current' : 'upcoming'
                   return (
@@ -105,10 +105,10 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
 
       <div className="mt-4"><AttentionPanel ctx={ctx} profile={profile} /></div>
 
-      <nav aria-label="Student sections" className="mt-4 mb-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+      <nav aria-label="Student sections" className="relative mt-4 mb-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
         {tabs.map((t) => (
           <Link key={t.key} href={`/students/${id}?tab=${t.key}`} aria-current={tab === t.key ? 'page' : undefined}
-            className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-semibold no-underline transition hover:no-underline ${tab === t.key ? 'bg-navy-950 text-white shadow' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
+            className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-semibold max-lg:py-2.5 no-underline transition hover:no-underline ${tab === t.key ? 'bg-navy-950 text-white shadow' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
             {t.label}
           </Link>
         ))}
@@ -572,10 +572,10 @@ async function Messages({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
   return (
     <div className="space-y-6">
       <Card title="Consent to receive messages">
-        <table className="text-sm"><thead><tr><th></th><th className="px-4">Email</th><th className="px-4">WhatsApp</th><th className="px-4">SMS</th></tr></thead>
+        <div className="relative overflow-x-auto"><table className="text-sm"><thead><tr><th></th><th className="px-4">Email</th><th className="px-4">WhatsApp</th><th className="px-4">SMS</th></tr></thead>
           <tbody>{['student', 'parent'].map((who) => (
             <tr key={who}><td className="py-1 pr-4 font-medium capitalize">{who}</td>{['email', 'whatsapp', 'sms'].map((ch) => <td key={ch} className="px-4">{cell(who, ch)}</td>)}</tr>))}
-          </tbody></table>
+          </tbody></table></div>
         {consents.canRecord && <div className="mt-4 border-t border-slate-100 pt-4"><ConsentForm studentId={s.id} /></div>}
         {consents.history.length > 0 && (
           <details className="mt-3 text-sm"><summary className="cursor-pointer text-slate-600">Consent history</summary>

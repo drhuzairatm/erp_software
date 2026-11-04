@@ -40,7 +40,7 @@ export function PhoneField({ name, label, required, defaultValue, defaultCountry
         <input className="input min-w-0 flex-1" id={`${id}-n`} name={name} type="tel" autoComplete="off" value={number}
           onChange={(e) => setNumber(e.target.value)} aria-invalid={invalid || undefined} />
         {open && (
-          <div className="absolute left-0 top-full z-20 mt-1 w-72 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+          <div className="absolute left-0 top-full z-20 mt-1 w-full rounded-md sm:w-72 border border-slate-200 bg-white p-2 shadow-lg">
             <input className="input mb-2 py-1 text-sm" autoFocus placeholder="Search country or code" aria-label="Search country or calling code"
               value={q} onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); if (e.key === 'Enter') { e.preventDefault(); if (list[0]) { setCountry(list[0].code); setOpen(false); setQ('') } } }} />

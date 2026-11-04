@@ -402,7 +402,7 @@ async function Analytics({ ctx, orgIds, sp }: { ctx: Ctx; orgIds: string[]; sp: 
 function DashboardFilters({ sp, lookups, staff }: { sp: SP; lookups: Lookups; staff: { id: string; full_name: string }[] }) {
   const uniqueStaff = [...new Map(staff.map((s) => [s.id, s])).values()]
   return (
-    <form className="card mb-6 grid grid-cols-2 gap-3 p-4 md:grid-cols-4 xl:grid-cols-7" method="get">
+    <form className="card mb-6 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7" method="get">
       <div><label className="label" htmlFor="from">Registered from</label><input className="input" type="date" id="from" name="from" defaultValue={sp.from} /></div>
       <div><label className="label" htmlFor="to">Registered to</label><input className="input" type="date" id="to" name="to" defaultValue={sp.to} /></div>
       <div><label className="label" htmlFor="country">Destination</label>
@@ -413,7 +413,7 @@ function DashboardFilters({ sp, lookups, staff }: { sp: SP; lookups: Lookups; st
         <select className="input" id="stage" name="stage" defaultValue={sp.stage ?? ''}><option value="">All</option>{lookups.stages.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}</select></div>
       <div><label className="label" htmlFor="staff">Staff member</label>
         <select className="input" id="staff" name="staff" defaultValue={sp.staff ?? ''}><option value="">All</option>{uniqueStaff.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select></div>
-      <div className="col-span-2 flex items-end gap-2 md:col-span-1">
+      <div className="flex items-end gap-2 sm:col-span-2 md:col-span-1">
         <button className="btn-primary" type="submit">Apply</button>
         <Link href="/" className="btn-ghost">Reset</Link>
       </div>

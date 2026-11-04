@@ -21,7 +21,7 @@ export default async function VerifyEmailPage({ searchParams }: { searchParams: 
   const sp = await searchParams
   const result = RESULT[sp.result as keyof typeof RESULT]
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-12">
       <div className="mb-6 text-center">
         <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">Email verification</p>
         <p className="mt-1 text-sm text-slate-600">Dr.Expert Edulinks · GRADUATER</p>

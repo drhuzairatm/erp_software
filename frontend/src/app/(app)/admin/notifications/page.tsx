@@ -30,13 +30,13 @@ export default async function NotificationSettingsPage() {
           <span className="block">Sign-in codes and email-verification links are never shown here or in Messages; in test mode they are not sent and not stored.</span>
         </Alert>
         <Card title="Channels">
-          <table className="text-sm"><thead><tr><th>Company</th><th>Email (SMTP)</th><th>WhatsApp (Gallabox)</th><th>SMS</th></tr></thead>
+          <div className="relative overflow-x-auto"><table className="text-sm"><thead><tr><th>Company</th><th>Email (SMTP)</th><th>WhatsApp (Gallabox)</th><th>SMS</th></tr></thead>
             <tbody>{status.channels.map((c) => (
               <tr key={c.code}><td className="py-1 pr-4">{orgs.find((o) => o.orgCode === c.code)?.orgName}</td>
                 <td className="pr-4">{c.email ? <Badge tone="green">Configured</Badge> : <Badge>Not configured</Badge>}</td>
                 <td className="pr-4">{c.whatsapp ? <Badge tone="green">Configured (format to be confirmed)</Badge> : <Badge>Not configured</Badge>}</td>
                 <td><Badge>No provider (DLT needed)</Badge></td></tr>))}
-            </tbody></table>
+            </tbody></table></div>
           <p className="hint mt-2">Provider credentials are set by the technical administrator in the server environment, never in the database. See docs/NOTIFICATIONS.md.</p>
         </Card>
       </div>

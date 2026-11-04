@@ -60,7 +60,7 @@ export function RequirementForm({ groupId, initial, countries, universities, cou
             <fieldset className="rounded-md border border-slate-200 p-3">
               <legend className="px-1 text-sm font-medium">Subject requirements</legend>
               <div className="space-y-2">{items.map((it, i) => (
-                <div key={it.k} className="grid grid-cols-2 gap-2 md:grid-cols-12">
+                <div key={it.k} className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-12">
                   <select className="input py-1 text-sm md:col-span-2" name="itemRecordKind" aria-label={`Requirement ${i + 1} qualification`} defaultValue={it.record_kind}>
                     <option value="plus_two">Plus Two</option><option value="class_10">Class 10</option><option value="bachelor">Bachelor&apos;s</option><option value="mbbs">MBBS</option></select>
                   <select className="input py-1 text-sm md:col-span-2" name="itemSubjectKey" aria-label={`Requirement ${i + 1} subject`} defaultValue={it.subject_key}
@@ -90,7 +90,7 @@ export function RequirementForm({ groupId, initial, countries, universities, cou
 export function StatusForm({ groupId, active }: { groupId: string; active: boolean }) {
   return (
     <ActionForm action={requirementStatusAction.bind(null, groupId, !active)} className="flex flex-wrap items-center gap-2">
-      <input name="reason" aria-label="Reason" className="input min-w-56 flex-1 py-1 text-sm" placeholder="Reason (recorded)" required />
+      <input name="reason" aria-label="Reason" className="input min-w-full flex-1 py-1 text-sm sm:min-w-56" placeholder="Reason (recorded)" required />
       <ConfirmSubmit className={active ? 'btn-secondary btn-sm' : 'btn-primary btn-sm'} confirmText={active ? 'Deactivate this requirement?' : 'Activate this requirement?'}>
         {active ? 'Deactivate' : 'Activate'}</ConfirmSubmit>
     </ActionForm>

@@ -39,7 +39,7 @@ export function ImportWizard({ orgs }: { orgs: { id: string; name: string }[] })
           </div>
           <div>
             <label className="label" htmlFor="file">CSV file</label>
-            <input id="file" type="file" accept=".csv,text/csv" className="block text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-2"
+            <input id="file" type="file" accept=".csv,text/csv" className="block w-full max-w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-2"
               onChange={(e) => onFile(e.target.files?.[0])} />
             {readError && <p className="mt-1 text-xs text-red-600">{readError}</p>}
           </div>
