@@ -56,19 +56,19 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           </FilterBar>
           <Card padded={false}>
             {data.rows.length === 0 ? <EmptyState title="No leads in this view" /> : (
-              <div className="table-wrap"><table>
+              <div className="table-wrap table-stack"><table>
                 <thead><tr><th>Lead</th><th>Programme</th><th>Company</th><th>Source</th><th>Status</th><th>Assigned</th><th>Follow-up</th></tr></thead>
                 <tbody>{data.rows.map((l) => (
                   <tr key={l.id}>
                     <td><div className="flex items-center gap-3"><Avatar name={l.full_name} />
                       <div><Link href={`/leads/${l.id}`} className="font-semibold">{l.full_name}</Link>
                         <div className="text-xs text-slate-500">{l.phone ?? l.email}{l.duplicate_status === 'possible' && <> · <span className="font-semibold text-amber-700">possible duplicate</span></>}</div></div></div></td>
-                    <td className="text-sm">{l.programme ? PROGRAMMES[l.programme as keyof typeof PROGRAMMES] : '—'}{l.destination && <div className="text-xs text-slate-500">{l.destination}</div>}</td>
-                    <td>{l.org_name ? <Badge tone={l.org_name.startsWith('GRAD') ? 'purple' : 'blue'}>{l.org_name}</Badge> : <Badge tone="orange">Central queue</Badge>}</td>
-                    <td className="text-xs">{SOURCES[l.source as keyof typeof SOURCES]}</td>
-                    <td><Badge tone={LEAD_STATUSES[l.status].tone}>{LEAD_STATUSES[l.status].label}</Badge></td>
-                    <td className="text-sm">{l.assignee ? <span className="flex items-center gap-2"><Avatar name={l.assignee} size="sm" src={staffPhotoUrl(l.assigned_to, photos[l.assigned_to ?? ''])} />{l.assignee}</span> : <span className="text-amber-700">Unassigned</span>}</td>
-                    <td className={`whitespace-nowrap text-sm ${l.overdue ? 'font-semibold text-red-700' : ''}`}>{l.next_followup_on ? fmtDate(l.next_followup_on) : '—'}{l.overdue && <div className="text-xs">Overdue</div>}</td>
+                    <td data-label="Programme" className="text-sm">{l.programme ? PROGRAMMES[l.programme as keyof typeof PROGRAMMES] : '—'}{l.destination && <div className="text-xs text-slate-500">{l.destination}</div>}</td>
+                    <td data-label="Company">{l.org_name ? <Badge tone={l.org_name.startsWith('GRAD') ? 'purple' : 'blue'}>{l.org_name}</Badge> : <Badge tone="orange">Central queue</Badge>}</td>
+                    <td data-label="Source" className="text-xs">{SOURCES[l.source as keyof typeof SOURCES]}</td>
+                    <td data-label="Status"><Badge tone={LEAD_STATUSES[l.status].tone}>{LEAD_STATUSES[l.status].label}</Badge></td>
+                    <td data-label="Assigned" className="text-sm">{l.assignee ? <span className="flex items-center gap-2"><Avatar name={l.assignee} size="sm" src={staffPhotoUrl(l.assigned_to, photos[l.assigned_to ?? ''])} />{l.assignee}</span> : <span className="text-amber-700">Unassigned</span>}</td>
+                    <td data-label="Follow-up" className={`whitespace-nowrap text-sm ${l.overdue ? 'font-semibold text-red-700' : ''}`}>{l.next_followup_on ? fmtDate(l.next_followup_on) : '—'}{l.overdue && <div className="text-xs">Overdue</div>}</td>
                   </tr>))}
                 </tbody>
               </table></div>

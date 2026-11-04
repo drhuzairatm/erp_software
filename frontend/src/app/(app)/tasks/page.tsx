@@ -127,18 +127,18 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       ) : (
         <Card padded={false}>
           {data.rows.length === 0 ? <EmptyState title="No tasks in this view" /> : (
-            <div className="table-wrap"><table>
+            <div className="table-wrap table-stack"><table>
               <thead><tr><th>Task</th><th>Student</th><th>Assigned to</th><th>Status</th><th>Priority</th><th>Due</th></tr></thead>
               <tbody>{data.rows.map((t) => (
                 <tr key={t.id}>
                   <td className={`border-l-4 ${PRIORITY_BAR[t.priority] ?? 'border-l-transparent'}`}>
                     <Link href={`/tasks/${t.id}`} className="font-medium">{t.title}</Link><div className="text-xs text-slate-500">{label(t.task_type)} · {t.org_name}</div></td>
-                  <td>{t.student_id && t.student_code ? <Link href={`/students/${t.student_id}`} className="inline-flex items-center gap-2"><Avatar name={t.student_name} size="sm" src={studentPhotoUrl(t.student_id, t.student_photo_version)} />{t.student_name}</Link> : t.student_id ? <span className="text-slate-400">Restricted</span> : '—'}
+                  <td data-label="Student">{t.student_id && t.student_code ? <Link href={`/students/${t.student_id}`} className="inline-flex items-center gap-2"><Avatar name={t.student_name} size="sm" src={studentPhotoUrl(t.student_id, t.student_photo_version)} />{t.student_name}</Link> : t.student_id ? <span className="text-slate-400">Restricted</span> : '—'}
                     {t.student_code && <div className="font-mono text-xs text-slate-500">{t.student_code}</div>}</td>
-                  <td>{t.assignee_name ? <span className="flex items-center gap-2"><Avatar name={t.assignee_name} size="sm" src={staffPhotoUrl(t.assigned_to, photos[t.assigned_to ?? ''])} />{t.assignee_name}</span> : <span className="text-amber-700">Unassigned</span>}</td>
-                  <td><StatusBadge status={t.status} />{t.status === 'waiting_external' && t.delay_reason && <div className="text-xs text-slate-500">on {label(t.delay_reason)}</div>}</td>
-                  <td><PriorityBadge priority={t.priority} /></td>
-                  <td className={`whitespace-nowrap ${t.is_overdue ? 'font-semibold text-red-700' : ''}`}>{fmtDate(t.due_date)}{t.is_overdue && <div className="text-xs">Overdue</div>}
+                  <td data-label="Assigned to">{t.assignee_name ? <span className="flex items-center gap-2"><Avatar name={t.assignee_name} size="sm" src={staffPhotoUrl(t.assigned_to, photos[t.assigned_to ?? ''])} />{t.assignee_name}</span> : <span className="text-amber-700">Unassigned</span>}</td>
+                  <td data-label="Status"><StatusBadge status={t.status} />{t.status === 'waiting_external' && t.delay_reason && <div className="text-xs text-slate-500">on {label(t.delay_reason)}</div>}</td>
+                  <td data-label="Priority"><PriorityBadge priority={t.priority} /></td>
+                  <td data-label="Due" className={`whitespace-nowrap ${t.is_overdue ? 'font-semibold text-red-700' : ''}`}>{fmtDate(t.due_date)}{t.is_overdue && <div className="text-xs">Overdue</div>}
                     {t.completed_at && <div className="text-xs font-normal text-slate-500">Done {fmtDate(t.completed_at)}</div>}</td>
                 </tr>))}
               </tbody>
