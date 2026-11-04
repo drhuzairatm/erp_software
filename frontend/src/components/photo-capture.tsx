@@ -246,7 +246,7 @@ function CameraDialog({ onClose, onPhoto, onError, onFiles }: { onClose: () => v
 
   return (
     <dialog ref={dialog} onCancel={(e) => { e.preventDefault(); close() }} aria-label="Take a photo"
-      className="m-auto w-[min(94vw,40rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-black/70">
+      className="m-auto max-h-[100dvh] w-[min(94vw,40rem)] overflow-y-auto rounded-2xl p-0 shadow-2xl backdrop:bg-black/70">
       <div className="space-y-3 p-4">
         <h2 className="text-base font-semibold">Take a photo</h2>
         <div className="relative aspect-video overflow-hidden rounded-xl bg-slate-900">
