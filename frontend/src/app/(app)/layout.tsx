@@ -10,6 +10,7 @@ import { requireUser } from '@/lib/auth/session'
 import { staffPhotoVersions } from '@/services/staff-photos'
 import { getNotifications } from '@/services/dashboard'
 import { getScope } from '@/services/scope'
+import { HeaderMenu } from './header-menu'
 import { type NavItem, ScopeSelect, Sidebar } from './nav'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -55,7 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const initials = ctx.fullName.replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
 
   return (
-    <div data-brand={brand} className="min-h-screen">
+    <div data-brand={brand} className="min-h-dvh">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[60] focus:rounded focus:bg-white focus:px-3 focus:py-2">Skip to content</a>
       <Sidebar items={items}
         header={<>
@@ -68,7 +69,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         footer={<span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-teal-brand shadow-[0_0_8px_#24E0B8]" aria-hidden />Staff portal · secure session</span>} />
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+        <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 pt-[env(safe-area-inset-top)] backdrop-blur supports-[backdrop-filter]:bg-white/70">
           <div className="flex items-center gap-3 px-4 py-2.5 pl-16 lg:px-8 lg:pl-8">
             {canAny(ctx, ['students.read.all', 'students.read.processing', 'students.read.assigned']) && (
               <form action="/students" role="search" className="relative hidden max-w-md flex-1 sm:block">
@@ -79,43 +80,41 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </form>
             )}
             <div className="ml-auto flex items-center gap-1.5">
-              <details className="relative">
-                <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" aria-label={`Notifications: ${notifications.total}`}>
+              <HeaderMenu summaryClassName="flex cursor-pointer list-none items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" summaryLabel={`Notifications: ${notifications.total}`}
+                panelClassName="p-2 sm:w-80"
+                summary={<>
                   <Icon name="bell" className="h-5 w-5" /><span className="hidden sm:inline">Alerts</span>
                   {notifications.total > 0 && <span className="rounded-full bg-red-600 px-1.5 text-xs font-semibold text-white">{notifications.total}</span>}
-                </summary>
-                <div className="card absolute right-0 z-30 mt-2 w-80 p-2 text-sm">
+                </>}>
                   <p className="px-2 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Needs your attention</p>
                   {notifications.items.length === 0 ? <p className="p-2 text-slate-500">Nothing needs your attention right now.</p> : (
                     <ul>{notifications.items.map((n) => (
                       <li key={n.key}><Link className="flex justify-between rounded-lg px-2 py-2 text-slate-700 no-underline hover:bg-slate-50" href={n.href}><span>{n.label}</span><span className="font-semibold">{n.count}</span></Link></li>))}
                     </ul>
                   )}
-                </div>
-              </details>
-              <details className="relative">
-                <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm font-medium text-slate-700 hover:bg-slate-100">
+              </HeaderMenu>
+              <HeaderMenu summaryClassName="flex cursor-pointer list-none items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                panelClassName="p-4 sm:w-72"
+                summary={<>
                   {myPhoto
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={`/api/staff/${ctx.userId}/photo?size=thumb&v=${myPhoto}`} alt="" aria-hidden className="h-8 w-8 rounded-full object-cover" />
                     : <span aria-hidden className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-teal-brand text-xs font-bold text-white">{initials}</span>}
                   <span className="hidden max-w-40 truncate md:inline">{ctx.fullName}</span>
-                </summary>
-                <div className="card absolute right-0 z-30 mt-2 w-72 p-4 text-sm">
-                  <p className="font-semibold">{ctx.fullName}</p>
-                  <p className="text-slate-500">{ctx.email}</p>
+                </>}>
+                  <p className="font-semibold wrap-anywhere">{ctx.fullName}</p>
+                  <p className="text-slate-500 wrap-anywhere">{ctx.email}</p>
                   <p className="mt-1 text-xs text-slate-500">{roleSummary || 'No company access'}</p>
                   <div className="mt-3 grid gap-1.5">
                     <Link href="/account/password" className="btn-secondary btn-sm justify-start"><Icon name="key" className="h-4 w-4" />Change password</Link>
                     <Link href="/account/security" className="btn-secondary btn-sm justify-start"><Icon name="shield" className="h-4 w-4" />Two-factor login{ctx.mfaEnabled ? ' ✓' : ''}</Link>
                     <form action={logoutAction}><button className="btn-secondary btn-sm w-full justify-start" type="submit"><Icon name="logout" className="h-4 w-4" />Sign out</button></form>
                   </div>
-                </div>
-              </details>
+              </HeaderMenu>
             </div>
           </div>
         </header>
-        <main id="main" className="mx-auto max-w-[1400px] px-4 py-6 lg:px-8 lg:py-8">
+        <main id="main" className="mx-auto max-w-[1400px] px-4 py-6 max-lg:pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:px-8 lg:py-8">
           {ctx.mfaSetupRequired && (
             <p role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
               Two-factor login is required for every staff account. <Link href="/account/security?required=1">Set it up now</Link> to continue.
