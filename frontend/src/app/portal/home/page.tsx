@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { fmtDate, fmtDateTime, fmtMoney } from '@/components/format'
 import { BrandMark } from '@/components/brand-mark'
@@ -220,6 +221,10 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
           )}
         </section>
 
+        <section className="card flex flex-wrap items-center justify-between gap-3 p-5 text-sm" aria-labelledby="questions-h">
+          <div className="min-w-0"><h2 id="questions-h" className="flex items-center gap-2 font-semibold"><Icon name="messages" className="h-5 w-5 text-slate-500" />My questions</h2><p className="mt-1 text-slate-600">Ask us anything about your application and follow our replies.</p></div>
+          <Link href="/portal/tickets" className="btn-primary">Open my questions</Link>
+        </section>
         <section className="card p-5 text-sm" aria-labelledby="notices-h">
           <div className="flex items-center justify-between gap-2">
             <h2 id="notices-h" className="flex items-center gap-2 font-semibold"><Icon name="bell" className="h-5 w-5 text-slate-500" />Notifications

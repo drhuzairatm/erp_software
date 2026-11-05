@@ -6,12 +6,14 @@ import { Card, EmptyState, PageHeader } from '@/components/ui'
 import { requireUser } from '@/lib/auth/session'
 import { ServiceError } from '@/lib/errors'
 import { getLookups } from '@/services/lookups'
-import { runReport } from '@/services/reports'
+import { reportDepartments, runReport } from '@/services/reports'
 import { getScope } from '@/services/scope'
 
 export const metadata: Metadata = { title: 'Report' }
 
-const STUDENT_FILTER_REPORTS = ['pending-acknowledgements', 'passport-expiry', 'attestation', 'active-by-company', 'by-country-university', 'by-stage', 'documents', 'balances', 'student-list']
+const STUDENT_FILTER_REPORTS = ['pending-acknowledgements', 'passport-expiry', 'attestation', 'active-by-company', 'by-country-university', 'by-stage', 'documents', 'balances', 'student-list', 'by-intake', 'finance-monthly', 'finance-yearly', 'finance-revenue']
+const EMPLOYEE_REPORTS = ['attendance-summary', 'employee-tasks']
+const ENTRY_DATE_REPORTS = ['finance-monthly', 'finance-yearly', 'finance-revenue']
 
 export default async function ReportPage({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { key } = await params
@@ -20,7 +22,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   const scope = await getScope(ctx)
   const result = await runReport(ctx, key, scope.orgIds, sp).catch((e) => { if (e instanceof ServiceError) return null; throw e })
   if (!result) notFound()
-  const lookups = await getLookups(ctx)
+  const [lookups, departments] = await Promise.all([getLookups(ctx), EMPLOYEE_REPORTS.includes(key) ? reportDepartments(ctx, scope.orgIds) : []])
   const qs = new URLSearchParams(Object.entries(sp).filter(([, v]) => v) as [string, string][]).toString()
   const rowLink = (row: Record<string, unknown>) => (row.student_id ? `/students/${row.student_id}` : row.task_id ? `/tasks/${row.task_id}` : null)
   return (
@@ -36,12 +38,25 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
                 <option value="approval">Awaiting manager approval</option><option value="rejected">Rejected / changes required</option><option value="expired">Expired</option>
               </select></div>
           )}
-          <div><label className="label" htmlFor="from">Registered from</label><input className="input" type="date" id="from" name="from" defaultValue={sp.from} /></div>
-          <div><label className="label" htmlFor="to">Registered to</label><input className="input" type="date" id="to" name="to" defaultValue={sp.to} /></div>
+          {key === 'balances' && (
+            <div><label className="label" htmlFor="status">Show</label>
+              <select className="input" id="status" name="status" defaultValue={sp.status ?? ''}><option value="">All outstanding</option><option value="overdue">Overdue only</option></select></div>
+          )}
+          <div><label className="label" htmlFor="from">{ENTRY_DATE_REPORTS.includes(key) ? 'Entry date from' : 'Registered from'}</label><input className="input" type="date" id="from" name="from" defaultValue={sp.from} /></div>
+          <div><label className="label" htmlFor="to">{ENTRY_DATE_REPORTS.includes(key) ? 'Entry date to' : 'Registered to'}</label><input className="input" type="date" id="to" name="to" defaultValue={sp.to} /></div>
           <div><label className="label" htmlFor="country">Country</label>
             <select className="input" id="country" name="country" defaultValue={sp.country ?? ''}><option value="">All</option>{lookups.countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
           <div><label className="label" htmlFor="course">Course</label>
             <select className="input" id="course" name="course" defaultValue={sp.course ?? ''}><option value="">All</option>{lookups.courses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+          <div className="flex items-end gap-2"><button className="btn-primary" type="submit">Apply</button><Link className="btn-ghost" href={`/reports/${key}`}>Clear</Link></div>
+        </form>
+      )}
+      {EMPLOYEE_REPORTS.includes(key) && (
+        <form method="get" className="card mb-4 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 md:grid-cols-4">
+          <div><label className="label" htmlFor="from">From</label><input className="input" type="date" id="from" name="from" defaultValue={sp.from} /></div>
+          <div><label className="label" htmlFor="to">To</label><input className="input" type="date" id="to" name="to" defaultValue={sp.to} /></div>
+          <div><label className="label" htmlFor="department">Department</label>
+            <select className="input" id="department" name="department" defaultValue={sp.department ?? ''}><option value="">All</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name} · {d.company}</option>)}</select></div>
           <div className="flex items-end gap-2"><button className="btn-primary" type="submit">Apply</button><Link className="btn-ghost" href={`/reports/${key}`}>Clear</Link></div>
         </form>
       )}

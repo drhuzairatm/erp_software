@@ -4,10 +4,12 @@ import { notFound } from 'next/navigation'
 import { fmtDate, fmtDateTime, label } from '@/components/format'
 import { Avatar, Badge, Card, DL, PageHeader, staffPhotoUrl } from '@/components/ui'
 import { requireUser } from '@/lib/auth/session'
-import { getStaffMember } from '@/services/admin'
+import { getStaffMember, profileCompletion, staffProfileHistory } from '@/services/admin'
+import { SecureFilesCard } from '@/components/secure-files'
+import { ProfileCompletion } from '@/components/profile-completion'
 import { loginActivity } from '@/services/security'
 import { LoginActivity } from '@/components/login-activity'
-import { InvitationButtons, ReassignTasksForm, ReportingManagerForm, SignOutEverywhereButton, StaffDetailsForm, StaffPhotoForm, StaffStatusForm } from '../../admin-forms'
+import { DesignationForm, InvitationButtons, ReassignTasksForm, ReportingManagerForm, SignOutEverywhereButton, StaffDetailsForm, StaffPhotoForm, StaffStatusForm } from '../../admin-forms'
 import { StatusBadge } from '../status-badge'
 
 export const metadata: Metadata = { title: 'Staff profile' }
@@ -17,7 +19,7 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
   const ctx = await requireUser()
   const data = await getStaffMember(ctx, id)
   if (!data) notFound()
-  const activity = await loginActivity(ctx, id, 50)
+  const [activity, profileHistory] = await Promise.all([loginActivity(ctx, id, 50), staffProfileHistory(ctx, id).catch(() => [])])
   const { user: u } = data
   const big = u.photo_version ? `/api/staff/${u.id}/photo?size=display&v=${u.photo_version}` : null
   return (
@@ -39,13 +41,24 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ i
           {u.can_photo && <div className="mt-4 border-t border-slate-100 pt-4"><StaffPhotoForm userId={u.id} hasPhoto={!!u.photo_version} /></div>}
         </Card>
         <div className="space-y-6 xl:col-span-2">
+          <ProfileCompletion completion={profileCompletion(data.user)} />
           <Card title="Details">
-            <DL items={[['Employee ID', <span key="e" className="font-mono">{u.employee_id}</span>], ['Official email', u.email], ['Mobile', u.phone], ['Designation', u.job_title],
+            <DL items={[['First name', u.first_name], ['Middle name', u.middle_name], ['Last name', u.last_name], ['Secondary phone', u.secondary_phone], ['Additional phone', u.additional_phone],
+              ['Address', [u.address_line, u.city, u.state_region, u.postal_code, u.address_country].filter(Boolean).join(', ') || null],
+['Employee ID', <span key="e" className="font-mono">{u.employee_id}</span>], ['Official email', u.email], ['Mobile', u.phone], ['Designation', u.job_title],
               ['Joining date', u.joining_date ? fmtDate(u.joining_date) : null], ['Reporting manager', u.manager_name ?? 'None'],
               ['Employment status', <StatusBadge key="s" status={u.account_status} />], ['Account created', fmtDateTime(u.created_at)]]} />
             {u.can_admin && <div className="mt-4 border-t border-slate-100 pt-4"><StaffDetailsForm userId={u.id} v={u} /></div>}
             {u.can_admin && <div className="mt-4 border-t border-slate-100 pt-4">
+              {data.memberships.filter((m) => m.is_active).map((m) => <DesignationForm key={m.org_id} userId={u.id} orgId={m.org_id} orgName={m.org_name} current={m.designation_id}
+                options={data.designations.filter((d) => d.org_id === m.org_id).map((d) => ({ value: d.id, label: d.name }))} />)}
               <ReportingManagerForm userId={u.id} current={u.reports_to} managers={data.managers.map((m) => ({ value: m.id, label: `${m.full_name} (${m.employee_id})` }))} /></div>}
+          </Card>
+          <SecureFilesCard ctx={ctx} title="Employee documents" contextType="employee" contextId={u.id} path={`/admin/users/${u.id}`} />
+          <Card title="Profile change history">
+            {profileHistory.length === 0 ? <p className="hint">No changes recorded.</p> : <ul className="divide-y divide-slate-100 text-sm">{profileHistory.map((h, i) => (
+              <li key={i} className="py-2"><span className="font-medium">{h.fields?.length ? h.fields.map((f) => label(f)).join(', ') : label(h.action)}</span>
+                <span className="block text-xs text-slate-500">{fmtDateTime(h.occurred_at)}{h.actor ? ` by ${h.actor}` : ''}</span></li>))}</ul>}
           </Card>
           <section id="account"><Card title="Account and access">
             <DL items={[['Status', <StatusBadge key="s" status={u.account_status} />],

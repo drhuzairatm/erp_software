@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import { fileContent, openFile } from '@/services/documents'
 import { localSignedFile } from '@/services/files'
+import { openSecureFile } from '@/services/secure-files'
 import { paramOf, queryOf, sendExact, sendNotFound, sendRedirectNoStore, TEXT_PLAIN } from '../lib/send'
 import { sessionOf } from '../middleware/authenticate'
 
@@ -16,6 +17,13 @@ const VIEWER_HEADERS = { 'Content-Disposition': 'inline', 'Cache-Control': 'priv
 /** GET /api/files/:id — 302 to a 60-second signed link (documents.download; audited by the database). */
 export async function openFileHandler(req: Request, res: Response) {
   const url = await openFile(sessionOf(res), paramOf(req, 'id')).catch(() => null)
+  if (!url) return sendNotFound(res, true)
+  sendRedirectNoStore(res, url)
+}
+
+/** GET /api/secure-files/:id — 302 to a 60-second signed link (access follows the attached record; audited by the database). */
+export async function openSecureFileHandler(req: Request, res: Response) {
+  const url = await openSecureFile(sessionOf(res), paramOf(req, 'id')).catch(() => null)
   if (!url) return sendNotFound(res, true)
   sendRedirectNoStore(res, url)
 }

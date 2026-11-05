@@ -4,6 +4,7 @@ import { addValidityRuleAction, contactStageAction, toggleValidityRuleAction } f
 import { useState } from 'react'
 import { ConditionBuilder, type ConditionOptions } from '@/components/condition-builder'
 import { ActionForm, FieldError, SubmitButton } from '@/components/forms'
+import type { ReactNode } from 'react'
 
 type Opt = { id: string; name: string }
 
@@ -21,9 +22,9 @@ export function ContactStageForm({ stages, current }: { stages: { key: string; n
 
 export function AddRuleForm({ countries, universities, courses, stages, condOptions }: { countries: Opt[]; universities: Opt[]; courses: Opt[]; stages: { key: string; name: string }[]; condOptions: ConditionOptions }) {
   const [k, setK] = useState(0)
-  const sel = (name: string, text: string, opts: Opt[]) => (
+  const sel = (name: string, text: string, opts: Opt[], error?: ReactNode) => (
     <div><label className="label" htmlFor={`r-${name}`}>{text}</label>
-      <select className="input" id={`r-${name}`} name={name} defaultValue=""><option value="">Any</option>{opts.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></div>
+      <select className="input" id={`r-${name}`} name={name} defaultValue=""><option value="">Any</option>{opts.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select>{error}</div>
   )
   return (
     <ActionForm action={addValidityRuleAction} className="grid grid-cols-1 gap-3 md:grid-cols-3" resetOnSuccess onSuccess={() => setK((x) => x + 1)}>
@@ -34,14 +35,14 @@ export function AddRuleForm({ countries, universities, courses, stages, condOpti
           <div><label className="label" htmlFor="r-months">Minimum validity (months)</label>
             <input className="input" id="r-months" name="minMonths" inputMode="numeric" required /><FieldError state={s} name="minMonths" /></div>
           {sel('destinationCountryId', 'Destination', countries)}
-          {sel('universityId', 'University', universities)}
+          {sel('universityId', 'University', universities, <FieldError state={s} name="universityId" />)}
           {sel('courseId', 'Course / pathway', courses)}
           <div><label className="label" htmlFor="r-stage">Checked from stage</label>
             <select className="input" id="r-stage" name="stageKey" required defaultValue=""><option value="" disabled>Choose…</option>{stages.map((x) => <option key={x.key} value={x.key}>{x.name}</option>)}</select>
             <FieldError state={s} name="stageKey" /></div>
           <div><label className="label" htmlFor="r-enf">When not met</label>
-            <select className="input" id="r-enf" name="enforcement" defaultValue="warn"><option value="warn">Warn (staff acknowledge)</option><option value="block">Block the stage change</option></select></div>
-          <div><label className="label" htmlFor="r-notes">Source / notes</label><input className="input" id="r-notes" name="notes" /></div>
+            <select className="input" id="r-enf" name="enforcement" defaultValue="warn"><option value="warn">Warn (staff acknowledge)</option><option value="block">Block (one university, official source required)</option></select></div>
+          <div><label className="label" htmlFor="r-notes">Source / notes</label><input className="input" id="r-notes" name="notes" /><FieldError state={s} name="notes" /></div>
           <div className="md:col-span-3"><ConditionBuilder key={k} initial={null} options={condOptions} /><FieldError state={s} name="conditions" /></div>
           <div className="md:col-span-3"><SubmitButton>Add rule</SubmitButton></div>
         </>

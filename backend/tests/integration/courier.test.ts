@@ -100,6 +100,17 @@ describe('originals by courier', () => {
     expect(data.shipments[0].events.map((e) => e.action)).toEqual(['completed', 'reconciliation_required', 'received', 'in_transit', 'dispatched', 'instructions_issued'])
   })
 
+  it('staff can record the courier details themselves; another company cannot', async () => {
+    const addr = await address()
+    const s = await setup()
+    const id = await courier.issueInstructions(s.mgr, s.studentId, addr, [s.approved])
+    const details = { courierCompany: 'Fictional Express', trackingNumber: 'FX654321' }
+    await expectServiceError(courier.recordDispatch(await ctxFor('grd.manager@demo.test'), id, details))
+    await courier.recordDispatch(s.mgr, id, details)
+    const data = (await courier.getStudentShipments(s.mgr, s.studentId))!
+    expect(data.shipments[0]).toMatchObject({ status: 'dispatched', courier_company: 'Fictional Express', tracking_number: 'FX654321', dispatch_source: 'staff' })
+  })
+
   it('exceptions need courier.exception and a reason, and are audited; records cannot be edited directly', async () => {
     const addr = await address()
     const s = await setup()

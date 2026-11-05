@@ -9,10 +9,10 @@ import { getScope } from '@/services/scope'
 export const metadata: Metadata = { title: 'Reports' }
 
 const GROUPS: { title: string; icon: string; tone: string; keys: string[] }[] = [
-  { title: 'Students & admissions', icon: 'students', tone: 'bg-blue-50 text-blue-600', keys: ['active-by-company', 'by-country-university', 'by-stage', 'student-list', 'leads'] },
+  { title: 'Students & admissions', icon: 'students', tone: 'bg-blue-50 text-blue-600', keys: ['active-by-company', 'by-country-university', 'by-intake', 'by-stage', 'student-list', 'leads'] },
   { title: 'Documents & compliance', icon: 'doc', tone: 'bg-violet-50 text-violet-600', keys: ['documents', 'pending-acknowledgements', 'passport-expiry', 'attestation', 'courier'] },
-  { title: 'Work & follow-up', icon: 'tasks', tone: 'bg-amber-50 text-amber-600', keys: ['overdue-tasks', 'awaiting-external'] },
-  { title: 'Finance', icon: 'wallet', tone: 'bg-emerald-50 text-emerald-600', keys: ['balances'] },
+  { title: 'Work & follow-up', icon: 'tasks', tone: 'bg-amber-50 text-amber-600', keys: ['overdue-tasks', 'awaiting-external', 'employee-tasks', 'attendance-summary'] },
+  { title: 'Finance', icon: 'wallet', tone: 'bg-emerald-50 text-emerald-600', keys: ['balances', 'finance-monthly', 'finance-yearly', 'finance-revenue'] },
 ]
 
 export default async function ReportsPage() {

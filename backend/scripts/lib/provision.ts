@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import postgres from 'postgres'
-import { ADVISORY_NOTICES, BONAFIDE_RULES, ONE_AND_SAME_TEMPLATES, BUSINESS_UNIVERSITIES, PASSPORT_VALIDITY_RULES, COUNTRIES, COURSES, DEFAULT_ROLES, DEPARTMENTS, NOTIFICATION_TEMPLATES, DOCUMENT_TYPES, FEE_CATEGORIES, LEAD_SOURCES, ORGANIZATIONS, WORKFLOWS } from './defaults'
+import { ADVISORY_NOTICES, BONAFIDE_RULES, COUNTRY_DOCUMENT_RULES, ONE_AND_SAME_TEMPLATES, BUSINESS_UNIVERSITIES, PASSPORT_VALIDITY_RULES, COUNTRIES, COURSES, DEFAULT_ROLES, DEPARTMENTS, NOTIFICATION_TEMPLATES, DOCUMENT_TYPES, FEE_CATEGORIES, LEAD_SOURCES, ORGANIZATIONS, WORKFLOWS, DEFAULT_DESIGNATIONS } from './defaults'
 
 /**
  * Idempotently installs organizations, default roles, and reference data.
@@ -74,6 +74,9 @@ export async function provision(adminUrl: string, log: (m: string) => void = con
                  on conflict (org_id, name, channel, language) do nothing`
         for (const name of DEPARTMENTS) {
           await tx`insert into departments (org_id, name) values (${org.id}, ${name}) on conflict (org_id, name) do nothing`
+        for (const name of DEFAULT_DESIGNATIONS) {
+          await tx`insert into designations (org_id, name) select ${org.id}, ${name} where not exists (select 1 from designations d where d.org_id = ${org.id} and lower(d.name) = lower(${name}))`
+        }
         }
         for (const name of LEAD_SOURCES) {
           await tx`insert into lead_sources (org_id, name) values (${org.id}, ${name}) on conflict (org_id, name) do nothing`
@@ -138,6 +141,12 @@ export async function provision(adminUrl: string, log: (m: string) => void = con
       for (const t of ONE_AND_SAME_TEMPLATES) {
         if ((await tx`select 1 from one_and_same_templates where name = ${t.name}`).length) continue
         await tx`insert into one_and_same_templates (name, body, status, approved_at) values (${t.name}, ${t.body}, 'approved', now())`
+      }
+      for (const r of COUNTRY_DOCUMENT_RULES) {
+        await tx`insert into country_document_rules (country_id, document_type_id, stage_key, is_required, match_rule, source_note, verification_status, verified_at, verification_note, is_active)
+          select c.id, d.id, ${r.visaStage ? tx`(select key from stages where permission_key = 'stage.visa' order by sort_order limit 1)` : tx`null`}, true, ${r.match}, 'MD brief, 5 Nov 2026', 'verified', now(), 'Stated in the MD brief of 5 Nov 2026', true
+            from countries c cross join document_types d where c.code = ${r.country} and d.key = ${r.documentKey}
+          on conflict do nothing`
       }
       for (const b of BONAFIDE_RULES) {
         const [existing] = await tx<{ id: string; status: string }[]>`select id, status from verification_rules where name = ${b.name} order by version desc limit 1`

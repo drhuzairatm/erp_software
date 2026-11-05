@@ -1,6 +1,7 @@
 import 'server-only'
 import { decryptSecret } from '../auth/mfa'
 import { anonymous } from '../db'
+import { maskSecretText } from './auth-message'
 import { notificationsMode, testAllowed } from './dispatcher'
 import { channelConfigured, sendEmail } from './providers'
 import { messageVars, renderTemplate } from './render'
@@ -51,7 +52,7 @@ export async function deliverPortalEmails(limit = 25) {
     if (!body.includes(link)) { await finish('failed', 'The email template does not contain the {{link}} placeholder.'); continue }
     const r = await sendEmail(m.org_code, m.to_address, subject, body)
     if (r.ok) await finish('sent', null, r.provider, r.providerId)
-    else await finish(r.transient ? 'retry' : 'failed', r.error, r.provider)
+    else await finish(r.transient ? 'retry' : 'failed', maskSecretText(r.error, link), r.provider) // a provider may echo the request
   }
   return summary
 }

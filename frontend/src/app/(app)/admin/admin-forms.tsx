@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { addReferenceAction, cancelInviteAction, createRoleAction, createStaffAction, inviteAction, reassignTasksAction, revokeSessionsAction, staffDetailsAction, staffStatusAction, membershipAction, orgSettingsAction, removeStaffPhotoAction, reportingManagerAction, resetLinkAction, roleStructureAction, rolePermissionsAction, staffPhotoAction, toggleReferenceAction, workflowAction } from '@/app/actions/admin'
+import { addReferenceAction, cancelInviteAction, createRoleAction, createStaffAction, inviteAction, reassignTasksAction, revokeSessionsAction, staffDetailsAction, staffStatusAction, membershipAction, orgSettingsAction, removeStaffPhotoAction, reportingManagerAction, resetLinkAction, roleStructureAction, rolePermissionsAction, staffPhotoAction, toggleReferenceAction, workflowAction, staffDesignationAction } from '@/app/actions/admin'
 import { PhotoCapture } from '@/components/photo-capture'
 import { adminResetMfaAction } from '@/app/actions/auth'
 import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
@@ -127,12 +127,13 @@ export function StaffStatusForm({ userId, status }: { userId: string; status: st
             <select id="st-next" name="status" className="input" value={next} onChange={(e) => setNext(e.target.value)}>
               {status !== 'active' && status !== 'invited' && <option value="active">Reactivate</option>}
               {status !== 'suspended' && <option value="suspended">Suspend (temporary)</option>}
-              {status !== 'terminated' && <option value="terminated">Terminate employment</option>}
+              {status !== 'terminated' && <option value="terminated">Deactivate (employment ended)</option>}
+              {(status === 'suspended' || status === 'terminated') && <option value="archived">Archive</option>}
             </select></div>
           {needsReason && <div className="min-w-full flex-1 sm:min-w-64"><label className="label" htmlFor="st-reason">Reason *</label>
             <input id="st-reason" name="reason" className="input" maxLength={500} required /><FieldError state={s} name="reason" /></div>}
           {needsReason
-            ? <ConfirmSubmit className="btn-danger btn-sm" confirmText={next === 'terminated' ? 'Terminate and sign out everywhere?' : 'Suspend and sign out everywhere?'}>{next === 'terminated' ? 'Terminate' : 'Suspend'}</ConfirmSubmit>
+            ? <ConfirmSubmit className="btn-danger btn-sm" confirmText={next === 'archived' ? 'Archive this account? History is kept.' : next === 'terminated' ? 'Deactivate and sign out everywhere?' : 'Suspend and sign out everywhere?'}>{next === 'terminated' ? 'Terminate' : 'Suspend'}</ConfirmSubmit>
             : <SubmitButton className="btn-secondary btn-sm">Reactivate</SubmitButton>}
         </div>
         <p className="hint">Suspending or terminating ends every session at once and blocks sign-in and access to all company data, including documents. Tasks, history and audit records are kept.</p>
@@ -149,16 +150,36 @@ export function SignOutEverywhereButton({ userId }: { userId: string }) {
   )
 }
 
-export function StaffDetailsForm({ userId, v }: { userId: string; v: { full_name: string; job_title: string | null; phone: string | null; joining_date: string | null } }) {
+export function StaffDetailsForm({ userId, v }: { userId: string; v: { full_name: string; job_title: string | null; phone: string | null; joining_date: string | null; first_name: string | null; middle_name: string | null; last_name: string | null; secondary_phone: string | null; additional_phone: string | null; address_line: string | null; city: string | null; state_region: string | null; postal_code: string | null; address_country: string | null } }) {
   return (
     <ActionForm action={staffDetailsAction.bind(null, userId)} className="grid grid-cols-1 gap-3 md:grid-cols-4">
       {(s) => (<>
-        <div><label className="label" htmlFor="sd-name">Full name</label><input className="input" id="sd-name" name="fullName" defaultValue={v.full_name} required /><FieldError state={s} name="fullName" /></div>
+        <div><label className="label" htmlFor="sd-first">First name</label><input className="input" id="sd-first" name="firstName" defaultValue={v.first_name ?? ''} /></div>
+        <div><label className="label" htmlFor="sd-middle">Middle name</label><input className="input" id="sd-middle" name="middleName" defaultValue={v.middle_name ?? ''} /></div>
+        <div><label className="label" htmlFor="sd-last">Last name</label><input className="input" id="sd-last" name="lastName" defaultValue={v.last_name ?? ''} /></div>
+        <div><label className="label" htmlFor="sd-second">Secondary phone</label><input className="input" id="sd-second" name="secondaryPhone" type="tel" defaultValue={v.secondary_phone ?? ''} /><FieldError state={s} name="secondaryPhone" /></div>
+        <div><label className="label" htmlFor="sd-add">Additional phone</label><input className="input" id="sd-add" name="additionalPhone" type="tel" defaultValue={v.additional_phone ?? ''} /><FieldError state={s} name="additionalPhone" /></div>
+        <div className="md:col-span-3"><label className="label" htmlFor="sd-addr">Address</label><input className="input" id="sd-addr" name="addressLine" defaultValue={v.address_line ?? ''} /></div>
+        <div><label className="label" htmlFor="sd-city">City</label><input className="input" id="sd-city" name="city" defaultValue={v.city ?? ''} /></div>
+        <div><label className="label" htmlFor="sd-state">State</label><input className="input" id="sd-state" name="stateRegion" defaultValue={v.state_region ?? ''} /></div>
+        <div><label className="label" htmlFor="sd-post">Postal code</label><input className="input" id="sd-post" name="postalCode" defaultValue={v.postal_code ?? ''} /></div>
+        <div><label className="label" htmlFor="sd-country">Country</label><input className="input" id="sd-country" name="addressCountry" defaultValue={v.address_country ?? ''} /></div>
+        <div><label className="label" htmlFor="sd-name">Display name (shown across the ERP)</label><input className="input" id="sd-name" name="fullName" defaultValue={v.full_name} required /><FieldError state={s} name="fullName" /></div>
         <div><label className="label" htmlFor="sd-title">Designation</label><input className="input" id="sd-title" name="jobTitle" defaultValue={v.job_title ?? ''} /></div>
         <div><label className="label" htmlFor="sd-phone">Mobile</label><input className="input" id="sd-phone" name="phone" type="tel" defaultValue={v.phone ?? ''} /><FieldError state={s} name="phone" /></div>
         <div><label className="label" htmlFor="sd-join">Joining date</label><input className="input" id="sd-join" name="joiningDate" type="date" defaultValue={v.joining_date ?? ''} /><FieldError state={s} name="joiningDate" /></div>
         <div className="md:col-span-4"><SubmitButton className="btn-secondary btn-sm">Save details</SubmitButton></div>
       </>)}
+    </ActionForm>
+  )
+}
+
+export function DesignationForm({ userId, orgId, orgName, current, options }: { userId: string; orgId: string; orgName: string; current: string | null; options: Opt[] }) {
+  return (
+    <ActionForm action={staffDesignationAction.bind(null, userId, orgId)} className="flex flex-wrap items-end gap-2">
+      <div><label className="label" htmlFor={`dg-${orgId}`}>Designation at {orgName}</label>
+        <select id={`dg-${orgId}`} name="designationId" className="input" defaultValue={current ?? ''}><option value="">Not set</option>{options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+      <SubmitButton className="btn-secondary btn-sm">Save designation</SubmitButton>
     </ActionForm>
   )
 }
@@ -225,7 +246,7 @@ export function OrgSettingsForm({ orgId, name, currency, allowSelf, supportPhone
   )
 }
 
-type RefKind = 'country' | 'course' | 'university' | 'legal_entity' | 'lead_source' | 'fee_category' | 'department'
+type RefKind = 'country' | 'course' | 'university' | 'legal_entity' | 'lead_source' | 'fee_category' | 'department' | 'designation'
 
 export function AddReferenceForm({ kind, fields }: { kind: RefKind; fields: { name: string; label: string; options?: Opt[]; required?: boolean }[] }) {
   return (

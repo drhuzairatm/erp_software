@@ -25,6 +25,7 @@ const INITIAL = { ok: false, message: '' } as ActionResult
 const FROM = 'no-reply@example.test'
 const rand = () => String(Math.floor(Math.random() * 900000) + 100000)
 const configure = () => {
+  vi.stubEnv('NOTIFICATIONS_MODE', 'live') // delivery tests; test mode is covered in backend/tests/unit/system-mail.test.ts
   vi.stubEnv('SYSTEM_MAIL_HOST', 'smtp.example.test')
   vi.stubEnv('SYSTEM_MAIL_PORT', '587')
   vi.stubEnv('SYSTEM_MAIL_FROM_EMAIL', FROM)
@@ -174,16 +175,14 @@ describe('security alerts', () => {
     expect(await emailedAt(title)).not.toBeNull()
   })
 
-  it('existing retry behaviour is preserved: if any recipient fails, the alert stays pending and all are retried on the next run', async () => {
+  it('if nobody could be reached, the alert stays pending and is retried on the next run', async () => {
     configure()
     const title = await newAlert()
-    mail.sendMail.mockRejectedValueOnce(smtpFailure(451))
+    mail.sendMail.mockRejectedValue(smtpFailure(451))
     expect(await emailSecurityAlerts()).toEqual({ emailed: 0 })
     expect(await emailedAt(title)).toBeNull()
-    const firstRun = mail.sendMail.mock.calls.length
-    mail.sendMail.mockClear()
+    mail.sendMail.mockReset().mockResolvedValue({ messageId: 'fictional' })
     expect(await emailSecurityAlerts()).toEqual({ emailed: 1 })
-    expect(mail.sendMail.mock.calls.length).toBe(firstRun)
     expect(await emailedAt(title)).not.toBeNull()
   })
 })

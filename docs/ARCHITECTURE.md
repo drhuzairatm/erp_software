@@ -34,7 +34,9 @@ sessions and RLS context are implemented in the database (`auth_private` schema 
 | Role | Used by | Rights |
 |---|---|---|
 | owner (e.g. `postgres`) | migrations, provisioning, seed, admin CLI | owns all objects; **never** configured in the web runtime |
-| `erp_app` | the web application | `NOBYPASSRLS`, not owner; column-level grants; can only read/write rows that policies allow for the user set in `app.user_id` |
+| `erp_app` | the web application | `NOBYPASSRLS`, not owner; column-level grants; reads and writes are limited by policies for the user set in `app.user_id` |
+
+**Limit:** these controls protect against application mistakes, such as a forgotten company filter. They don't protect against someone who gains direct SQL access with the application's database role. Strengthening this is planned for the Security Hardening phase after Phase 11, so the system must not be described as fully secure.
 
 ## Data model (main tables)
 

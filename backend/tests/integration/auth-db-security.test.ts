@@ -3,6 +3,7 @@
  * EXECUTE permissions, fixed search_path and SECURITY DEFINER of every new function; no application-role access to
  * auth_private; and an EXACT rollback restoration test (rollback → compare with the pre-0035 definitions → re-apply).
  */
+import { POLICY_COUNT, RLS_TABLE_COUNT } from '../support/schema-counts'
 import { afterAll, describe, expect, it } from 'vitest'
 import { rollbackTo, runMigrations } from '../../scripts/lib/migrations'
 import { db } from '@/lib/db'
@@ -74,9 +75,9 @@ describe('0035: EXECUTE permissions, search_path, least privilege', () => {
 
   it('no row-level security policy, role, permission or grant on public tables was changed by 0035', async () => {
     const [{ n }] = await adminSql()`select count(*)::int as n from pg_policies where schemaname = 'public'`
-    expect(n).toBe(149)
+    expect(n).toBe(POLICY_COUNT)
     const [{ rls }] = await adminSql()`select count(*)::int as rls from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity`
-    expect(rls).toBe(89)
+    expect(rls).toBe(RLS_TABLE_COUNT)
   })
 })
 

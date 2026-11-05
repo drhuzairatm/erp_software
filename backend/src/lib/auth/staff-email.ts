@@ -43,6 +43,7 @@ export async function deliverStaffEmails(limit = 25) {
     }
     const r = await sendEmail(m.to_address, 'Reset your password',
       `Hello ${m.full_name},\n\nUse this link within 1 hour to set a new password:\n${link}\n\nIf you did not ask for this, ignore this email.`)
+    if (r.testMode) { await finish('skipped', r.error); continue } // never delivered in test mode: no retries, link wiped
     await finish(r.sent ? 'sent' : 'retry', r.sent ? null : (r.error ?? 'Email could not be sent.'))
   }
   return summary

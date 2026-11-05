@@ -47,7 +47,7 @@
 - Portal sign-in: **password login built** (Phase 6, see STUDENT_PORTAL_V2.md). One-time codes remain available as an alternative; say if they should be switched off.
 - Leads come from **both** this ERP and the Leadist CRM: the lead module is built (Phase 9, see LEADS_AND_REFERRALS.md). Leadist data comes in by CSV export and import. A live Leadist API integration needs Leadist API details.
 - Super admins (MD; System Administrator) add countries, courses, universities and attestation routes in the app.
-- Passport validity of **12 months or more is mandatory** (installed as a blocking rule from University Application).
+- Passport validity of **12 months or more is a warning** from University Application (MD decision, 4 Nov 2026). Only a verified university-specific rule may block.
 - Secondary phone and email are required from **University Application** (confirmed).
 
 ## Decisions still needed from the business

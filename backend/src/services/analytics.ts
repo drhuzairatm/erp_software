@@ -92,7 +92,67 @@ export async function managementAnalytics(ctx: Ctx, orgIds: string[], f: Dashboa
                coalesce(sum(due_inr) - sum(received_inr), 0)::float as outstanding, count(*) filter (where inr_missing)::int as missing
           from payment_entry_effects where ledger = 'service' and org_id = any(${tx.array(financeOrgs)}::uuid[])`
     }
-    return { kpis: k, monthly, yearly, byCountry, byCourse, byStage, byCompany, rates, staff, canStaff, finance, financeInr, financeVisible: financeOrgs.length > 0, from, to }
+    const byUniversity = await tx<{ label: string; value: number }[]>`
+      select coalesce(u.name, 'No university recorded') as label, count(*)::int as value
+        from v_students s left join universities u on u.id = s.preferred_university_id
+       where ${sw} group by 1 order by 2 desc limit 30`
+    const byIntake = await tx<{ label: string; value: number }[]>`
+      select coalesce(i.name, 'No intake recorded') as label, count(*)::int as value
+        from v_students s left join university_intakes i on i.id = s.intake_id
+       where ${sw} group by 1 order by 2 desc limit 30`
+    return { kpis: k, monthly, yearly, byCountry, byCourse, byStage, byCompany, byUniversity, byIntake, rates, staff, canStaff, finance, financeInr, financeVisible: financeOrgs.length > 0, from, to }
+  })
+}
+
+export interface AttendanceTodayRow { company: string; expected: number; present: number; late: number; on_leave: number; absent: number; no_record: number }
+export interface TaskSummaryRow { company: string; open: number; overdue: number; done_30: number }
+
+/**
+ * Employee and operations figures for the management dashboard, from live records and limited by permission and RLS.
+ * Attendance is shown only with attendance.view and task totals only with staff.workload.view.
+ * The system marks nobody absent on its own, so "no record" is kept apart from a recorded absence.
+ */
+export async function teamAndOperations(ctx: Ctx, orgIds: string[]) {
+  const attendanceOrgs = orgIds.filter((o) => can(ctx, 'attendance.view', o))
+  const taskOrgs = orgIds.filter((o) => can(ctx, 'staff.workload.view', o))
+  return run(ctx, async (tx) => {
+    const attendance = attendanceOrgs.length ? await tx<AttendanceTodayRow[]>`
+      with people as (
+        select o.name as company, m.org_id, m.user_id, (now() at time zone coalesce(p.timezone, 'Asia/Kolkata'))::date as d, coalesce(p.weekly_off, '{0}'::int[]) as off
+          from organization_memberships m join organizations o on o.id = m.org_id join user_profiles u on u.id = m.user_id and u.is_active
+          left join attendance_policies p on p.org_id = m.org_id
+         where m.is_active and m.org_id = any(${tx.array(attendanceOrgs)}::uuid[]))
+      select x.company, count(*) filter (where extract(dow from x.d)::int <> all(x.off))::int as expected,
+             count(r.id) filter (where r.status in ('present', 'late', 'half_day', 'field_duty', 'official_visit'))::int as present,
+             count(r.id) filter (where r.status = 'late')::int as late, count(r.id) filter (where r.status = 'leave')::int as on_leave,
+             count(r.id) filter (where r.status = 'absent')::int as absent,
+             count(*) filter (where r.id is null and extract(dow from x.d)::int <> all(x.off))::int as no_record
+        from people x left join attendance_records r on r.org_id = x.org_id and r.user_id = x.user_id and r.work_date = x.d
+       group by x.company order by x.company` : []
+    const tasks = taskOrgs.length ? await tx<TaskSummaryRow[]>`
+      select o.name as company, count(*) filter (where t.status not in ('completed', 'cancelled'))::int as open,
+             count(*) filter (where t.status not in ('completed', 'cancelled') and t.due_date < current_date)::int as overdue,
+             count(*) filter (where t.completed_at > now() - interval '30 days')::int as done_30
+        from tasks t join organizations o on o.id = t.org_id
+       where t.org_id = any(${tx.array(taskOrgs)}::uuid[]) group by o.name order by o.name` : []
+    const sw = studentConditions(tx, orgIds, {})
+    const [ops] = await tx<{ pending_documents: number; verification_requests: number; open_tickets: number; admission_letter: number; visa_processing: number; university_application: number; tasks_due_7: number }[]>`
+      select (select count(*)::int from student_documents d join v_students s on s.id = d.student_id
+               where ${sw} and s.status in ('active', 'on_hold')
+                 and (d.status in ('rejected', 'changes_required', 'uploaded', 'under_review', 'verified', 'pending_approval', 'expired') or (d.status = 'missing' and d.is_required))) as pending_documents,
+             (select count(*)::int from dvr_requests v where v.org_id = any(${tx.array(orgIds)}::uuid[]) and v.status not in ('draft', 'verification_completed', 'closed', 'cancelled')) as verification_requests,
+             (select count(*)::int from student_tickets t where t.org_id = any(${tx.array(orgIds)}::uuid[]) and t.status in ('open', 'in_progress', 'waiting_for_student')) as open_tickets,
+             (select count(*)::int from v_students s where ${sw} and s.status = 'active' and s.current_stage_key = 'admission_letter') as admission_letter,
+             (select count(*)::int from v_students s where ${sw} and s.status = 'active' and s.current_stage_key = 'visa_processing') as visa_processing,
+             (select count(*)::int from v_students s where ${sw} and s.status = 'active' and s.current_stage_key = 'university_application') as university_application,
+             (select count(*)::int from tasks t where t.org_id = any(${tx.array(orgIds)}::uuid[]) and t.status not in ('completed', 'cancelled') and t.due_date between current_date and current_date + 7) as tasks_due_7`
+    const deadlines = await tx<{ id: string; intake: string; university: string; deadline: string; students: number }[]>`
+      select i.id, i.name as intake, u.name as university, to_char(i.application_deadline, 'YYYY-MM-DD') as deadline,
+             (select count(*)::int from v_students s where ${sw} and s.status = 'active' and s.intake_id = i.id) as students
+        from university_intakes i join universities u on u.id = i.university_id
+       where i.is_active and i.application_deadline between current_date and current_date + 30
+       order by i.application_deadline, u.name limit 8`
+    return { attendance, tasks, ops, deadlines }
   })
 }
 

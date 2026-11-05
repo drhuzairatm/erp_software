@@ -25,4 +25,6 @@ export const TEST_ENV = {
   SYSTEM_MAIL_FROM_EMAIL: '',
   SYSTEM_MAIL_USER: '',
   SYSTEM_MAIL_PASSWORD: '',
+  RESEND_API_KEY: '',
+  EMAIL_FROM: '',
 }

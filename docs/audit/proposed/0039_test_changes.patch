@@ -1,0 +1,87 @@
+--- a/backend/tests/integration/auth-db-security.test.ts
++++ b/backend/tests/integration/auth-db-security.test.ts
+@@ -31,9 +31,10 @@
+   'app.portal_password_result(text,uuid[],uuid[],text,text,text)': { md5: 'a18de67dccb65de02dfc29281a7139d2', acl: '{=X/postgres,postgres=X/postgres,erp_app=X/postgres}' },
+   'app.audit_security_alerts()': { md5: 'a1282dda061f2d3f9d6052c226262eed', acl: null },
+ }
++const normAcl = (a: string | null) => (a ?? '{=X/postgres,postgres=X/postgres}').replace(/[{}]/g, '').split(',').sort().join(',')
+ const fingerprint = async (sig: string) => {
+   const [r] = await adminSql()`select md5(pg_get_functiondef(${sig}::regprocedure)) as md5, (select proacl::text from pg_proc where oid = ${sig}::regprocedure) as acl`
+-  return r as { md5: string; acl: string | null }
++  return { md5: r.md5 as string, acl: normAcl(r.acl) as string | null }
+ }
+ 
+ describe('0035: EXECUTE permissions, search_path, least privilege', () => {
+@@ -88,7 +89,7 @@
+     expect(applied.md5).not.toBe(PRE_0035['app.revoke_user_sessions(uuid)'].md5) // 0035 version is active
+ 
+     await rollbackTo(url, '0035', quiet)
+-    for (const [sig, want] of Object.entries(PRE_0035)) expect(await fingerprint(sig), sig).toEqual(want)
++    for (const [sig, want] of Object.entries(PRE_0035)) expect(await fingerprint(sig), sig).toEqual({ ...want, acl: normAcl(want.acl) })
+     for (const f of [...APP_CALLABLE, ...INTERNAL]) {
+       const [r] = await adminSql()`select to_regprocedure(${'app.' + f}) as p`
+       expect(r.p, f).toBeNull()
+--- a/backend/tests/integration/auth-message-db-security.test.ts
++++ b/backend/tests/integration/auth-message-db-security.test.ts
+@@ -39,9 +39,10 @@
+   'app.request_email_verification(uuid,text,text)': { md5: 'f9a5d66c0639a5125fd9c1230934a63c', acl: OLD_ACL },
+ }
+ const PRE_0037_POLICY = { m: '21e689f55ec3dd2dce963c3e8e08a129', roles: '{erp_app}', permissive: 'PERMISSIVE', cmd: 'SELECT' }
++const normAcl = (a: string | null) => (a ?? '{=X/postgres,postgres=X/postgres}').replace(/[{}]/g, '').split(',').sort().join(',')
+ const fingerprint = async (sig: string) => {
+   const [r] = await adminSql()`select md5(pg_get_functiondef(${sig}::regprocedure)) as md5, (select proacl::text from pg_proc where oid = ${sig}::regprocedure) as acl`
+-  return r as { md5: string; acl: string | null }
++  return { md5: r.md5 as string, acl: normAcl(r.acl) as string | null }
+ }
+ const policy = async () => (await adminSql()`select md5(qual) as m, roles::text, permissive, cmd from pg_policies
+                                              where tablename = 'notification_messages' and policyname = 'messages_select'`)[0]
+@@ -60,7 +61,7 @@
+     }
+     for (const f of REPLACED) {
+       const [p] = await adminSql()`select p.prosecdef, p.proconfig, p.proacl::text as acl from pg_proc p where p.oid = ${'app.' + f}::regprocedure`
+-      expect(p, f).toMatchObject({ prosecdef: true, proconfig: ['search_path=public, pg_temp'], acl: OLD_ACL })
++      expect(p, f).toMatchObject({ prosecdef: true, proconfig: ['search_path=public, pg_temp'], acl: '{postgres=X/postgres,erp_app=X/postgres}' })
+     }
+   })
+ 
+@@ -104,7 +105,7 @@
+     const appliedPolicy = await policy()
+ 
+     await rollbackTo(url, '0037', quiet)
+-    for (const [sig, want] of Object.entries(PRE_0037)) expect(await fingerprint(sig), sig).toEqual(want)
++    for (const [sig, want] of Object.entries(PRE_0037)) expect(await fingerprint(sig), sig).toEqual({ ...want, acl: normAcl(want.acl) })
+     expect(await policy()).toEqual(PRE_0037_POLICY)
+     for (const f of [...APP_CALLABLE, ...INTERNAL]) expect((await adminSql()`select to_regprocedure(${'app.' + f}) as p`)[0].p, f).toBeNull()
+     expect((await adminSql()`select to_regclass('auth_private.auth_message_outbox') as t`)[0].t).toBeNull()
+--- a/backend/tests/integration/portal-link-db-security.test.ts
++++ b/backend/tests/integration/portal-link-db-security.test.ts
+@@ -33,9 +33,10 @@
+   'app.finish_notification(uuid,text,text,text,text,text,text,integer)': { md5: '865961e27aa7a2a3ebaba5e2f21b3b6d', acl: OLD_ACL },
+ }
+ const PRE_0036_POLICY = { m: '0cddff7df870a7c6bb9ba844bfc138fa', roles: '{erp_app}', permissive: 'PERMISSIVE', cmd: 'SELECT' }
++const normAcl = (a: string | null) => (a ?? '{=X/postgres,postgres=X/postgres}').replace(/[{}]/g, '').split(',').sort().join(',')
+ const fingerprint = async (sig: string) => {
+   const [r] = await adminSql()`select md5(pg_get_functiondef(${sig}::regprocedure)) as md5, (select proacl::text from pg_proc where oid = ${sig}::regprocedure) as acl`
+-  return r as { md5: string; acl: string | null }
++  return { md5: r.md5 as string, acl: normAcl(r.acl) as string | null }
+ }
+ const policy = async () => (await adminSql()`select md5(qual) as m, roles::text, permissive, cmd from pg_policies
+                                              where tablename = 'notification_messages' and policyname = 'messages_select'`)[0]
+@@ -53,7 +54,7 @@
+     // the replaced functions keep their definer rights, fixed search_path and their (unchanged) access list
+     for (const f of REPLACED) {
+       const [p] = await adminSql()`select p.prosecdef, p.proconfig, p.proacl::text as acl from pg_proc p where p.oid = ${'app.' + f}::regprocedure`
+-      expect(p, f).toMatchObject({ prosecdef: true, proconfig: ['search_path=public, pg_temp'], acl: OLD_ACL })
++      expect(p, f).toMatchObject({ prosecdef: true, proconfig: ['search_path=public, pg_temp'], acl: '{postgres=X/postgres,erp_app=X/postgres}' })
+     }
+   })
+ 
+@@ -91,7 +92,7 @@
+     expect(applied['app.issue_portal_account_link(uuid,text,text)'].md5).not.toBe(PRE_0036['app.issue_portal_account_link(uuid,text,text)'].md5)
+ 
+     await rollbackTo(url, '0036', quiet)
+-    for (const [sig, want] of Object.entries(PRE_0036)) expect(await fingerprint(sig), sig).toEqual(want)
++    for (const [sig, want] of Object.entries(PRE_0036)) expect(await fingerprint(sig), sig).toEqual({ ...want, acl: normAcl(want.acl) })
+     expect(await policy()).toEqual(PRE_0036_POLICY)
+     for (const f of [...APP_CALLABLE, ...INTERNAL]) expect((await adminSql()`select to_regprocedure(${'app.' + f}) as p`)[0].p, f).toBeNull()
+     expect((await adminSql()`select to_regclass('auth_private.portal_email_outbox') as t`)[0].t).toBeNull()

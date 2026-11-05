@@ -14,10 +14,10 @@ export async function AttentionPanel({ ctx, profile }: { ctx: Ctx; profile: Stud
   if (s.passport_status === 'expired') {
     cards.push(<NoticeCard key="pp" level="critical" title="PASSPORT EXPIRED – URGENT RENEWAL REQUIRED" actions={passportLink}>Please contact the student and follow up for a renewed passport.</NoticeCard>)
   } else if (s.passport_status === 'critical') {
-    cards.push(<NoticeCard key="pp" level="critical" title="Passport expires within 3 months – urgent renewal required" actions={passportLink}>Contact the student about renewal now. University Application and later stages need at least 12 months of validity.</NoticeCard>)
+    cards.push(<NoticeCard key="pp" level="critical" title="Passport expires within 3 months – urgent renewal required" actions={passportLink}>Contact the student about renewal now. University Application and later stages will show a passport validity warning.</NoticeCard>)
   } else if (s.passport_status === 'urgent' || s.passport_status === 'warning') {
     cards.push(<NoticeCard key="pp" level="warning" label="Passport" title={`Passport valid for less than ${s.passport_status === 'urgent' ? '6' : '12'} months`} actions={passportLink}>
-      From University Application onwards a passport valid for at least 12 months is required. Follow up for renewal.</NoticeCard>)
+      From University Application onwards this shows a warning, unless a verified university rule applies. Follow up for renewal.</NoticeCard>)
   }
   if (at.passport_pending) {
     cards.push(<NoticeCard key="ppv" level="warning" label="Passport" title="New passport awaiting verification" compact actions={passportLink}>

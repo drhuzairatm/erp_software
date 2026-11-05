@@ -18,7 +18,7 @@ const VIEWS = [
 ] as const
 
 const COLUMNS = [
-  ['not_started', 'Not started', 'bg-slate-400'], ['in_progress', 'In progress', 'bg-blue-500'],
+  ['not_started', 'Pending', 'bg-slate-400'], ['in_progress', 'In progress', 'bg-blue-500'], ['submitted', 'Submitted', 'bg-purple-500'],
   ['waiting_external', 'Waiting on external', 'bg-amber-500'], ['completed', 'Completed', 'bg-emerald-500'],
 ] as const
 
@@ -62,6 +62,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
     <>
       <PageHeader title="Tasks" description={`${scope.label}${seesAll ? '' : ' · tasks assigned to or created by you'}`}
         actions={<>
+          {seesAll && <Link className="btn-secondary" href="/tasks/reports">Reports</Link>}
           <div className="inline-flex rounded-lg bg-white p-0.5 ring-1 ring-slate-200" role="group" aria-label="Layout">
             <Link href={href({ layout: undefined })} aria-current={!board ? 'page' : undefined}
               className={`rounded-md px-3 py-1.5 text-sm font-medium no-underline hover:no-underline ${!board ? 'bg-navy-950 text-white' : 'text-slate-600'}`}>List</Link>
@@ -75,7 +76,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         <StatCard label="Open tasks" value={counts.open} tone="blue" icon={<Icon name="tasks" className="h-5 w-5" />} href={href({ view: 'open' })} />
         <StatCard label="Overdue" value={counts.overdue} tone="red" icon={<Icon name="clock" className="h-5 w-5" />} href={href({ view: 'overdue' })} />
         <StatCard label="Due today" value={counts.today} tone="amber" icon={<Icon name="flag" className="h-5 w-5" />} href={href({ view: 'today' })} />
-        <StatCard label="High / urgent priority" value={counts.urgent} tone="orange" icon={<Icon name="trend" className="h-5 w-5" />} />
+        <StatCard label="High / critical priority" value={counts.urgent} tone="orange" icon={<Icon name="trend" className="h-5 w-5" />} />
         <StatCard label="Completed (7 days)" value={counts.completed_week} tone="green" icon={<Icon name="check" className="h-5 w-5" />} href={href({ view: 'completed' })} />
       </section>
 

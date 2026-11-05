@@ -61,9 +61,9 @@ The staff Notification Centre is a later phase. Until then, these alerts appear 
 - Each rule sets a minimum number of months of validity.
 - It is checked when a student moves forward to the chosen stage or any later one.
 - It can be limited to a destination, university and/or course.
-- When the rule is not met, it either **warns** (staff acknowledge) or **blocks** the stage change. A block is enforced by the database.
+- When the rule is not met, it **warns** (staff acknowledge). Only a rule for one university, with its official source recorded and starting after Registration, may **block** the stage change. A block is enforced by the database.
 
-Passport expiry on its own never blocks anything. No rules are configured by default.
+Passport expiry on its own never blocks anything. One warning-only rule is installed: 12 months from University Application, for all destinations.
 
 ## Phone numbers
 

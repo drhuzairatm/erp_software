@@ -278,6 +278,23 @@ describe('N-7: delivery reliability', () => {
   })
 })
 
+describe('provider errors are masked before storage', () => {
+  it('a provider echoing the one-time link leaves neither the link nor its token in the queue or the audit log', async () => {
+    const s = await student()
+    provider.sendEmail.mockImplementation(async (_org, _to, _subject, body) => ({ ok: false, provider: 'smtp', error: `550 rejected: ${body}`, transient: false }))
+    await pa.issuePortalLink(s.mgr, s.id)
+    await deliverPortalEmails()
+    const m = await latest(s.id)
+    expect(m).toMatchObject({ status: 'failed', link_encrypted: null })
+    expect(m.last_error).toMatch(/^550 rejected/)
+    expect(m.last_error).not.toMatch(LINK_RE)
+    expect(m.last_error).not.toMatch(/token=[A-Za-z0-9_-]{4}/)
+    const logs = await adminSql()`select metadata::text as m from audit_logs where action = 'portal_link_email_failed' and entity_id = ${m.account_id}`
+    expect(logs.length).toBeGreaterThan(0)
+    for (const l of logs) expect(l.m).not.toMatch(/token=[A-Za-z0-9_-]{4}/)
+  })
+})
+
 describe('N-7: direct access is denied', () => {
   it('the application role cannot read the queue; sender functions refuse every signed-in staff context, even the MD', async () => {
     await expectDbError(db()`select * from auth_private.portal_email_outbox limit 1`, '42501')

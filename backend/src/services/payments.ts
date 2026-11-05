@@ -189,3 +189,36 @@ export async function rateHistory(ctx: Ctx, entryId: string) {
     select c.old_rate, c.new_rate, c.old_inr, c.new_inr, c.reason, u.full_name as by, c.changed_at
       from payment_rate_changes c join user_profiles u on u.id = c.changed_by where c.payment_entry_id = ${entryId} order by c.id`)
 }
+
+// ---------------------------------------------------------------- due dates (Phase 10)
+export interface DueRow { entry_id: string; org_id: string; ledger: string; currency: string; amount: string; due_date: string; note: string | null; unpaid: string; set_by_name: string | null; set_at: string }
+
+/**
+ * Due dates of a student's charges. "unpaid" is worked out when read: credits settle the earliest due date first.
+ * That is a display rule, because the ledger does not link a receipt to a charge.
+ */
+export async function studentDueDates(ctx: Ctx, studentId: string) {
+  return run(ctx, (tx) => tx<DueRow[]>`
+    select s.entry_id, s.org_id, s.ledger, s.currency, s.amount, to_char(s.due_date, 'YYYY-MM-DD') as due_date, s.note, s.unpaid, u.full_name as set_by_name, d.set_at
+      from payment_due_status s join payment_due_dates d on d.entry_id = s.entry_id left join user_profiles u on u.id = d.set_by
+     where s.student_id = ${studentId} order by s.due_date`)
+}
+
+export async function setDueDate(ctx: Ctx, entryId: string, raw: { dueDate?: string; note?: string; reason?: string }) {
+  const date = String(raw.dueDate ?? '')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw invalid('Choose a due date.', { dueDate: ['Choose a due date.'] })
+  await run(ctx, (tx) => tx`select app.set_payment_due_date(${entryId}, ${date}::date, ${raw.note ?? null}, ${raw.reason ?? null})`)
+}
+
+/** Overdue and due-soon counts for the ledger page. Currencies are never added together, so only counts are shown. */
+export async function dueSummary(ctx: Ctx, orgIds: string[]) {
+  const allowed = orgIds.filter((o) => can(ctx, 'payments.read', o))
+  if (!allowed.length) return { overdue: 0, dueSoon: 0 }
+  return run(ctx, async (tx) => {
+    const [r] = await tx<{ overdue: number; due_soon: number }[]>`
+      select count(*) filter (where due_date < current_date)::int as overdue,
+             count(*) filter (where due_date between current_date and current_date + 7)::int as due_soon
+        from payment_due_status where org_id = any(${tx.array(allowed)}::uuid[]) and unpaid > 0`
+    return { overdue: r.overdue, dueSoon: r.due_soon }
+  })
+}

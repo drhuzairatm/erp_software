@@ -19,7 +19,7 @@ export default async function PassportRulesPage() {
   return (
     <>
       <PageHeader title="Passport & contact rules" description="Minimum passport validity by destination, university, course and stage; when full contact details become mandatory." />
-      <div className="mb-4"><Alert tone="blue">Passport expiry never blocks admissions on its own. A rule only applies where you configure it.
+      <div className="mb-4"><Alert tone="blue">Passport validity warns by default, including when the expiry is missing. Only a verified rule for one university may block, with its official source recorded, and Registration is always allowed.
         Expiry statuses are fixed: more than 12 months = Valid, 12 months or less = Expiry warning, 6 months or less = Urgent renewal, 3 months or less = Critical, past expiry = Expired.</Alert></div>
       <div className="space-y-6">
         <Card title="Contact details"><ContactStageForm stages={stages} current={current?.key ?? null} />

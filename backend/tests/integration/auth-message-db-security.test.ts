@@ -5,6 +5,7 @@
  * compare with the pre-0037 definitions → re-apply); and the migration's handling of legacy exposed codes / links.
  * Fictional data only; codes and links are never printed.
  */
+import { POLICY_COUNT, RLS_TABLE_COUNT } from '../support/schema-counts'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('next/headers', () => ({
@@ -79,8 +80,8 @@ describe('0037: EXECUTE permissions, search_path, least privilege', () => {
   })
 
   it('only the approved policy changed: policy count and RLS tables unchanged; all four authentication kinds hidden from every branch', async () => {
-    expect((await adminSql()`select count(*)::int as n from pg_policies where schemaname = 'public'`)[0].n).toBe(149)
-    expect((await adminSql()`select count(*)::int as n from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity`)[0].n).toBe(89)
+    expect((await adminSql()`select count(*)::int as n from pg_policies where schemaname = 'public'`)[0].n).toBe(POLICY_COUNT)
+    expect((await adminSql()`select count(*)::int as n from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity`)[0].n).toBe(RLS_TABLE_COUNT)
     const [p] = await adminSql()`select qual, roles::text from pg_policies where tablename = 'notification_messages' and policyname = 'messages_select'`
     expect(p.roles).toBe('{erp_app}')
     expect(p.qual).toMatch(/^\(\(event_key <> ALL \(ARRAY\['portal_account_setup'::text, 'portal_password_reset'::text, 'portal_login_code'::text, 'email_verification'::text\]\)\) AND/)

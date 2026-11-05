@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { logoutAction } from '@/app/actions/auth'
+import { openNotificationAction } from '@/app/actions/staff-notifications'
 import { setScopeAction } from '@/app/actions/scope'
 import { BrandMark } from '@/components/brand-mark'
 import { Icon } from '@/components/icons'
@@ -9,6 +10,8 @@ import { openAlertCounts } from '@/services/security'
 import { requireUser } from '@/lib/auth/session'
 import { staffPhotoVersions } from '@/services/staff-photos'
 import { getNotifications } from '@/services/dashboard'
+import { myNotificationSummary } from '@/services/staff-notifications'
+import { hasMeetingAccess } from '@/services/meetings'
 import { getScope } from '@/services/scope'
 import { HeaderMenu } from './header-menu'
 import { type NavItem, ScopeSelect, Sidebar } from './nav'
@@ -17,6 +20,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ctx = await requireUser({ allowPasswordChange: true, allowMfaSetup: true })
   const scope = await getScope(ctx)
   const notifications = ctx.memberships.length ? await getNotifications(ctx) : { items: [], total: 0 }
+  const mine = await myNotificationSummary(ctx)
+  const bellCount = notifications.total + mine.unread
   const current = scope.isAll ? null : ctx.memberships.find((m) => m.orgId === scope.orgIds[0])
   const brand = brandOf(current?.orgCode ?? (ctx.memberships.length === 1 ? ctx.memberships[0].orgCode : null))
 
@@ -26,7 +31,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (canAny(ctx, ['students.read.all', 'students.read.processing', 'students.read.assigned'])) add('Workspace', '/students', 'Students', 'students')
   if (canAny(ctx, ['leads.read', 'leads.review'])) add('Workspace', '/leads', 'Leads', 'flag')
   if (canAny(ctx, ['tasks.read.all', 'tasks.read.own'])) add('Workspace', '/tasks', 'Tasks', 'tasks')
+  if (ctx.memberships.length) add('Workspace', '/attendance', 'Attendance', 'clock')
+  if (canAny(ctx, ['attendance.view', 'attendance.review'])) add('Workspace', '/attendance/manage', 'Team attendance', 'clock')
+  if (ctx.memberships.length) add('Workspace', '/chat', 'Chat', 'messages')
+  if (canAny(ctx, ['dvr.create', 'dvr.review', 'dvr.manage'])) add('Workspace', '/pre-admission', 'Pre-admission', 'tasks')
+  if (canAny(ctx, ['tickets.respond', 'tickets.manage'])) add('Workspace', '/tickets', 'Student questions', 'messages')
+  if (await hasMeetingAccess(ctx)) add('Workspace', '/meetings', 'Meetings', 'calendar')
   if (ctx.memberships.length) add('Workspace', '/universities', 'Universities', 'university')
+  if (ctx.memberships.length) add('Workspace', '/announcements', 'Announcements', 'messages')
   if (can(ctx, 'payments.read')) add('Finance', '/payments', 'Payment ledger', 'payments')
   if (can(ctx, 'currencies.manage')) add('Finance', '/admin/currencies', 'Currencies & rates', 'wallet')
   if (can(ctx, 'reports.view')) add('Insights', '/reports', 'Reports', 'reports')
@@ -84,9 +96,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 panelClassName="p-2 sm:w-80"
                 summary={<>
                   <Icon name="bell" className="h-5 w-5" /><span className="hidden sm:inline">Alerts</span>
-                  {notifications.total > 0 && <span className="rounded-full bg-red-600 px-1.5 text-xs font-semibold text-white">{notifications.total}</span>}
+                  {bellCount > 0 && <span className="rounded-full bg-red-600 px-1.5 text-xs font-semibold text-white">{bellCount}</span>}
                 </>}>
-                  <p className="px-2 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Needs your attention</p>
+                  <p className="px-2 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">New for you{mine.unread > 0 ? ` (${mine.unread})` : ''}</p>
+                  {mine.latest.length === 0 ? <p className="p-2 text-slate-500">No new notifications.</p> : (
+                    <ul>{mine.latest.map((n) => (
+                      <li key={n.id}><form action={openNotificationAction.bind(null, n.id)}><button className="block w-full rounded-lg px-2 py-2 text-left text-slate-700 hover:bg-slate-50">{n.title}</button></form></li>))}
+                    </ul>
+                  )}
+                  <Link className="block rounded-lg px-2 py-2 font-medium no-underline hover:bg-slate-50" href="/my-notifications">All my notifications</Link>
+                  <p className="mt-1 border-t border-slate-100 px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Needs your attention</p>
                   {notifications.items.length === 0 ? <p className="p-2 text-slate-500">Nothing needs your attention right now.</p> : (
                     <ul>{notifications.items.map((n) => (
                       <li key={n.key}><Link className="flex justify-between rounded-lg px-2 py-2 text-slate-700 no-underline hover:bg-slate-50" href={n.href}><span>{n.label}</span><span className="font-semibold">{n.count}</span></Link></li>))}
@@ -106,6 +125,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   <p className="text-slate-500 wrap-anywhere">{ctx.email}</p>
                   <p className="mt-1 text-xs text-slate-500">{roleSummary || 'No company access'}</p>
                   <div className="mt-3 grid gap-1.5">
+                    <Link href="/account/profile" className="btn-secondary btn-sm justify-start"><Icon name="staff" className="h-4 w-4" />My profile</Link>
                     <Link href="/account/password" className="btn-secondary btn-sm justify-start"><Icon name="key" className="h-4 w-4" />Change password</Link>
                     <Link href="/account/security" className="btn-secondary btn-sm justify-start"><Icon name="shield" className="h-4 w-4" />Two-factor login{ctx.mfaEnabled ? ' ✓' : ''}</Link>
                     <form action={logoutAction}><button className="btn-secondary btn-sm w-full justify-start" type="submit"><Icon name="logout" className="h-4 w-4" />Sign out</button></form>

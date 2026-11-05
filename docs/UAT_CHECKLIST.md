@@ -179,7 +179,8 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 - [ ] As administrator: draft a One and Same template. As a manager: approve it. The approved template can no longer be edited.
 - [ ] Choose the template, Generate preview (names filled in), record a manual request: the status is Pending. Upload, verify and approve the document: the status follows Received → Verified → Approved.
 - [ ] A mandatory rule opens the case automatically, with tasks for the documentation staff and a manager.
-- [ ] A passport valid for less than 12 months cannot move to University Application.
+- [ ] A passport that is expired, valid for less than 12 months, or has no expiry recorded shows a warning at University Application and can continue once acknowledged.
+- [ ] A verified university-specific blocking rule stops only students applying to that university, and never Registration.
 - [ ] As MD: approve the Bonafide (Qatar school → Varna) draft under Verification rules. Adding a country offers "Used as"; adding a course offers "Academic details".
 
 ## G5. Country-wise requirements and alerts (advisory)
@@ -205,7 +206,8 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 
 - [ ] Admin → Rule tester: enter a Student ID and check that each rule shows Applies / Does not apply, with reasons.
 - [ ] Preview "Destination country is one of Bulgaria AND (Nationality is one of India OR Age is at least 18)" and check the count.
-- [ ] Add a passport rule limited to a nationality and check that it only blocks matching students.
+- [ ] Add a **warning** passport rule limited to a nationality and check that only matching students get the warning.
+- [ ] Add a **blocking** passport rule for one university, starting after Registration, with its official source in the notes and limited to a nationality. Check that it blocks only matching students at that university. A blocking rule with no university or source, or starting at or before Registration, must be refused.
 - [ ] University → add a document requirement "only if nationality is …" and check that only matching students get it on their checklist.
 - [ ] Verification rule draft: add a condition, approve it as MD, create a new version and check that the condition is copied.
 
@@ -227,6 +229,18 @@ Record Pass / Fail / Notes for each line. Real student data may be used only aft
 - [ ] Import a Leadist CSV export. Re-importing the same file skips the rows.
 - [ ] Portal → Refer a friend: share by WhatsApp or copy the link. Open the link on another phone and submit; MBBS goes to Edulinks, Bachelor's to GRADUATER, and Not sure to the central queue.
 - [ ] Your own phone number is refused as a referral. The referrer sees only first name and status.
+
+## G10. Employee notifications and task files (Phase 1)
+
+- [ ] Assign a task to someone else. They see it in the bell and on My notifications, and opening it goes to the task and clears it from Unread. You see nothing for your own action.
+- [ ] Comment on the task and complete it: the other person on the task is told each time.
+- [ ] Sign in as staff from the other company: the notification and the task are not visible.
+- [ ] Mark all as read clears the unread count; the list keeps the history.
+- [ ] Send a document for approval: approvers are told, but not its verifier or submitter. Request changes: staff assigned to the student are told.
+- [ ] On a task, upload a PDF: it shows "Not virus-scanned" until a scanner is connected. A renamed non-PDF file and a file over 10 MB are refused.
+- [ ] Open the file. Someone who can't see the task gets "Not found".
+- [ ] Remove a file you uploaded. It leaves the task, and the audit log records it.
+- [ ] With email and the scheduler set up, on staging: an assigned task sends one email with only a generic line and a link.
 
 ## H. Usability
 | # | Test | Expected |

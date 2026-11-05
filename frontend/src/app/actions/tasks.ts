@@ -28,7 +28,7 @@ export async function updateTaskAction(id: string, _: ActionResult, fd: FormData
   const v = formObject(fd)
   // Only send fields that were present in the form, so partial forms don't clear values
   const raw: Record<string, unknown> = {}
-  for (const k of ['title', 'description', 'assignedTo', 'priority', 'status', 'dueDate', 'delayReason', 'delayNote']) {
+  for (const k of ['title', 'description', 'assignedTo', 'priority', 'status', 'dueDate', 'progressPercent', 'delayReason', 'delayNote']) {
     if (fd.has(k)) raw[k] = v[k]
   }
   return runAction(async () => {
@@ -43,4 +43,28 @@ export async function commentAction(id: string, _: ActionResult, fd: FormData): 
     await tasks.addTaskComment(ctx, id, String(fd.get('body') ?? ''))
     revalidatePath(`/tasks/${id}`)
   }, 'Comment added.')
+}
+
+export async function submitTaskAction(id: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => { await tasks.submitTask(ctx, id, String(fd.get('note') ?? '')); revalidatePath(`/tasks/${id}`) }, 'Submitted for review.')
+}
+
+export async function reviewTaskAction(id: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  const decision = String(fd.get('decision') ?? '')
+  return runAction(async () => { await tasks.reviewTask(ctx, id, decision, String(fd.get('note') ?? '')); revalidatePath(`/tasks/${id}`) }, decision === 'approved' ? 'Approved. The task is completed.' : 'Corrections requested.')
+}
+
+export async function extendTaskAction(id: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => { await tasks.extendTask(ctx, id, String(fd.get('date') ?? ''), String(fd.get('time') ?? ''), String(fd.get('reason') ?? '')); revalidatePath(`/tasks/${id}`) }, 'Deadline extended. The original deadline stays on record.')
+}
+
+export async function saveTaskRemindersAction(orgId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => {
+    await tasks.saveTaskReminderSettings(ctx, orgId, fd.getAll('before').map(Number), fd.get('atDeadline') === 'on', fd.get('afterOverdue') === 'on', fd.get('escalate') === 'on')
+    revalidatePath('/tasks/reports')
+  }, 'Reminder settings saved.')
 }

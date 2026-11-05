@@ -52,6 +52,9 @@ Since Stage 2, the read-only file and photo routes are served the same way: `GET
 | `GET /api/files/:id` | signed out | 404 | `Not found` | **no** `cache-control` | Recorded |
 | | not allowed / unknown | 404 | `Not found` | `cache-control: no-store` | Recorded |
 | | allowed | 302 | empty | `location: /api/storage/local?k&e&f&t&s` (local driver), `cache-control: no-store`, `referrer-policy: no-referrer` | Recorded |
+| `GET /api/secure-files/:id` (Phase 1) | signed out | 404 | `Not found` | no `cache-control` | Source and browser test |
+| | not allowed / unknown / removed / quarantined | 404 | `Not found` | `cache-control: no-store` | Source and browser test |
+| | allowed | 302 | empty | `location: /api/storage/local?k&e&f&t&s` (local driver), `cache-control: no-store`, `referrer-policy: no-referrer` | Source and browser test |
 | `GET /api/storage/local` | valid signed link | 200 | file bytes | `content-type` = `t`; `content-disposition: inline; filename="<f sanitised>"`; `cache-control: private, no-store`; `x-content-type-options: nosniff`; `content-security-policy: default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox`; `referrer-policy: no-referrer` | Recorded |
 | | bad signature, or type not allowed | 403 | `Link expired or invalid` | `no-store` | Recorded |
 | | storage driver not local | 404 | `Not found` | none | Source |
@@ -84,9 +87,9 @@ Since Stage 2, the read-only file and photo routes are served the same way: `GET
 | `GET /portal/files/:id` | no portal session / not published | 404 | `Not found` | `no-store` | Recorded |
 | | allowed | 200 | bytes | `attachment; filename="<sanitised>"`, `private, no-store`, `nosniff`, `default-src 'none'; sandbox` | Source |
 | `GET /api/cron/daily` | secret unset, shorter than 32 characters, missing, wrong, or without `Bearer ` | 404 | `Not found` | none | Recorded |
-| | correct `Authorization: Bearer <CRON_SECRET>` | 200 | JSON keys `passportTasksCreated, emailVerificationsExpired, virusScan, authHousekeeping, portalLinkEmailsRemoved, authMessagesRemoved` | `no-store` | Recorded |
+| | correct `Authorization: Bearer <CRON_SECRET>` | 200 | JSON keys `passportTasksCreated, emailVerificationsExpired, virusScan, authHousekeeping, portalLinkEmailsRemoved, authMessagesRemoved, staffReminders` (last one added in Phase 1) | `no-store` | Recorded |
 | `GET /api/cron/notifications` | same failures | 404 | `Not found` | none | Recorded |
-| | correct secret | 200 | JSON incl. `processed, securityAlerts, staffEmails, portalLinkEmails, authMessages` | `no-store` | Recorded |
+| | correct secret | 200 | JSON incl. `processed, securityAlerts, staffEmails, portalLinkEmails, authMessages, staffNotifications` (last one added in Phase 1) | `no-store` | Recorded |
 
 The Next-wide headers from `frontend/next.config.ts` (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, HSTS in production) are added by Next on top of these. The tests call the handlers directly, so they do not include them.
 

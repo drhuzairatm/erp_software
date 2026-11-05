@@ -1,0 +1,134 @@
+[
+  {
+    "rule": "SG01",
+    "file": "backend/src/services/attestation.ts",
+    "code": "tx.unsafe<(RouteRow & { stage_names: string[] })[]>( `${ROUTE_SELECT.replace('as stages', 'as stages, array(select s2.name from attestation_route_stages s2 wher",
+    "reason": "Fixed text: ROUTE_SELECT is a constant and .replace() has two literal arguments. The route id is a bound parameter."
+  },
+  {
+    "rule": "SG03",
+    "file": "backend/src/services/attestation.ts",
+    "code": "`${ROUTE_SELECT.replace('as stages', 'as stages, array(select s2.name from attestation_route_stages s2 where s2.route_id = r.id order by s2.sort_order) as stage",
+    "reason": "Fixed text: ROUTE_SELECT is a constant and .replace() has two literal arguments. The route id is a bound parameter."
+  },
+  {
+    "rule": "SG01",
+    "file": "backend/src/services/dashboard.ts",
+    "code": "tx.unsafe(alias)",
+    "reason": "alias is a function parameter, but no caller passes it from a request: callers use the default 's' or a literal. Reviewed 4 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0040_notifications_files_completion.sql",
+    "code": "app.staff_notify",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0040_notifications_files_completion.sql",
+    "code": "app.secure_file_can_read",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0040_notifications_files_completion.sql",
+    "code": "app.secure_file_can_write",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0040_notifications_files_completion.sql",
+    "code": "app.secure_file_upload_org",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0040_notifications_files_completion.sql",
+    "code": "app.register_secure_file",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0040_notifications_files_completion.sql",
+    "code": "app.authorize_secure_file_download",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0040_notifications_files_completion.sql",
+    "code": "app.remove_secure_file",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0040_notifications_files_completion.sql",
+    "code": "app.record_secure_file_scan",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0041_employee_profiles.sql",
+    "code": "app.set_staff_status",
+    "reason": "Re-creates an existing function; create or replace keeps its privileges. It stays executable by PUBLIC, as before this migration, with the other older functions in the postponed hardening stage. Applied migration, so it cannot be edited. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0042_attendance.sql",
+    "code": "app.sf_org",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0042_attendance.sql",
+    "code": "app.secure_file_can_read",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0042_attendance.sql",
+    "code": "app.secure_file_can_write",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0044_meetings.sql",
+    "code": "app.sf_org",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0044_meetings.sql",
+    "code": "app.secure_file_can_read",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0044_meetings.sql",
+    "code": "app.secure_file_can_write",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0045_internal_chat.sql",
+    "code": "app.sf_org",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0045_internal_chat.sql",
+    "code": "app.secure_file_can_read",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/migrations/0045_internal_chat.sql",
+    "code": "app.secure_file_can_write",
+    "reason": "Re-creates a function already closed to PUBLIC; create or replace keeps its privileges. Applied migration, so it cannot be edited. Enforced by the test 'functions re-created by later migrations stay closed to PUBLIC' in migrations.test.ts. Reviewed 5 Nov 2026."
+  },
+  {
+    "rule": "SQL02",
+    "file": "backend/db/rollbacks/0041_employee_profiles.down.sql",
+    "code": "app.set_staff_status",
+    "reason": "Restores the earlier definition. It stays executable by PUBLIC, as it was before 0041, with the other older functions in the postponed hardening stage. Reviewed 5 Nov 2026."
+  }
+]

@@ -1,20 +1,11 @@
 import { anonymous } from '../db'
+import { notificationsMode, testAllowed } from './mode'
 import { channelConfigured, type Channel, sendEmail, sendWhatsApp } from './providers'
 import { messageVars, renderTemplate, toInternationalDigits } from './render'
 
 const MAX_ATTEMPTS = 5
 
-export function notificationsMode(): 'test' | 'live' {
-  return process.env.NOTIFICATIONS_MODE === 'live' ? 'live' : 'test'
-}
-
-/** In test mode, only these addresses/numbers (comma-separated) receive real messages. */
-export function testAllowed(channel: Channel, to: string) {
-  const list = (process.env.NOTIFICATIONS_TEST_RECIPIENTS ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
-  if (channel === 'email') return list.includes(to.toLowerCase())
-  const digits = toInternationalDigits(to)
-  return list.some((x) => x.replace(/\D/g, '') && toInternationalDigits(x) === digits)
-}
+export { notificationsMode, testAllowed }
 
 interface Claimed { id: string; channel: Channel; to_address: string | null; params: Record<string, unknown>; attempts: number; recipient_type: string }
 

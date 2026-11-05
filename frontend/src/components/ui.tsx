@@ -53,7 +53,7 @@ const STATUS: Record<string, [string, Tone]> = {
   missing: ['Missing', 'slate'], uploaded: ['Uploaded – pending review', 'blue'], under_review: ['Under review', 'purple'], approved: ['Approved', 'green'], rejected: ['Rejected', 'red'], expired: ['Expired', 'red'],
   changes_required: ['Changes required', 'amber'], pending_approval: ['Pending manager approval', 'purple'],
   // tasks
-  not_started: ['Not started', 'slate'], in_progress: ['In progress', 'blue'], waiting_external: ['Waiting on external', 'amber'],
+  not_started: ['Pending', 'slate'], submitted: ['Submitted', 'purple'], in_progress: ['In progress', 'blue'], waiting_external: ['Waiting on external', 'amber'],
   // payments
   not_required: ['Charge', 'slate'], pending: ['Awaiting verification', 'amber'], verified: ['Verified', 'green'],
   // visa
@@ -67,7 +67,7 @@ export function StatusBadge({ status, label }: { status: string; label?: string 
 
 const PRIORITY: Record<string, Tone> = { low: 'slate', normal: 'blue', high: 'amber', urgent: 'red' }
 export function PriorityBadge({ priority }: { priority: string }) {
-  return <Badge tone={PRIORITY[priority] ?? 'slate'}>{priority[0].toUpperCase() + priority.slice(1)}</Badge>
+  return <Badge tone={PRIORITY[priority] ?? 'slate'}>{({ urgent: 'Critical', normal: 'Medium' } as Record<string, string>)[priority] ?? priority[0].toUpperCase() + priority.slice(1)}</Badge>
 }
 
 export function DemoBadge() {

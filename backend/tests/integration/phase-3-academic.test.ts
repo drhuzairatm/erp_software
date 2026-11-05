@@ -32,10 +32,10 @@ const plusTwo = (marks: Record<string, number>, extra: Record<string, string> = 
 ] as const
 
 describe('business configuration supplied by the MD', () => {
-  it('is installed: 12-month passport rule (block), Bulgaria 60% thresholds, Varna/Pleven, Bonafide wording approved by the MD; One and Same wording approved', async () => {
+  it('is installed: 12-month passport rule (warning only), Bulgaria 60% thresholds, Varna/Pleven, Bonafide wording approved by the MD; One and Same wording approved', async () => {
     const sql = adminSql()
     const [p] = await sql`select min_months, enforcement, stage_key, is_active from passport_validity_rules where name like 'Passport valid for at least 12 months%'`
-    expect(p).toEqual({ min_months: 12, enforcement: 'block', stage_key: 'university_application', is_active: true })
+    expect(p).toEqual({ min_months: 12, enforcement: 'warn', stage_key: 'university_application', is_active: true })
     const t = await sql`select i.subject_key, i.min_percentage::int as m from advisory_notices n join advisory_notice_items i on i.notice_id = n.id
                           join countries c on c.id = n.destination_country_id where c.code = 'BG' and n.status = 'active' order by 1`
     expect(t).toEqual(['biology', 'chemistry', 'english', 'physics'].map((s) => ({ subject_key: s, m: 60 })))
@@ -52,13 +52,15 @@ describe('business configuration supplied by the MD', () => {
     expect(oas.body).toMatch(/refer to one and the same person/)
   })
 
-  it('a passport valid for less than 12 months blocks University Application', async () => {
+  it('a passport valid for less than 12 months warns at University Application and does not block it (MD decision, 4 Nov 2026)', async () => {
     const mgr = await ctxFor('edx.manager@demo.test')
     const short = new Date(Date.now() + 200 * 86400000).toISOString().slice(0, 10)
     const { id } = await newStudent({ passportExpiry: short })
     await students.changeStage(mgr, id, { toStage: 'registration' })
-    const e = await expectServiceError(students.changeStage(mgr, id, { toStage: 'university_application', acknowledge: 'yes' }), 'invalid')
-    expect(e.message).toMatch(/at least 12 months/)
+    const first = await students.changeStage(mgr, id, { toStage: 'university_application' })
+    expect(first.ok).toBe(false)
+    if (!first.ok) expect(first.warnings.join(' ')).toMatch(/at least 12 months/)
+    expect(await students.changeStage(mgr, id, { toStage: 'university_application', acknowledge: 'yes' })).toEqual({ ok: true })
   })
 })
 

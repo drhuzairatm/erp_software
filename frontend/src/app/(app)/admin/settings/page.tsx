@@ -4,6 +4,7 @@ import { Badge, Card, PageHeader } from '@/components/ui'
 import { can, canAny } from '@/lib/auth/context'
 import { requireUser } from '@/lib/auth/session'
 import { getSettings } from '@/services/admin'
+import { listDesignations } from '@/services/admin'
 import { getLookups } from '@/services/lookups'
 import { AddReferenceForm, OrgSettingsForm, ToggleReference, WorkflowForm } from '../admin-forms'
 
@@ -18,6 +19,7 @@ export default async function SettingsPage() {
   const canRef = can(ctx, 'reference.manage')
   const canWf = can(ctx, 'workflow.manage')
   const orgName = (id: string) => s.organizations.find((o) => o.id === id)?.name ?? ''
+  const designations = await listDesignations(ctx)
   const Row = ({ kind, id, name, extra, active, editable }: { kind: Parameters<typeof ToggleReference>[0]['kind']; id: string; name: string; extra?: string | null; active: boolean; editable: boolean }) => (
     <li className={`flex items-center justify-between gap-2 py-1.5 text-sm ${active ? '' : 'text-slate-400'}`}>
       <span>{name}{extra && <span className="text-xs text-slate-500"> · {extra}</span>}{!active && ' (inactive)'}</span>
@@ -48,6 +50,13 @@ export default async function SettingsPage() {
             <ul className="divide-y divide-slate-100">{s.departments.map((d) => <Row key={d.id} kind="department" id={d.id} name={d.name} extra={orgName(d.org_id)} active={d.is_active} editable={can(ctx, 'departments.manage', d.org_id)} />)}</ul>
             {s.organizations.some((o) => can(ctx, 'departments.manage', o.id)) && (
               <div className="mt-2"><AddReferenceForm kind="department" fields={[{ name: 'orgId', label: 'Company', options: s.organizations.filter((o) => can(ctx, 'departments.manage', o.id)).map((o) => ({ value: o.id, label: o.name })) }, { name: 'name', label: 'Name', required: true }]} /></div>
+            )}
+          </Card>
+          <Card title="Designations (per company)">
+            <p className="hint mb-2">A designation is a job title. It grants no permissions: access comes only from the system role.</p>
+            <ul className="divide-y divide-slate-100">{designations.map((d) => <Row key={d.id} kind="designation" id={d.id} name={d.name} extra={d.org_name} active={d.is_active} editable={can(ctx, 'departments.manage', d.org_id)} />)}</ul>
+            {s.organizations.some((o) => can(ctx, 'departments.manage', o.id)) && (
+              <div className="mt-2"><AddReferenceForm kind="designation" fields={[{ name: 'orgId', label: 'Company', options: s.organizations.filter((o) => can(ctx, 'departments.manage', o.id)).map((o) => ({ value: o.id, label: o.name })) }, { name: 'name', label: 'Name', required: true }]} /></div>
             )}
           </Card>
           <Card title="Lead sources (per company)">

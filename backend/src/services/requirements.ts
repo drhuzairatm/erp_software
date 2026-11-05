@@ -122,7 +122,7 @@ export async function saveRequirement(ctx: Ctx, groupId: string | null, v: Recor
   if (v.category === 'academic_marks' && cleanItems.length === 0) throw invalid('Add at least one subject requirement for an academic marks notice.')
   const p = {
     category: v.category, display_type: v.displayType, priority: v.priority, destination_country_id: v.destinationCountryId,
-    university_id: opt(v.universityId), course_id: opt(v.courseId), title: title.slice(0, 200), message: message.slice(0, 4000),
+    university_id: opt(v.universityId), course_id: opt(v.courseId), intake_id: opt(v.intakeId), title: title.slice(0, 200), message: message.slice(0, 4000),
     description: v.description?.slice(0, 4000) ?? null, notes: v.notes?.slice(0, 4000) ?? null, requires_acknowledgement: v.requiresAcknowledgement === 'yes',
     effective_from: from, effective_to: to,
   }

@@ -1,11 +1,11 @@
 import { type Page, expect } from '@playwright/test'
-import { readdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import postgres from 'postgres'
 
 /** Repository root (this file is frontend/tests/e2e/helpers.ts): .env and .data/ live there. */
 const ROOT = path.resolve(import.meta.dirname, '../../..')
-process.loadEnvFile(path.join(ROOT, '.env'))
+if (existsSync(path.join(ROOT, '.env'))) process.loadEnvFile(path.join(ROOT, '.env')) // CI has no .env: the disposable runner sets the values
 export const PASSWORD = process.env.SEED_DEMO_PASSWORD!
 /** A separate admin connection per test file (used only to look up fictional fixture ids). */
 export const adminDb = () => postgres(process.env.DATABASE_ADMIN_URL!, { max: 1, onnotice: () => {} })

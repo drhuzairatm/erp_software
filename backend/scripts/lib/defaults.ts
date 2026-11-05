@@ -8,6 +8,9 @@ export const ORGANIZATIONS = [
   { code: 'GRD', name: 'GRADUATER', prefix: 'GRD', settings: { currency: 'INR', allow_self_payment_verification: false } },
 ] as const
 
+/** Job titles offered by default. They grant nothing: access comes only from the system role. Editable in Company settings. */
+export const DEFAULT_DESIGNATIONS = ['Managing Director', 'Chief Executive Officer', 'Company Manager', 'Executive Assistant', 'Counsellor', 'Documentation Officer', 'Finance Officer', 'Visa Officer', 'System Administrator']
+
 const DASH = ['dashboard.view']
 const OWN_TASKS = ['tasks.read.own', 'tasks.create', 'tasks.update.own']
 
@@ -28,7 +31,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'CEO',
     description: 'Executive operations oversight. Payment counts only; no financial amounts. Extra powers only when granted by the MD.',
     permissions: [
-      ...DASH, 'dashboard.consolidated', 'staff.workload.view',
+      ...DASH, 'dashboard.consolidated', 'staff.workload.view', 'announcements.publish', 'attendance.view', 'meetings.manage', 'chat.groups.manage', 'dvr.create', 'dvr.review', 'dvr.manage', 'tickets.respond', 'tickets.manage',
       'students.read.all', 'students.read.processing', 'students.contact.view', 'students.assign',
       'notes.read', 'documents.read', 'tasks.read.all', 'tasks.create', 'tasks.assign',
       'payments.status', 'reports.view', 'reports.export', 'leads.read',
@@ -40,6 +43,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'Company Manager',
     description: 'Manages records and staff work within the company.',
     permissions: [
+      'announcements.publish', 'attendance.view', 'attendance.review', 'chat.groups.manage', 'dvr.create', 'dvr.manage', 'tickets.respond', 'tickets.manage',
       'one_and_same.templates.approve',
       'attestation.exception',
       'attestation.process',
@@ -72,6 +76,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
       'leads.read', 'leads.manage',
       ...DASH, ...OWN_TASKS,
       'students.read.all', 'students.contact.view', 'students.create', 'students.update', 'students.stage.change',
+      'dvr.create', 'tickets.respond',
       'stage.sales', 'stage.hold', 'notes.read', 'notes.write', 'documents.read', 'documents.upload',
     ],
   },
@@ -81,6 +86,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     description: 'Reviews documents for assigned students; attestation, apostille and translation work.',
     permissions: [
       'attestation.process',
+      'dvr.review', 'tickets.respond',
       'documents.download',
       'students.passport.view',
       'students.passport.verify',
@@ -96,6 +102,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'Visa Coordinator',
     description: 'Visa processing, appointments, outcomes and travel preparation for assigned students.',
     permissions: [
+      'tickets.respond',
       'documents.download',
       'students.passport.view',
       ...DASH, ...OWN_TASKS,
@@ -108,6 +115,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
     name: 'Finance Staff',
     description: 'Records and verifies payments, refunds and disbursements.',
     permissions: [
+      'tickets.respond',
       ...DASH, ...OWN_TASKS,
       'students.read.all', 'students.read.processing', 'students.stage.change', 'stage.finance',
       'payments.read', 'payments.record', 'payments.verify', 'payments.reverse', 'payments.disbursement',
@@ -123,7 +131,7 @@ export const DEFAULT_ROLES: { key: string; name: string; description: string; pe
       // Admission master data (countries, universities, courses, requirements, workflows, document and attestation rules)
       // is MD-only by default (MD decision, Nov 2026); the MD delegates it through Roles when needed.
       'notifications.manage',
-      'users.manage', 'roles.manage', 'settings.manage', 'reference.manage', 'departments.manage', 'audit.read'],
+      'attendance.manage', 'users.manage', 'roles.manage', 'settings.manage', 'reference.manage', 'departments.manage', 'audit.read'],
     privileged: true, mfa: true,
   },
 ]
@@ -265,8 +273,8 @@ export const BUSINESS_UNIVERSITIES: [country: string, name: string, city: string
   ['BG', 'Medical University – Pleven', 'Pleven'],
 ]
 export const PASSPORT_VALIDITY_RULES = [
-  { name: 'Passport valid for at least 12 months (all destinations)', stage: 'university_application', months: 12, enforcement: 'block',
-    notes: 'MD instruction Oct 2026: 1 year+ passport validity is mandatory.' },
+  { name: 'Passport valid for at least 12 months (all destinations)', stage: 'university_application', months: 12, enforcement: 'warn',
+    notes: 'MD decision 4 Nov 2026: warning only, including when the expiry is missing. Only a verified university-specific rule may block.' },
 ]
 /** Country-wise requirement notices — ADVISORY: shown to staff, acknowledged, compared with marks; never blocking. */
 export const ADVISORY_NOTICES = [
@@ -279,6 +287,12 @@ export const ADVISORY_NOTICES = [
 export const ONE_AND_SAME_TEMPLATES = [
   { name: 'One and Same declaration', approved: true,
     body: 'I declare that {{passport_name}}, the name in my passport, and {{certificate_name}}, the name in my {{document}}, refer to one and the same person, namely me.\n\nName: {{student_name}}\nDate: {{date}}' },
+]
+
+/** From the MD's brief of 5 Nov 2026. Other countries stay empty until the business verifies a rule. Timing guidance is left for the business to enter. */
+export const COUNTRY_DOCUMENT_RULES = [
+  { country: 'BG', documentKey: 'bonafide_certificate', visaStage: false, match: null },
+  { country: 'BG', documentKey: 'police_clearance', visaStage: true, match: 'issuing_country_matches_visa_application_country' },
 ]
 
 export const BONAFIDE_RULES = [
