@@ -146,9 +146,22 @@ export async function addValidityRule(ctx: Ctx, v: Record<string, string | undef
   if (!Number.isInteger(months) || months < 0 || months > 120) throw invalid('Minimum validity: 0–120 months.', { minMonths: ['0–120.'] })
   if (!/^[a-z_]+$/.test(v.stageKey ?? '')) throw invalid('Choose the stage.', { stageKey: ['Required.'] })
   if (!['warn', 'block'].includes(v.enforcement ?? '')) throw invalid('Choose warn or block.')
+  // MD decision (4 Nov 2026): passport validity warns by default. Only a university-specific rule with its source recorded
+  // may block, and Registration must always remain allowed.
+  if (v.enforcement === 'block') {
+    if (!opt(v.universityId)) throw invalid('Only a rule for a specific university can block. Choose the university, or use Warn.', { universityId: ['Required for a blocking rule.'] })
+    if (!v.notes?.trim()) throw invalid('Record the official source of this university rule before it can block.', { notes: ['Required for a blocking rule.'] })
+  }
   const conditions = conditionsFromForm(v.conditions)
-  return run(ctx, (tx) => tx`insert into passport_validity_rules (name, destination_country_id, university_id, course_id, stage_key, min_months, enforcement, notes, conditions, created_by)
-    values (${name}, ${opt(v.destinationCountryId)}, ${opt(v.universityId)}, ${opt(v.courseId)}, ${v.stageKey!}, ${months}, ${v.enforcement!}, ${v.notes ?? null}, ${conditions ? tx.json(conditions as never) : null}, ${ctx.userId})`)
+  return run(ctx, async (tx) => {
+    if (v.enforcement === 'block') {
+      const [s] = await tx<{ after_registration: boolean }[]>`
+        select r.sort_order > (select sort_order from stages where key = 'registration') as after_registration from stages r where r.key = ${v.stageKey!}`
+      if (!s?.after_registration) throw invalid('Registration must always remain allowed. A blocking rule must start after Registration.', { stageKey: ['Choose a later stage.'] })
+    }
+    return tx`insert into passport_validity_rules (name, destination_country_id, university_id, course_id, stage_key, min_months, enforcement, notes, conditions, created_by)
+    values (${name}, ${opt(v.destinationCountryId)}, ${opt(v.universityId)}, ${opt(v.courseId)}, ${v.stageKey!}, ${months}, ${v.enforcement!}, ${v.notes ?? null}, ${conditions ? tx.json(conditions as never) : null}, ${ctx.userId})`
+  })
 }
 
 export async function setValidityRuleActive(ctx: Ctx, id: string, active: boolean) {

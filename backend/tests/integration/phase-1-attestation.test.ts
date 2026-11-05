@@ -26,7 +26,7 @@ async function approvedDoc(dest = 'BG', edu = 'IN', issued: string | null = 'IN'
   const docs = await ctxFor('docs@demo.test')
   const r = await students.createStudent(mgr, { originatingOrgId: EDX, fullName: 'Attest Student', phone: `+91 90095 ${rand()}`,
     destinationCountryId: await country(dest), previousEducationCountryId: await country(edu) })
-  if (!r.ok) throw new Error()
+  if (!r.ok) throw new Error(`student not created: ${JSON.stringify(r)}`)
   await students.setAssignment(mgr, r.id, { assignmentType: 'documentation', userId: docs.userId, orgId: EDX })
   const doc = (await documents.getChecklist(mgr, r.id)).items.find((i) => i.type_key === 'plus_two_certificate')!
   await documents.uploadDocument(docs, doc.id, pdf())
@@ -134,6 +134,16 @@ describe('stage rules', () => {
     const [a] = await adminSql()`select status, cancel_reason from document_attestations where id = ${d.attestationId}`
     expect(a).toMatchObject({ status: 'cancelled' })
     expect((await att.getDocumentAttestation(d.docs, d.docId))!.state.state).toBeNull()
+  })
+
+  it('staff can cancel attestation in progress, with a reason; another company cannot', async () => {
+    const d = await started('BG')
+    await expectServiceError(att.cancelAttestation(d.docs, d.attestationId, '   '))
+    await expectServiceError(att.cancelAttestation(await ctxFor('grd.counsellor@demo.test'), d.attestationId, 'Fictional reason'))
+    await att.cancelAttestation(d.docs, d.attestationId, 'Fictional reason')
+    const [a] = await adminSql()`select status, cancel_reason from document_attestations where id = ${d.attestationId}`
+    expect(a).toMatchObject({ status: 'cancelled', cancel_reason: 'Fictional reason' })
+    await expectServiceError(att.cancelAttestation(d.docs, d.attestationId, 'Fictional reason')) // no longer in progress
   })
 
   it('attestation records cannot be changed directly', async () => {

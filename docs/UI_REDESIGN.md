@@ -42,7 +42,7 @@ The only new server code is two **read-only** query services for the dashboards 
 | Student documents | New "Originals by courier" panel (tracker, courier details, receipt, reconciliation, history). |
 
 ## Business rules checked against the redesign
-- **Passport:** less than 12 months never blocks registration (the blocking rule applies from University Application, as approved). Expired passports show a red warning.
+- **Passport:** less than 12 months never blocks registration (from University Application it warns; only a verified university-specific rule may block, by MD decision of 4 Nov 2026). Expired passports show a red warning.
 - **Academic requirements:** advisory only, with acknowledgement; nothing invented.
 - **Finance:** the CEO sees no amounts on either dashboard view (tested).
 - **Company separation and permissions:** unchanged (all queries run under RLS).

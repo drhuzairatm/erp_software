@@ -32,7 +32,7 @@ async function hrefMatching(page: Page, from: string, pattern: RegExp) {
 }
 
 const PUBLIC = ['/login', '/login/verify', '/forgot-password', '/reset-password/not-a-real-token', '/invite/not-a-real-token', '/verify-email', '/refer/NOCODE', '/portal', '/portal/verify', '/portal/forgot', '/portal/password']
-const STAFF = ['/', '/students', '/students/new', '/students/import', '/leads', '/leads/new', '/leads/import', '/tasks', '/tasks/new', '/universities', '/payments', '/reports', '/notifications', '/audit', '/account/password', '/account/security',
+const STAFF = ['/', '/my-notifications', '/my-notifications/preferences', '/announcements', '/account/profile', '/chat', '/chat/governance', '/pre-admission', '/pre-admission/new', '/tickets', '/admin/master-data/academic-years', '/admin/master-data/country-documents', '/attendance', '/attendance/manage', '/attendance/reports', '/attendance/settings', '/attendance/kiosk', '/tasks/reports', '/meetings', '/meetings/core-team', '/students', '/students/new', '/students/import', '/leads', '/leads/new', '/leads/import', '/tasks', '/tasks/new', '/universities', '/payments', '/reports', '/notifications', '/audit', '/account/password', '/account/security',
   '/admin/users', '/admin/roles', '/admin/settings', '/admin/security', '/admin/notifications', '/admin/courier', '/admin/currencies', '/admin/academic-rules', '/admin/passport-rules', '/admin/rule-tester',
   '/admin/master-data', '/admin/master-data/countries', '/admin/master-data/courses', '/admin/master-data/history', '/admin/master-data/permissions', '/admin/master-data/requests',
   '/admin/requirements', '/admin/requirements/new', '/admin/verification-rules', '/admin/verification-rules/new', '/admin/attestation-routes', '/admin/attestation-routes/new']

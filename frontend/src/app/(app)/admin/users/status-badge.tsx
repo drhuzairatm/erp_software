@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui'
 
-export const STATUS_LABEL: Record<string, string> = { invited: 'Invitation pending', active: 'Active', suspended: 'Suspended', terminated: 'Terminated' }
+export const STATUS_LABEL: Record<string, string> = { invited: 'Invitation pending', active: 'Active', suspended: 'Suspended', archived: 'Archived', terminated: 'Terminated' }
 
 export function StatusBadge({ status }: { status: string }) {
   const tone = status === 'active' ? 'green' : status === 'invited' ? 'amber' : status === 'suspended' ? 'red' : 'slate'

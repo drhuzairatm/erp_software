@@ -144,7 +144,7 @@ export function MergeForm({ studentId, code }: { studentId: string; code: string
     <ActionForm action={mergeAction.bind(null, studentId)} resetOnSuccess>
       {(s) => (
         <>
-          <p className="text-sm text-slate-600">Merge a duplicate record <strong>into</strong> this one ({code}). Notes, follow-ups, tasks, documents and payments move here; the duplicate is kept for history. You need merge permission in both companies.</p>
+          <p className="text-sm text-slate-600">Merge a duplicate record <strong>into</strong> this one ({code}). Notes, follow-ups, tasks, documents, payments and due dates, preferences, student questions and pre-admission links move here; the duplicate is kept for history. You need merge permission in both companies.</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div><label className="label" htmlFor="mergedCode">Duplicate Student ID</label><input id="mergedCode" name="mergedCode" className="input font-mono" placeholder="GRD-26-001234" required /></div>
             <div><label className="label" htmlFor="merge-reason">Reason</label><input id="merge-reason" name="reason" className="input" required maxLength={500} /><FieldError state={s} name="reason" /></div>

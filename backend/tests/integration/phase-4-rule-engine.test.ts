@@ -85,11 +85,11 @@ describe('conditions on rules', () => {
     expect((await adminSql()`select conditions from verification_rules where id = ${v2} and status = 'draft'`)[0].conditions).toMatchObject({ all: [{ field: 'nationality' }] })
   })
 
-  it('passport validity rule with a condition blocks only the matching students', async () => {
+  it('passport validity rule with a condition applies only to the matching students', async () => {
     const admin = await ctxFor('admin@demo.test')
     const uae = await country('AE')
     const name = `Phase 4 rule ${rand()}`
-    await pp.addValidityRule(admin, { name, minMonths: '120', stageKey: 'registration', enforcement: 'block',
+    await pp.addValidityRule(admin, { name, minMonths: '120', stageKey: 'registration', enforcement: 'warn',
       conditions: JSON.stringify({ all: [{ field: 'nationality', op: 'in', values: [uae] }] }) })
     try {
       const a = await studentWithNationality('AE'); const b = await studentWithNationality('IN')

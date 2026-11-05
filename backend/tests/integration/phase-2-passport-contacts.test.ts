@@ -70,13 +70,14 @@ describe('stage requirements', () => {
     await expectDbError(as('edx.manager@demo.test', (tx) => tx`select app.change_student_stage(${id}, 'university_application', 'direct', null, null, '[]'::jsonb)`), '23514')
   })
 
-  it('minimum passport validity rules: configurable warn or block, by destination and stage', async () => {
+  it('minimum passport validity rules: warn by destination and stage; block only for one university, with its source', async () => {
     const admin = await ctxFor('admin@demo.test')
     const bg = await country('BG')
-    await pp.addValidityRule(admin, { name: `Test BG visa ${rand()}`, destinationCountryId: bg, stageKey: 'visa_processing', minMonths: '18', enforcement: 'block' })
+    const [{ id: varna }] = await adminSql()`select id from universities where name = 'Medical University – Varna'`
+    await pp.addValidityRule(admin, { name: `Test BG visa ${rand()}`, destinationCountryId: bg, universityId: varna, stageKey: 'visa_processing', minMonths: '18', enforcement: 'block', notes: 'Fictional source (test)' })
     await pp.addValidityRule(admin, { name: `Test BG admission ${rand()}`, destinationCountryId: bg, stageKey: 'admission_letter', minMonths: '16', enforcement: 'warn' })
     await expectServiceError(pp.addValidityRule(await ctxFor('edx.manager@demo.test'), { name: 'Nope', stageKey: 'visa_processing', minMonths: '6', enforcement: 'warn' }), 'forbidden')
-    const { id } = await newStudent({ destinationCountryId: bg, phone2: '+91 98760 ' + rand(), passportNumber: `PV${rand()}`, passportExpiry: inMonths(15) })
+    const { id } = await newStudent({ destinationCountryId: bg, preferredUniversityId: varna, phone2: '+91 98760 ' + rand(), passportNumber: `PV${rand()}`, passportExpiry: inMonths(15) })
     const mgr = await ctxFor('edx.manager@demo.test')
     const w = await students.changeStage(mgr, id, { toStage: 'admission_letter' })
     expect(w.ok).toBe(false)

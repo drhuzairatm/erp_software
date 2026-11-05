@@ -46,6 +46,10 @@ export function newStorageKey(orgId: string, studentId: string): string {
   return `org/${orgId}/students/${studentId}/${randomUUID()}`
 }
 
+export function newSecureStorageKey(orgId: string, contextType: string, contextId: string): string {
+  return `org/${orgId}/secure/${contextType}/${contextId}/${randomUUID()}`
+}
+
 export function sha256(buf: Buffer) {
   return createHash('sha256').update(buf).digest('hex')
 }

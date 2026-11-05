@@ -105,7 +105,7 @@ The statement is a check staff confirm against the original; it isn't an exact-p
 
 ## Other configuration added in this phase
 
-- Passport validity: **at least 12 months, mandatory (blocks) from University Application for all destinations** (MD instruction; editable under Passport & contact rules).
+- Passport validity: **at least 12 months, warning only from University Application for all destinations, including when the expiry is missing** (MD decision, 4 Nov 2026). Only a verified university-specific rule may block (Passport & contact rules).
 - Universities: **Medical University – Varna** and **Medical University – Pleven** (Bulgaria).
 - Adding countries: "Used as" (destination, previous education country, or both).
 - Adding courses: "Academic details" (Plus Two based or MBBS based).

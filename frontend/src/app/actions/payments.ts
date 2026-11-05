@@ -42,3 +42,9 @@ export async function saveCurrencyAction(_: ActionResult, fd: FormData): Promise
   const ctx = await requireUser()
   return runAction(async () => { await payments.saveCurrency(ctx, formObject(fd)); revalidatePath('/admin/currencies') }, 'Saved. Existing payments keep their own rates.')
 }
+
+export async function setDueDateAction(entryId: string, back: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  const v = formObject(fd)
+  return runAction(async () => { await payments.setDueDate(ctx, entryId, v); revalidatePath(back) }, 'Due date saved.')
+}

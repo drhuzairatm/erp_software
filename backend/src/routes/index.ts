@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { chatRouter } from './chat.routes'
 import { filesRouter } from './files.routes'
 import { healthRouter } from './health.routes'
 import { photosRouter } from './photos.routes'
@@ -8,6 +9,7 @@ import { studentsRouter } from './students.routes'
 export function apiRoutes() {
   const r = Router()
   r.use(healthRouter())
+  r.use(chatRouter())
   r.use(filesRouter())
   r.use(photosRouter())
   r.use(studentsRouter())

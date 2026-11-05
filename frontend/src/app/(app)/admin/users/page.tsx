@@ -24,7 +24,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     const ms = data.memberships.filter((m) => m.user_id === u.id)
     return (!q || `${u.full_name} ${u.email} ${u.employee_id} ${u.job_title ?? ''}`.toLowerCase().includes(q))
       && (!sp.role || ms.some((m) => m.role_name === sp.role)) && (!sp.org || ms.some((m) => m.org_id === sp.org))
-      && (!sp.status || (sp.status === 'inactive' ? !u.is_active : u.account_status === sp.status))
+      && (sp.status ? (sp.status === 'inactive' ? !u.is_active : u.account_status === sp.status) : u.account_status !== 'archived')
   })
   return (
     <>

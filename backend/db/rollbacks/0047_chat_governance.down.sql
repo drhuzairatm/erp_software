@@ -1,0 +1,34 @@
+-- Undo 0047. WARNING: retention policies, named authorities, legal holds, investigation requests and the access log are lost. Export them first if any exist.
+-- The archive itself stays: chat_message_history belongs to 0045.
+drop trigger if exists chat_message_history_guard on chat_message_history;
+update chat_message_history set action = 'deleted' where action = 'retention_archived';
+alter table chat_message_history drop constraint chat_message_history_action_check;
+alter table chat_message_history add constraint chat_message_history_action_check check (action in ('edited', 'deleted'));
+drop index if exists chat_message_history_message;
+drop function if exists app.chatgov_retention_tick();
+drop function if exists app.chatgov_read(uuid, int);
+drop function if exists app.chatgov_close(uuid);
+drop function if exists app.chatgov_decide(uuid, boolean, text, int);
+drop function if exists app.chatgov_request(uuid, text, text, uuid, uuid, uuid, date, date, uuid);
+drop function if exists app.chatgov_release_hold(uuid, text);
+drop function if exists app.chatgov_place_hold(uuid, text, text, uuid, uuid);
+drop function if exists app.chatgov_direct_of(uuid, uuid, uuid);
+drop function if exists app.chatgov_groups(uuid);
+drop function if exists app.chatgov_set_delegate(uuid, uuid, text, boolean, text);
+drop function if exists app.chatgov_set_retention(uuid, int, int, boolean, text);
+drop function if exists app.chatgov_notify(uuid, uuid, text, text, uuid);
+drop function if exists app.chatgov_archive_guard();
+drop table if exists chatgov_access_log;
+drop table if exists chatgov_requests;
+drop table if exists chatgov_holds;
+drop table if exists chatgov_delegates;
+drop table if exists chatgov_retention_runs;
+drop table if exists chatgov_retention_policies;
+drop function if exists app.chatgov_no_delete();
+drop function if exists app.chatgov_no_change();
+drop function if exists app.chatgov_held(uuid, uuid, uuid);
+drop function if exists app.chatgov_can_view(uuid);
+drop function if exists app.chatgov_has(uuid, text);
+drop function if exists app.chatgov_user_has(uuid, uuid, text);
+drop function if exists app.chatgov_is_md(uuid);
+delete from staff_notifications where subject_type = 'chatgov';

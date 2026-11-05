@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 const SECTIONS = [
   ['/admin/master-data', 'Overview'], ['/admin/master-data/countries', 'Countries'], ['/universities', 'Universities'], ['/admin/master-data/courses', 'Courses'],
-  ['/admin/master-data/requests', 'Requests'], ['/admin/master-data/permissions', 'Permissions'], ['/admin/master-data/history', 'History'],
+  ['/admin/master-data/academic-years', 'Academic years'], ['/admin/master-data/country-documents', 'Country documents'], ['/admin/master-data/requests', 'Requests'], ['/admin/master-data/permissions', 'Permissions'], ['/admin/master-data/history', 'History'],
 ] as const
 
 export default function MasterDataLayout({ children }: { children: React.ReactNode }) {

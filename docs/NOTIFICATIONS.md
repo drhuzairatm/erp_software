@@ -24,6 +24,27 @@ event (stage change, document review, registration, visa outcome)
   sent* with the exact wording. Numbers/addresses in `NOTIFICATIONS_TEST_RECIPIENTS` (e.g. your own phone)
   do receive real messages, so you can try the providers safely.
 
+## Employee notifications (Phase 1)
+
+Separate from student and parent messages. Each employee sees their own at **My notifications** and in the header bell, with no permission needed; nobody else can read them, including the MD.
+
+| Event | Goes to | Email |
+|---|---|---|
+| Task assigned or reassigned | New assignee | Yes |
+| Comment on a task | Assignee and creator | No |
+| Task completed by someone else | Creator | No |
+| File added to a task | Assignee and creator | No |
+| Task due within 2 days | Assignee | No |
+| Task overdue, up to 3 days after its due date | Assignee | Yes |
+| Document waiting for approval | People who can approve it, except its verifier and submitter | Yes |
+| Document rejected or changes required | Staff assigned to the student | Yes |
+| File quarantined by a later scan | Uploader | Yes |
+
+- Nobody is told about their own action.
+- Text and emails hold no personal data. The task or document name appears on the page only while the reader can still see that record.
+- Email uses the system email settings and test mode below. The per-minute job sends it, retrying up to 5 times; mail older than 24 hours is skipped. If email isn't configured, notifications stay in the app.
+- Reminders come from the daily job, once per task and due date. **Email and reminders need a scheduler calling the cron routes.**
+
 ## Modes and the required configuration (finding N-8)
 
 | Environment | How it is recognised | `NOTIFICATIONS_MODE` | Local test mailbox |
@@ -68,7 +89,9 @@ staging serve nothing (HTTP 500) when the variable is set. Never use it with rea
 Credentials live only in the server environment (never in the database or the code).
 
 ### System email — staff invitations, staff password resets, security alerts
-Sent over SMTP with Nodemailer, separately from the per-company student and parent email below.
+Sent separately from the per-company student and parent email below. Two providers are supported: SMTP with Nodemailer
+when all `SYSTEM_MAIL_*` settings are valid, otherwise Resend when `RESEND_API_KEY` and `EMAIL_FROM` are set
+(`EMAIL_FROM` may be a bare address or `Name <address>`). The SMTP steps are:
 1. Create or choose one sending mailbox, e.g. `no-reply@<domain>`. A domain does not include mailboxes: create it with your email provider.
 2. Get its SMTP settings. Google Workspace or Gmail: an *App password*, host `smtp.gmail.com`, port `465`. Microsoft 365:
    host `smtp.office365.com`, port `587`, with SMTP AUTH enabled for that mailbox. Check your provider's daily sending limit.
@@ -79,11 +102,13 @@ Sent over SMTP with Nodemailer, separately from the per-company student and pare
 4. Make sure SPF, DKIM and DMARC for the sending domain include the mail provider.
 5. Make sure the server can reach the SMTP host on that port (some hosts restrict outbound mail ports).
 
-**If any setting is missing or invalid**, nothing is sent and no error appears at start-up. Invitation links are shown once
+**If neither provider has complete, valid settings**, nothing is sent and no error appears at start-up. Invitation links are shown once
 to the administrator, the forgot-password page asks staff to contact an administrator, and alerts stay pending.
 
-**Test mode does not apply.** `NOTIFICATIONS_MODE=test` and `NOTIFICATIONS_TEST_RECIPIENTS` do not filter system email, so
-never set `SYSTEM_MAIL_*` on a development or staging server that holds real staff addresses.
+**Test mode applies.** Unless `NOTIFICATIONS_MODE` is exactly `live`, system email goes only to `NOTIFICATIONS_TEST_RECIPIENTS`, and
+no provider is contacted for anyone else. Invitation links are then shown to the administrator, reset emails are recorded as skipped
+with the link wiped, and security alerts stay pending. A server moving to this version must have `NOTIFICATIONS_MODE=live` to keep
+sending (production start-up already requires it).
 
 ### Email — your business mailboxes (Dr.Expert and GRADUATER)
 1. Create a sending mailbox per brand, e.g. `updates@<drexpert-domain>` and `updates@<graduater-domain>`.

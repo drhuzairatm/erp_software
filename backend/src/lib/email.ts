@@ -1,12 +1,17 @@
 import 'server-only'
 import nodemailer, { type Transporter } from 'nodemailer'
+import { notificationsMode, testAllowed } from './notifications/mode'
 
 /**
- * Transactional system email (staff invitations, staff password resets, security alerts): SMTP through Nodemailer,
- * configured by the SYSTEM_MAIL_* environment variables. Port 465 uses implicit TLS and port 587 requires STARTTLS.
+ * Transactional system email (staff invitations, staff password resets, security alerts). Two providers:
+ * - SMTP through Nodemailer, when all SYSTEM_MAIL_* settings are valid. Port 465 uses implicit TLS and port 587 requires STARTTLS.
+ * - otherwise Resend over HTTP, when RESEND_API_KEY and EMAIL_FROM are valid.
  *
- * If any setting is missing or invalid, nothing is sent and { sent: false } is returned, so callers keep their fallback
+ * If neither is configured, nothing is sent and { sent: false } is returned, so callers keep their fallback
  * (for example the one-time link shown to the administrator). Callers must never claim delivery in that case.
+ *
+ * Test mode (NOTIFICATIONS_MODE not exactly "live"): only NOTIFICATIONS_TEST_RECIPIENTS receive system email. For anyone
+ * else no provider is contacted and { sent: false, testMode: true } is returned. This is the single gate for both providers.
  *
  * Per-company student and parent email is separate: see notifications/providers.ts.
  * Never log or return the password, a message body (it may contain a one-time link) or a raw provider error.
@@ -17,10 +22,16 @@ const SOCKET_TIMEOUT_MS = 20_000
 const MAX_ADDRESS_LENGTH = 254
 const MAX_SUBJECT_LENGTH = 998 // RFC 5322 line limit
 const HOST = /^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/
-// exactly one bare address: no display name, list separators, quotes or white space
-const ADDRESS = /^[^\s@,;:<>()[\]"'\\]+@[^\s@,;:<>()[\]"'\\]+\.[^\s@,;:<>()[\]"'\\]+$/
+// exactly one bare address: no display name, list separators, double quotes or white space. An apostrophe is valid in
+// the local part (o'brien@example.com), as the staff forms accept, but never in the domain.
+const ADDRESS = /^[^\s@,;:<>()[\]"\\]+@[^\s@,;:<>()[\]"'\\]+\.[^\s@,;:<>()[\]"'\\]+$/
+const DISPLAY_NAME_SENDER = /^[^<>]*<([^<>]+)>$/
+const RESEND_URL = 'https://api.resend.com/emails'
+const RESEND_TIMEOUT_MS = 10_000
 
 interface SmtpConfig { host: string; port: 465 | 587; from: string; user: string; password: string }
+interface ResendConfig { apiKey: string; from: string }
+export type SendEmailResult = { sent: boolean; error?: string; testMode?: true }
 
 function hasControlCharacter(value: string) {
   for (let i = 0; i < value.length; i++) {
@@ -49,6 +60,15 @@ function smtpConfig(): SmtpConfig | null {
   return { host, port: port === '465' ? 465 : 587, from, user, password }
 }
 
+/** The Resend settings, or null when either is missing or invalid (values are never reported). */
+function resendConfig(): ResendConfig | null {
+  const apiKey = process.env.RESEND_API_KEY ?? ''
+  const from = process.env.EMAIL_FROM ?? ''
+  const address = from.match(DISPLAY_NAME_SENDER)?.[1] ?? from
+  if (!apiKey || hasControlCharacter(apiKey) || hasControlCharacter(from) || !validAddress(address)) return null
+  return { apiKey, from }
+}
+
 let cached: { key: string; transport: Transporter } | null = null
 
 function transportFor(c: SmtpConfig): Transporter {
@@ -75,13 +95,31 @@ function transportFor(c: SmtpConfig): Transporter {
 }
 
 export function emailConfigured() {
-  return smtpConfig() !== null
+  return smtpConfig() !== null || resendConfig() !== null
 }
 
-export async function sendEmail(to: string, subject: string, text: string): Promise<{ sent: boolean; error?: string }> {
+async function sendThroughResend(config: ResendConfig, to: string, subject: string, text: string): Promise<SendEmailResult> {
+  try {
+    const res = await fetch(RESEND_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: config.from, to: [to], subject, text }),
+      signal: AbortSignal.timeout(RESEND_TIMEOUT_MS),
+    })
+    // Only the status is kept: the response text may echo the request.
+    return res.ok ? { sent: true } : { sent: false, error: `Email provider returned ${res.status}` }
+  } catch {
+    return { sent: false, error: 'Email provider could not be reached.' }
+  }
+}
+
+export async function sendEmail(to: string, subject: string, text: string): Promise<SendEmailResult> {
   const config = smtpConfig()
-  if (!config) return { sent: false, error: 'Email delivery is not configured.' }
+  const resend = config ? null : resendConfig()
+  if (!config && !resend) return { sent: false, error: 'Email delivery is not configured.' }
   if (!validAddress(to) || !validSubject(subject)) return { sent: false, error: 'The email recipient or subject is not valid.' }
+  if (notificationsMode() === 'test' && !testAllowed('email', to)) return { sent: false, testMode: true, error: 'Test mode: not sent' }
+  if (!config) return sendThroughResend(resend!, to, subject, text)
   try {
     await transportFor(config).sendMail({ from: config.from, to, subject, text })
     return { sent: true }

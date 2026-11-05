@@ -62,7 +62,7 @@ export async function verifyCode(challenge: string, code: string) {
   return r
 }
 
-async function tokenHash() {
+export async function tokenHash() {
   const t = (await cookies()).get(PORTAL_COOKIE)?.value
   return t && t.length <= 100 ? hmac(t) : null
 }

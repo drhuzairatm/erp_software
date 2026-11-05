@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { can, orgsWith } from '../lib/auth/context'
 import { hashToken, newTokenValue } from '../lib/auth/tokens'
 import { forbidden, invalid, notFound } from '../lib/errors'
-import { fieldErrors, staffDetailsSchema, userCreateSchema } from '../lib/validation'
+import { fieldErrors, personalDetailsSchema, staffDetailsSchema, userCreateSchema } from '../lib/validation'
 import { type Ctx, PAGE_SIZE, pageOf, run } from './base'
 
 // ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ export async function createStaff(ctx: Ctx, raw: Record<string, unknown>) {
 // ---------------------------------------------------------------------------
 // Account lifecycle: invitations, status, sessions, details, task hand-over
 // ---------------------------------------------------------------------------
-export type AccountStatus = 'invited' | 'active' | 'suspended' | 'terminated'
+export type AccountStatus = 'invited' | 'active' | 'suspended' | 'terminated' | 'archived'
 export interface Invitation { user_id: string; created_at: Date; expires_at: Date; state: 'pending' | 'accepted' | 'cancelled' | 'expired' }
 /** Invitation validity in days (STAFF_INVITE_DAYS, 1–14, default 7). */
 export const inviteDays = () => Math.min(14, Math.max(1, Number(process.env.STAFF_INVITE_DAYS) || 7))
@@ -98,9 +98,9 @@ export async function cancelInvitation(ctx: Ctx, userId: string) {
 }
 
 /** Suspend, terminate (reason required) or reactivate. Suspended/terminated people are signed out at once and cannot sign in. */
-export async function setStaffStatus(ctx: Ctx, userId: string, status: 'active' | 'suspended' | 'terminated', reason?: string) {
-  if (!['active', 'suspended', 'terminated'].includes(status)) throw invalid('Choose a status.')
-  if ((status === 'suspended' || status === 'terminated') && !reason?.trim()) throw invalid('Give a reason.', { reason: ['Required.'] })
+export async function setStaffStatus(ctx: Ctx, userId: string, status: 'active' | 'suspended' | 'terminated' | 'archived', reason?: string) {
+  if (!['active', 'suspended', 'terminated', 'archived'].includes(status)) throw invalid('Choose a status.')
+  if (status !== 'active' && !reason?.trim()) throw invalid('Give a reason.', { reason: ['Required.'] })
   const [r] = await run(ctx, (tx) => tx<{ s: AccountStatus }[]>`select app.set_staff_status(${userId}, ${status}, ${reason?.trim().slice(0, 500) ?? null}) as s`)
   return r.s
 }
@@ -117,7 +117,9 @@ export async function updateStaffDetails(ctx: Ctx, userId: string, raw: Record<s
   const v = parsed.data
   if (userId === ctx.userId) throw forbidden('Ask an administrator to change your own details.')
   return run(ctx, async (tx) => {
-    const r = await tx`update user_profiles set full_name = ${v.fullName}, job_title = ${v.jobTitle ?? null}, phone = ${v.phone ?? null}, joining_date = ${v.joiningDate ?? null}
+    const r = await tx`update user_profiles set full_name = ${v.fullName}, job_title = ${v.jobTitle ?? null}, phone = ${v.phone ?? null}, joining_date = ${v.joiningDate ?? null},
+                         first_name = ${v.firstName}, middle_name = ${v.middleName}, last_name = ${v.lastName}, secondary_phone = ${v.secondaryPhone}, additional_phone = ${v.additionalPhone},
+                         address_line = ${v.addressLine}, city = ${v.city}, state_region = ${v.stateRegion}, postal_code = ${v.postalCode}, address_country = ${v.addressCountry}
                        where id = ${userId}`
     if (r.count === 0) throw forbidden('You cannot manage this account.')
   })
@@ -175,23 +177,79 @@ export async function issueResetLink(ctx: Ctx, userId: string) {
 }
 
 /** Staff profile (Admin → Staff → person). */
+export interface ProfileFields {
+  first_name: string | null; middle_name: string | null; last_name: string | null; display_name: string | null; secondary_phone: string | null; additional_phone: string | null
+  address_line: string | null; city: string | null; state_region: string | null; postal_code: string | null; address_country: string | null
+}
+
+/** Profile completion: the fields that matter for HR records. A computed indicator, never stored. */
+export function profileCompletion(u: Partial<ProfileFields> & { phone?: string | null; job_title?: string | null; photo_version?: number | null; joining_date?: string | null }) {
+  const checks: [string, unknown][] = [['First name', u.first_name], ['Last name', u.last_name], ['Mobile', u.phone], ['Designation', u.job_title], ['Joining date', u.joining_date],
+    ['Address', u.address_line], ['City', u.city], ['Profile photo', u.photo_version]]
+  const missing = checks.filter(([, v]) => !v).map(([k]) => k)
+  return { percent: Math.round(((checks.length - missing.length) / checks.length) * 100), missing }
+}
+
+export async function getMyProfile(ctx: Ctx) {
+  return run(ctx, async (tx) => {
+    const [u] = await tx<({ id: string; email: string; full_name: string; job_title: string | null; employee_id: string; phone: string | null; joining_date: string | null; photo_version: number | null; account_status: AccountStatus } & ProfileFields)[]>`
+      select u.id, u.email, u.full_name, u.job_title, u.employee_id, u.phone, to_char(u.joining_date, 'YYYY-MM-DD') as joining_date, u.account_status,
+             u.first_name, u.middle_name, u.last_name, u.display_name, u.secondary_phone, u.additional_phone, u.address_line, u.city, u.state_region, u.postal_code, u.address_country,
+             (select p.version from staff_photos p where p.user_id = u.id and p.is_current) as photo_version
+        from user_profiles u where u.id = ${ctx.userId}`
+    const memberships = await tx<{ org_name: string; role_name: string; department: string | null; designation: string | null }[]>`
+      select o.name as org_name, r.name as role_name, d.name as department, g.name as designation from organization_memberships m join organizations o on o.id = m.org_id
+        join roles r on r.id = m.role_id left join departments d on d.id = m.department_id left join designations g on g.id = m.designation_id
+       where m.user_id = ${ctx.userId} and m.is_active order by o.name`
+    const history = await tx<ProfileHistoryRow[]>`select * from app.staff_profile_history(${ctx.userId}, 30)`
+    return { user: u, memberships, history, completion: profileCompletion(u) }
+  })
+}
+
+export interface ProfileHistoryRow { occurred_at: Date; action: string; actor: string | null; fields: string[] }
+export async function staffProfileHistory(ctx: Ctx, userId: string) {
+  return run(ctx, (tx) => tx<ProfileHistoryRow[]>`select * from app.staff_profile_history(${userId}, 30)`)
+}
+
+export async function updateMyProfile(ctx: Ctx, raw: Record<string, unknown>) {
+  const parsed = personalDetailsSchema.safeParse(raw)
+  if (!parsed.success) throw invalid('Please correct the highlighted fields.', fieldErrors(parsed.error))
+  const v = parsed.data
+  await run(ctx, (tx) => tx`select app.update_my_profile(${tx.json({ first_name: v.firstName, middle_name: v.middleName, last_name: v.lastName, display_name: v.displayName,
+    phone: v.phone, secondary_phone: v.secondaryPhone, additional_phone: v.additionalPhone, address_line: v.addressLine, city: v.city, state_region: v.stateRegion,
+    postal_code: v.postalCode, address_country: v.addressCountry })})`)
+}
+
+export async function setStaffDesignation(ctx: Ctx, userId: string, orgId: string, designationId: string | null) {
+  await run(ctx, (tx) => tx`select app.set_staff_designation(${userId}, ${orgId}, ${designationId})`)
+}
+
+export async function listDesignations(ctx: Ctx) {
+  return run(ctx, (tx) => tx<{ id: string; org_id: string; name: string; is_active: boolean; org_name: string; holders: number }[]>`
+    select d.id, d.org_id, d.name, d.is_active, o.name as org_name,
+           (select count(*)::int from organization_memberships m where m.designation_id = d.id and m.is_active) as holders
+      from designations d join organizations o on o.id = d.org_id order by o.name, d.name`)
+}
+
 export async function getStaffMember(ctx: Ctx, userId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(userId) || !can(ctx, 'users.manage')) return null
   return run(ctx, async (tx) => {
-    const [u] = await tx<{ id: string; email: string; full_name: string; job_title: string | null; is_active: boolean; created_at: Date; employee_id: string
+    const [u] = await tx<({ id: string; email: string; full_name: string; job_title: string | null; is_active: boolean; created_at: Date; employee_id: string
       reports_to: string | null; manager_name: string | null; photo_version: number | null; can_admin: boolean; can_photo: boolean
       account_status: AccountStatus; phone: string | null; joining_date: string | null; email_verified_at: Date | null; status_reason: string | null
-      status_changed_at: Date | null; status_changed_by_name: string | null }[]>`
-      select u.id, u.email, u.full_name, u.job_title, u.is_active, u.created_at, u.employee_id, u.reports_to, mg.full_name as manager_name,
+      status_changed_at: Date | null; status_changed_by_name: string | null } & ProfileFields)[]>`
+      select u.first_name, u.middle_name, u.last_name, u.display_name, u.secondary_phone, u.additional_phone, u.address_line, u.city, u.state_region, u.postal_code, u.address_country,
+             u.id, u.email, u.full_name, u.job_title, u.is_active, u.created_at, u.employee_id, u.reports_to, mg.full_name as manager_name,
              u.account_status, u.phone, to_char(u.joining_date, 'YYYY-MM-DD') as joining_date, u.email_verified_at, u.status_reason, u.status_changed_at,
              (select sc.full_name from user_profiles sc where sc.id = u.status_changed_by) as status_changed_by_name,
              (select p.version from staff_photos p where p.user_id = u.id and p.is_current) as photo_version,
              app.can_administer_user(u.id) as can_admin, app.can_change_staff_photo(u.id) as can_photo
         from user_profiles u left join user_profiles mg on mg.id = u.reports_to where u.id = ${userId}`
     if (!u) return null
-    const memberships = await tx<{ org_name: string; role_name: string; department: string | null; is_active: boolean }[]>`
-      select o.name as org_name, r.name as role_name, d.name as department, m.is_active from organization_memberships m join organizations o on o.id = m.org_id
-        join roles r on r.id = m.role_id left join departments d on d.id = m.department_id where m.user_id = ${userId} order by o.name`
+    const memberships = await tx<{ org_id: string; org_name: string; role_name: string; department: string | null; is_active: boolean; designation_id: string | null; designation: string | null }[]>`
+      select m.org_id, o.name as org_name, r.name as role_name, d.name as department, m.is_active, m.designation_id, g.name as designation from organization_memberships m join organizations o on o.id = m.org_id
+        join roles r on r.id = m.role_id left join departments d on d.id = m.department_id left join designations g on g.id = m.designation_id where m.user_id = ${userId} order by o.name`
+    const designations = await tx<{ id: string; org_id: string; name: string }[]>`select id, org_id, name from designations where is_active order by name`
     const reports = await tx<{ id: string; full_name: string; employee_id: string }[]>`select id, full_name, employee_id from user_profiles where reports_to = ${userId} order by full_name`
     const managers = await tx<{ id: string; full_name: string; employee_id: string }[]>`
       select distinct u.id, u.full_name, u.employee_id from user_profiles u join organization_memberships b on b.user_id = u.id and b.is_active
@@ -209,7 +267,7 @@ export async function getStaffMember(ctx: Ctx, userId: string) {
       select distinct u.id, u.full_name, u.employee_id from user_profiles u join organization_memberships m on m.user_id = u.id and m.is_active
        where u.account_status = 'active' and u.id <> ${userId} and m.org_id = any(${tx.array(assignOrgs)}::uuid[])
          and m.org_id in (select org_id from organization_memberships where user_id = ${userId}) order by u.full_name` : []
-    return { user: u, memberships, reports, managers, history, invitation: invitation ?? null, openTasks: open_tasks, handover, canReassign: assignOrgs.length > 0 }
+    return { user: u, memberships, designations, reports, managers, history, invitation: invitation ?? null, openTasks: open_tasks, handover, canReassign: assignOrgs.length > 0 }
   })
 }
 
@@ -313,7 +371,7 @@ export async function updateOrgSettings(ctx: Ctx, orgId: string, name: string, c
   })
 }
 
-type RefKind = 'country' | 'course' | 'university' | 'legal_entity' | 'lead_source' | 'fee_category' | 'department'
+type RefKind = 'country' | 'course' | 'university' | 'legal_entity' | 'lead_source' | 'fee_category' | 'department' | 'designation'
 
 export async function addReference(ctx: Ctx, kind: RefKind, v: Record<string, string | undefined>) {
   const name = v.name?.trim()
@@ -339,6 +397,9 @@ export async function addReference(ctx: Ctx, kind: RefKind, v: Record<string, st
       case 'department':
         if (!v.orgId || !can(ctx, 'departments.manage', v.orgId)) throw forbidden()
         return tx`insert into departments (org_id, name) values (${v.orgId}, ${name})`
+      case 'designation':
+        if (!v.orgId || !can(ctx, 'departments.manage', v.orgId)) throw forbidden()
+        return tx`insert into designations (org_id, name) values (${v.orgId}, ${name})`
       case 'fee_category': {
         if (!v.orgId || !can(ctx, 'settings.manage', v.orgId)) throw forbidden()
         if (v.kind !== 'service' && v.kind !== 'third_party') throw invalid('Choose service or third-party.')
@@ -351,7 +412,7 @@ export async function addReference(ctx: Ctx, kind: RefKind, v: Record<string, st
 
 const REF_TABLES: Record<RefKind, string> = {
   country: 'countries', course: 'courses', university: 'universities', legal_entity: 'legal_entities',
-  lead_source: 'lead_sources', fee_category: 'fee_categories', department: 'departments',
+  lead_source: 'lead_sources', fee_category: 'fee_categories', department: 'departments', designation: 'designations',
 }
 
 export async function toggleReference(ctx: Ctx, kind: RefKind, id: string, active: boolean) {

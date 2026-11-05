@@ -1,3 +1,5 @@
+import { dvrLinksForStudent } from '@/services/dvr'
+import { PreferencesPanel } from './preferences-panel'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -9,7 +11,7 @@ import { requireUser } from '@/lib/auth/session'
 import { staffPhotoVersions } from '@/services/staff-photos'
 import { getChecklist } from '@/services/documents'
 import { getLookups } from '@/services/lookups'
-import { listCurrencies, studentLedger } from '@/services/payments'
+import { listCurrencies, studentDueDates, studentLedger } from '@/services/payments'
 import { assignableStaff, getNotes, getStudent, getTimeline, type StudentProfile } from '@/services/students'
 import { listTasks, taskAssignees } from '@/services/tasks'
 import type { Ctx } from '@/services/base'
@@ -30,7 +32,7 @@ import { selectionHistory } from '@/services/master-data'
 import { PortalAccountCard, PublicationsCard } from './portal-panel'
 import { VerifyEmailButton } from './passport-forms'
 import { AdmissionForm, ArchiveForm, AssignmentForm, FollowupForm, MergeForm, NoteForm, StageChangeForm, VisaForm } from './panels'
-import { AddChecklistItemForm, CustodyForm, DocumentDetailsForm, PaymentForm, QuickTaskForm, RateCorrectionForm, ReverseForm, UploadForm, VerifyForm } from './tab-forms'
+import { AddChecklistItemForm, CustodyForm, DocumentDetailsForm, DueDateForm, PaymentForm, QuickTaskForm, RateCorrectionForm, ReverseForm, UploadForm, VerifyForm } from './tab-forms'
 
 export const metadata: Metadata = { title: 'Student profile' }
 
@@ -53,7 +55,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
   const profile = await getStudent(ctx, id)
   if (!profile) notFound()
   const { student: s, permissions: p } = profile
-  const photo = await currentPhoto(ctx, s.id)
+  const [photo, dvrLinks] = await Promise.all([currentPhoto(ctx, s.id), dvrLinksForStudent(ctx, s.id)])
   const tabs = TABS.filter((t) => !('perm' in t) || p[t.perm as keyof typeof p])
   const tab = tabs.find((t) => t.key === sp.tab)?.key ?? 'overview'
 
@@ -97,6 +99,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
       </section>
       <div className="space-y-3">
         {sp.created && <Alert tone="green">Student registered with ID {s.student_code}.</Alert>}
+        {dvrLinks.length > 0 && <Alert tone="blue">Pre-admission verification: {dvrLinks.map((d, i) => <span key={d.id}>{i > 0 && ', '}<Link href={`/pre-admission/${d.id}`}>{d.dvr_number}</Link></span>)}. A preliminary assessment only.</Alert>}
         {sp.photoerror && <Alert tone="amber">The photo could not be saved (it must be a readable JPG or PNG, up to 5 MB). Upload it again from the profile.</Alert>}
         {sp.updated && <Alert tone="green">Details saved.</Alert>}
         {s.status === 'merged' && <Alert tone="amber" title="Merged record">This record was merged into <Link href={`/students/${s.merged_into_id}`}>{s.merged_into_code ?? 'another record'}</Link>. It is kept for history only.</Alert>}
@@ -115,6 +118,7 @@ export default async function StudentPage({ params, searchParams }: { params: Pr
       </nav>
 
       {tab === 'overview' && <Overview ctx={ctx} profile={profile} />}
+      {tab === 'overview' && <div className="mt-4"><PreferencesPanel ctx={ctx} studentId={s.id} /></div>}
       {tab === 'documents' && <Documents ctx={ctx} profile={profile} />}
       {tab === 'academic' && <AcademicTab ctx={ctx} studentId={id} canEdit={!s.archived_at && s.status !== 'merged'} />}
       {tab === 'passport' && <PassportTab ctx={ctx} studentId={id} canEdit={p.passport && !s.archived_at && s.status !== 'merged'} />}
@@ -463,7 +467,9 @@ function needsAction(status: string, perms: { review: boolean; approve: boolean 
 
 async function Payments({ ctx, profile }: { ctx: Ctx; profile: StudentProfile }) {
   const s = profile.student
-  const [ledger, lookups, currencies] = await Promise.all([studentLedger(ctx, s.id), getLookups(ctx), listCurrencies(ctx)])
+  const [ledger, lookups, currencies, dueDates] = await Promise.all([studentLedger(ctx, s.id), getLookups(ctx), listCurrencies(ctx), studentDueDates(ctx, s.id)])
+  const dueByEntry = new Map(dueDates.map((d) => [d.entry_id, d]))
+  const today = todayISO()
   const recordOrgs = orgOptions(ctx, profile, 'payments.record')
   const back = `/students/${s.id}`
   return (
@@ -485,6 +491,27 @@ async function Payments({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
           </Card>
         ))}
       </div>
+      {dueDates.length > 0 && (
+        <Card title="Due dates" padded={false}>
+          <div className="table-wrap"><table>
+            <thead><tr><th>Due</th><th>Charge</th><th className="text-right">Unpaid</th><th>Status</th><th>Note</th><th>Set by</th></tr></thead>
+            <tbody>{dueDates.map((d) => {
+              const open = Number(d.unpaid) > 0
+              return (
+                <tr key={d.entry_id} data-testid="due-row">
+                  <td className="whitespace-nowrap">{fmtDate(d.due_date)}</td>
+                  <td className="tabular-nums">{fmtMoney(d.amount, d.currency)}<div className="text-xs text-slate-500">{d.ledger === 'service' ? 'Service fees' : 'Third party'}</div></td>
+                  <td className="text-right font-semibold tabular-nums">{fmtMoney(d.unpaid, d.currency)}</td>
+                  <td>{!open ? <Badge tone="green">Settled</Badge> : d.due_date < today ? <Badge tone="red">Overdue</Badge> : <Badge tone="amber">Due</Badge>}</td>
+                  <td className="text-xs wrap-anywhere">{d.note ?? '—'}</td>
+                  <td className="text-xs">{d.set_by_name}<div className="text-slate-500">{fmtDateTime(d.set_at)}</div></td>
+                </tr>
+              )
+            })}</tbody>
+          </table></div>
+          <p className="hint px-4 pb-3">Unpaid is worked out when this page opens: money received and waivers settle the earliest due date first. The ledger itself does not link a receipt to a charge.</p>
+        </Card>
+      )}
       <Card title="Ledger entries" padded={false}>
         {ledger.entries.length === 0 ? <EmptyState title="No entries" /> : (
           <div className="table-wrap"><table>
@@ -503,6 +530,7 @@ async function Payments({ ctx, profile }: { ctx: Ctx; profile: StudentProfile })
                 <td className="text-xs">{e.recorder_name}<div className="text-slate-500">{fmtDateTime(e.recorded_at)}</div></td>
                 <td><StatusBadge status={e.verification_status} />{e.verifier_name && <div className="text-xs text-slate-500">{e.verifier_name}</div>}{e.reversed_by_id && <div className="text-xs text-amber-700">Reversed</div>}</td>
                 <td className="text-right">
+                  {e.entry_type === 'charge' && !e.reversed_by_id && can(ctx, 'payments.record', e.org_id) && s.status !== 'merged' && <DueDateForm entryId={e.id} back={back} current={dueByEntry.get(e.id)?.due_date ?? null} note={dueByEntry.get(e.id)?.note ?? null} />}
                   {e.verification_status === 'pending' && can(ctx, 'payments.verify', e.org_id) && e.recorded_by !== ctx.userId && <VerifyForm entryId={e.id} back={back} />}
                   {e.verification_status === 'pending' && e.recorded_by === ctx.userId && <span className="text-xs text-slate-500">Needs another verifier</span>}
                   {['verified', 'not_required'].includes(e.verification_status) && e.entry_type !== 'reversal' && !e.reversed_by_id && can(ctx, 'payments.reverse', e.org_id) && <ReverseForm entryId={e.id} back={back} />}

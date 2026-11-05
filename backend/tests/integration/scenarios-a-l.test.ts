@@ -136,27 +136,32 @@ describe('Admissions scenarios A–L (fictional students)', () => {
     expect((await ac.getAcademic(mgr, id))!.checks[0].review_status).not.toBe('open')
   })
 
-  it('F. No passport: registration is allowed; the passport validity rule stops University Application until a passport is recorded', async () => {
+  it('F. No passport: registration is allowed; University Application warns (never blocks), and the warning clears once a passport is recorded', async () => {
     const id = await register('Scenario F No Passport', { destinationCountryId: await country('BG'), courseId: await course('MBBS') })
     const s = (await students.getStudent(mgr, id))!.student
     expect(s.passport_number ?? null).toBeNull()
     await students.changeStage(mgr, id, { toStage: 'registration' })
     expect(await stage(id)).toBe('registration')
-    await expectServiceError(students.changeStage(mgr, id, { toStage: 'university_application', acknowledge: 'yes' }), 'invalid')
+    const issues = async () => (await adminSql()`select enforcement from app.stage_requirement_issues(${id}, 'university_application') where kind = 'passport'`).map((i) => i.enforcement)
+    expect(await issues()).toEqual(['warn'])
     await pp.recordPassport(mgr, id, { kind: 'initial', passportNumber: `SF${rand()}`, holderName: 'SCENARIO F NO PASSPORT', expiryDate: inDays(1500) })
     const pend = (await pp.getPassportData(mgr, id))!.pending
     if (pend) await pp.verifyPassport(docs, pend.id, 'verified', 'Checked against the scan (fictional)') // a new passport counts only after verification
+    expect(await issues()).toEqual([])
     expect(await students.changeStage(mgr, id, { toStage: 'university_application', acknowledge: 'yes' })).toEqual({ ok: true })
   })
 
-  it('G. Expired passport: registration allowed; passport flagged and follow-up tasks created; University Application blocked until renewed', async () => {
+  it('G. Expired passport: registration allowed; passport flagged and follow-up tasks created; University Application warns and continues once acknowledged', async () => {
     const id = await register('Scenario G Expired Passport', { destinationCountryId: await country('BG'), courseId: await course('MBBS'),
       passportNumber: `SG${rand()}`, passportExpiry: inDays(-20) })
     expect(['expired', 'critical']).toContain((await students.getStudent(mgr, id))!.student.passport_status)
     const tasks = await adminSql()`select title from tasks where student_id = ${id} and task_type = 'passport'`
     expect(tasks.length).toBeGreaterThan(0)
     await students.changeStage(mgr, id, { toStage: 'registration' })
-    await expectServiceError(students.changeStage(mgr, id, { toStage: 'university_application', acknowledge: 'yes' }), 'invalid')
+    const first = await students.changeStage(mgr, id, { toStage: 'university_application' })
+    expect(first.ok).toBe(false)
+    if (!first.ok) expect(first.warnings.join(' ')).toMatch(/at least 12 months/)
+    expect(await students.changeStage(mgr, id, { toStage: 'university_application', acknowledge: 'yes' })).toEqual({ ok: true })
   })
 
   it('H. Bulgaria applicant below the academic requirement: advisory warning + acknowledgement + follow-up task, never a block', async () => {

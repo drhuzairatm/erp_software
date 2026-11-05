@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { addChecklistItemAction, custodyAction, documentDetailsAction, uploadAction } from '@/app/actions/documents'
-import { correctRateAction, recordPaymentAction, reversePaymentAction, verifyPaymentAction } from '@/app/actions/payments'
+import { correctRateAction, recordPaymentAction, reversePaymentAction, setDueDateAction, verifyPaymentAction } from '@/app/actions/payments'
 import { createTaskAction } from '@/app/actions/tasks'
 import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/components/forms'
 
@@ -220,6 +220,20 @@ export function RateCorrectionForm({ entryId, back, currency, rate }: { entryId:
             <SubmitButton className="btn-secondary btn-sm">Save rate</SubmitButton>
           </>
         )}
+      </ActionForm>
+    </details>
+  )
+}
+
+export function DueDateForm({ entryId, back, current, note }: { entryId: string; back: string; current: string | null; note: string | null }) {
+  return (
+    <details className="mt-1 text-left">
+      <summary className="cursor-pointer text-xs font-semibold text-blue-700">{current ? 'Change due date' : 'Set due date'}</summary>
+      <ActionForm action={setDueDateAction.bind(null, entryId, back)} className="mt-2 grid min-w-48 gap-2">
+        <div><label className="label text-xs" htmlFor={`due-${entryId}`}>Due date</label><input className="input py-1 text-xs" type="date" id={`due-${entryId}`} name="dueDate" defaultValue={current ?? ''} required /></div>
+        <div><label className="label text-xs" htmlFor={`duen-${entryId}`}>Note (optional)</label><input className="input py-1 text-xs" id={`duen-${entryId}`} name="note" maxLength={500} defaultValue={note ?? ''} /></div>
+        {current && <div><label className="label text-xs" htmlFor={`duer-${entryId}`}>Reason for the change</label><input className="input py-1 text-xs" id={`duer-${entryId}`} name="reason" maxLength={300} required /></div>}
+        <SubmitButton className="btn-secondary btn-sm" pendingText="Saving…">Save due date</SubmitButton>
       </ActionForm>
     </details>
   )

@@ -61,10 +61,10 @@ export async function staffStatusAction(userId: string, _: ActionResult, fd: For
   const ctx = await requireUser()
   const v = formObject(fd)
   return runAction(async () => {
-    const s = await admin.setStaffStatus(ctx, userId, v.status as 'active' | 'suspended' | 'terminated', v.reason)
+    const s = await admin.setStaffStatus(ctx, userId, v.status as 'active' | 'suspended' | 'terminated' | 'archived', v.reason)
     revalidatePath(`/admin/users/${userId}`); revalidatePath('/admin/users')
     return { ok: true, message: s === 'active' ? 'Account reactivated.' : s === 'invited' ? 'Access restored. The person still has to accept an invitation.'
-      : s === 'suspended' ? 'Account suspended and signed out everywhere.' : 'Employment terminated: account closed and signed out everywhere. History is kept.' }
+      : s === 'suspended' ? 'Account suspended and signed out everywhere.' : s === 'archived' ? 'Account archived. History is kept; the person no longer appears in the default staff list.' : 'Employment terminated: account closed and signed out everywhere. History is kept.' }
   })
 }
 
@@ -194,4 +194,17 @@ export async function roleStructureAction(roleId: string, _: ActionResult, fd: F
     await admin.setRoleStructure(ctx, roleId, fd.get('isActive') === 'true', String(fd.get('parentRoleId') ?? '') || null)
     revalidatePath('/admin/roles')
   }, 'Role saved.')
+}
+
+export async function staffDesignationAction(userId: string, orgId: string, _: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => {
+    await admin.setStaffDesignation(ctx, userId, orgId, (fd.get('designationId') as string) || null)
+    revalidatePath(`/admin/users/${userId}`)
+  }, 'Designation saved. The system role is unchanged.')
+}
+
+export async function updateMyProfileAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const ctx = await requireUser()
+  return runAction(async () => { await admin.updateMyProfile(ctx, formObject(fd)); revalidatePath('/', 'layout') }, 'Your profile was saved.')
 }

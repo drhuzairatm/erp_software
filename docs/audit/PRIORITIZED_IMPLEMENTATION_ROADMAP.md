@@ -1,3 +1,5 @@
+> **SUPERSEDED — DO NOT USE.** Replaced on 4 November 2026 by `docs/audit/IMPLEMENTATION_ROADMAP.md`. Kept only as a historical record.
+
 # Prioritised implementation roadmap (proposal: nothing here has been started)
 
 **Date:** 2 November 2026.

@@ -4,6 +4,7 @@
  * secure queue; an EXACT rollback restoration test (rollback → compare with the pre-0036 definitions → re-apply); and the
  * migration's handling of legacy exposed links (scrubbed, open links invalidated, audited).
  */
+import { POLICY_COUNT, RLS_TABLE_COUNT } from '../support/schema-counts'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('next/headers', () => ({
@@ -72,8 +73,8 @@ describe('0036: EXECUTE permissions, search_path, least privilege', () => {
   })
 
   it('only the approved policy changed: policy count and RLS tables unchanged; messages_select hides the two kinds from every branch', async () => {
-    expect((await adminSql()`select count(*)::int as n from pg_policies where schemaname = 'public'`)[0].n).toBe(149)
-    expect((await adminSql()`select count(*)::int as n from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity`)[0].n).toBe(89)
+    expect((await adminSql()`select count(*)::int as n from pg_policies where schemaname = 'public'`)[0].n).toBe(POLICY_COUNT)
+    expect((await adminSql()`select count(*)::int as n from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity`)[0].n).toBe(RLS_TABLE_COUNT)
     const [p] = await adminSql()`select qual, roles::text from pg_policies where tablename = 'notification_messages' and policyname = 'messages_select'`
     expect(p.roles).toBe('{erp_app}')
     // both portal-link kinds stay hidden; later migrations may hide more kinds (0037 adds the two authentication kinds, asserted

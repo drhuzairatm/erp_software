@@ -7,7 +7,7 @@ import { Icon } from '@/components/icons'
 import { Alert, Card, EmptyState, PageHeader, Pagination, StatCard, StatusBadge, ViewTabs } from '@/components/ui'
 import { can } from '@/lib/auth/context'
 import { requireUser } from '@/lib/auth/session'
-import { type LedgerFilters, listCurrencies, listLedger } from '@/services/payments'
+import { dueSummary, type LedgerFilters, listCurrencies, listLedger } from '@/services/payments'
 import { getScope } from '@/services/scope'
 
 export const metadata: Metadata = { title: 'Payment ledger' }
@@ -17,7 +17,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
   const scope = await getScope(ctx)
   if (!scope.orgIds.some((o) => can(ctx, 'payments.read', o))) return <PageHeader title="Payment ledger" description="You do not have access to financial records." />
   const sp = await searchParams
-  const [data, currencies] = await Promise.all([listLedger(ctx, scope.orgIds, sp as LedgerFilters), listCurrencies(ctx, false)])
+  const [data, currencies, due] = await Promise.all([listLedger(ctx, scope.orgIds, sp as LedgerFilters), listCurrencies(ctx, false), dueSummary(ctx, scope.orgIds)])
   const back = '/payments'
   const main = data.totals[0]
   const kpi = (v: string | number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: main?.currency ?? 'INR', maximumFractionDigits: 0 }).format(Number(v))
@@ -29,6 +29,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         actions={scope.orgIds.some((o) => can(ctx, 'reports.export.finance', o)) && <Link className="btn-secondary" href="/reports/balances">Outstanding balances report</Link>} />
       {data.summary.pending_count > 0 && (
         <div className="mb-4"><Alert tone="amber">{data.summary.pending_count} entr{data.summary.pending_count === 1 ? 'y is' : 'ies are'} awaiting verification (receipts worth {fmtMoney(data.summary.pending)}). <Link href="/payments?status=pending">Show them</Link></Alert></div>
+      )}
+      {(due.overdue > 0 || due.dueSoon > 0) && (
+        <div className="mb-4"><Alert tone={due.overdue > 0 ? 'red' : 'amber'}>{due.overdue} charge{due.overdue === 1 ? ' is' : 's are'} overdue and {due.dueSoon} {due.dueSoon === 1 ? 'is' : 'are'} due within 7 days. <Link href={due.overdue > 0 ? '/reports/balances?status=overdue' : '/reports/balances'}>See the outstanding balances report</Link></Alert></div>
       )}
       <section aria-label="Ledger summary" className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={`Verified receipts, last 30 days${main ? ` (${main.currency})` : ''}`} value={main ? kpi(main.received_30) : '—'} tone="green"

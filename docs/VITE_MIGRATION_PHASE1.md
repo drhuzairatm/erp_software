@@ -1,3 +1,5 @@
+> **SUPERSEDED — DO NOT USE.** The MD withdrew the migration to React, Vite, Express and TypeORM on 4 November 2026. The ERP stays on Next.js, PostgreSQL and its existing SQL. Decisions D-V1 to D-V8 are closed. Kept only as a historical record.
+
 # Next.js → React + Vite migration: phase 1 (inventory, baseline, blocking decisions)
 
 | | |

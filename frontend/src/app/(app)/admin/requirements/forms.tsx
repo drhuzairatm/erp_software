@@ -6,7 +6,7 @@ import { ActionForm, ConfirmSubmit, FieldError, SubmitButton } from '@/component
 
 type Opt = { id: string; name: string }
 type Item = { record_kind: string; subject_key: string; subject_name: string; min_percentage: string | null; min_marks: string | null; grading_system: string | null }
-export interface RequirementInitial {
+export interface RequirementInitial { intake_id?: string | null;
   category: string; display_type: string; priority: string; destination_country_id: string; university_id: string | null; course_id: string | null
   title: string; message: string; description: string | null; notes: string | null; requires_acknowledgement: boolean; effective_from: string; effective_to: string | null; items: Item[]
 }
@@ -17,7 +17,7 @@ const DISPLAY: Record<string, string> = { critical_alert: 'Critical alert (red)'
 const PRIORITY: Record<string, string> = { critical: 'Critical', high: 'High', normal: 'Normal (collapsed)', informational: 'Informational (collapsed)' }
 const SUBJECTS: Record<string, string> = { physics: 'Physics', chemistry: 'Chemistry', biology: 'Biology', mathematics: 'Mathematics', english: 'English', overall: 'Overall result' }
 
-export function RequirementForm({ groupId, initial, countries, universities, courses }: { groupId: string | null; initial?: RequirementInitial; countries: Opt[]; universities: Opt[]; courses: Opt[] }) {
+export function RequirementForm({ groupId, initial, countries, universities, courses, intakes }: { groupId: string | null; initial?: RequirementInitial; countries: Opt[]; universities: Opt[]; courses: Opt[]; intakes: Opt[] }) {
   const [category, setCategory] = useState(initial?.category ?? 'academic_marks')
   const [items, setItems] = useState<(Item & { k: number })[]>((initial?.items ?? []).map((x, i) => ({ k: i, ...x })))
   const v = (k: keyof RequirementInitial) => (initial?.[k] == null ? '' : String(initial[k]))
@@ -37,6 +37,7 @@ export function RequirementForm({ groupId, initial, countries, universities, cou
               <FieldError state={s} name="destinationCountryId" /></div>
             {sel('universityId', 'University (optional)', universities.map((u) => [u.id, u.name]), v('university_id'))}
             {sel('courseId', 'Course (optional)', courses.map((c) => [c.id, c.name]), v('course_id'))}
+            {sel('intakeId', 'Intake (optional)', intakes.map((c) => [c.id, c.name]), v('intake_id'))}
             <div><label className="label" htmlFor="rq-cat">Category *</label>
               <select className="input" id="rq-cat" name="category" value={category} onChange={(e) => setCategory(e.target.value)}>
                 {Object.entries(CATEGORIES).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></div>

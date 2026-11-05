@@ -1,5 +1,7 @@
 # Security report
 
+**Known limit:** the controls below protect against application mistakes, such as a forgotten filter. They don't protect against someone who gains direct SQL access with the application's database role. Strengthening this is planned for the Security Hardening phase after Phase 11, so the system must not be described as fully secure.
+
 ## Cross-company data leaks – how they are prevented
 
 | Risk | Control | Verified by |

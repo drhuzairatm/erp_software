@@ -1,0 +1,50 @@
+# Runs on GitHub's own machines with fictional test data only. It uses no repository secrets, has read-only access to the
+# code, and has no connection to any server or production database. Tests start their own throwaway PostgreSQL.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Typecheck, lint, tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - name: SQL security guard (reads source files only)
+        run: npm run guard:sql
+      - run: npm test
+      - name: Build (no database or mail server is reachable)
+        run: npm run build
+        env:
+          DATABASE_URL: postgres://nobody:none@127.0.0.1:1/none
+          DATABASE_ADMIN_URL: postgres://nobody:none@127.0.0.1:1/none
+
+  browser:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:e2e:disposable

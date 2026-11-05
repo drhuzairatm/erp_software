@@ -29,6 +29,7 @@ test('Bulgaria notice appears on country selection and on the profile; acknowled
   await expect(page.getByText(/Requirements acknowledged by Rahul Nair/)).toBeVisible()
   // the notice stays visible on other tabs
   await page.getByRole('link', { name: 'Documents', exact: true }).click()
+  await expect(page).toHaveURL(/tab=documents/) // the Overview tab also lists it in the preferences panel, so wait until it has gone
   await expect(page.getByText('BULGARIA – IMPORTANT ACADEMIC REQUIREMENTS')).toBeVisible()
 })
 

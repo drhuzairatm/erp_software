@@ -140,6 +140,11 @@ export const taskSchema = z
     priority: z.enum(PRIORITIES).default('normal'),
     status: z.enum(TASK_STATUSES).default('not_started'),
     dueDate: optDate,
+    dueTime: z.string().regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, 'Enter a valid time.').optional(),
+    startDate: optDate,
+    completionInstructions: text(4000).optional(),
+    evidenceRequired: z.preprocess((v) => v === 'on' || v === true, z.boolean()).optional(),
+    requiresReview: z.preprocess((v) => v === 'on' || v === true, z.boolean()).optional(),
     delayReason: z.enum(DELAY_REASONS).optional(),
     delayNote: text(1000).optional(),
   })
@@ -153,6 +158,7 @@ export const taskUpdateSchema = z
     priority: z.enum(PRIORITIES).optional(),
     status: z.enum(TASK_STATUSES).optional(),
     dueDate: optDate,
+    progressPercent: z.coerce.number().int().min(0).max(100).optional(),
     delayReason: z.enum(DELAY_REASONS).optional(),
     delayNote: text(1000).optional(),
   })
@@ -200,9 +206,21 @@ export const userCreateSchema = z.object({
   orgId: uuid,
   roleId: uuid,
 })
+const optionalText = (max: number) => z.string().trim().max(max).optional().transform((v) => (v ? v : null))
+const phoneOrEmpty = z.string().trim().max(30).regex(/^$|^\+?[0-9 ()-]{5,30}$/, 'Enter a valid phone number.').optional().transform((v) => (v ? v : null))
+/** Personal details the employee may edit themselves. Administrators can edit the same fields. */
+export const personalDetailsSchema = z.object({
+  firstName: optionalText(60), middleName: optionalText(60), lastName: optionalText(60), displayName: z.string().trim().max(120).optional().transform((v) => (v && v.length >= 2 ? v : null)),
+  phone: phoneOrEmpty, secondaryPhone: phoneOrEmpty, additionalPhone: phoneOrEmpty,
+  addressLine: optionalText(300), city: optionalText(100), stateRegion: optionalText(100), postalCode: optionalText(20), addressCountry: optionalText(100),
+})
 export const staffDetailsSchema = z.object({
   fullName: z.string().trim().min(2).max(120),
   jobTitle: text(120).optional(),
   phone: staffPhone,
   joiningDate: staffDate,
+}).extend({
+  firstName: optionalText(60), middleName: optionalText(60), lastName: optionalText(60),
+  secondaryPhone: phoneOrEmpty, additionalPhone: phoneOrEmpty,
+  addressLine: optionalText(300), city: optionalText(100), stateRegion: optionalText(100), postalCode: optionalText(20), addressCountry: optionalText(100),
 })

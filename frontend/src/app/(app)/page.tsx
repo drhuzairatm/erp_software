@@ -8,7 +8,7 @@ import { Alert, Avatar, Badge, Card, EmptyState, StatCard, studentPhotoUrl } fro
 import { BRANDS, brandOf } from '@/lib/brands'
 import { can } from '@/lib/auth/context'
 import { requireUser } from '@/lib/auth/session'
-import { managementAnalytics, staffOverview } from '@/services/analytics'
+import { managementAnalytics, staffOverview, teamAndOperations } from '@/services/analytics'
 import type { Ctx } from '@/services/base'
 import { getDashboard } from '@/services/dashboard'
 import { getLookups, type Lookups } from '@/services/lookups'
@@ -29,7 +29,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const consolidatedAllowed = !scope.isAll || scope.orgIds.every((o) => can(ctx, 'dashboard.consolidated', o))
   const orgIds = consolidatedAllowed ? scope.orgIds : [scope.orgIds[0]]
   const canAnalytics = orgIds.some((o) => can(ctx, 'reports.view', o))
-  const leadership = ctx.memberships.some((m) => m.roleKey === 'md' || m.roleKey === 'ceo')
+  const leadership = ctx.memberships.some((m) => can(ctx, 'dashboard.consolidated', m.orgId))
   const view = canAnalytics && (sp.view === 'analytics' || (!sp.view && leadership)) ? 'analytics' : 'operations'
   const current = scope.isAll ? null : ctx.memberships.find((m) => m.orgId === orgIds[0])
   const brand = brandOf(current?.orgCode ?? (ctx.memberships.length === 1 ? ctx.memberships[0].orgCode : null))
@@ -281,7 +281,7 @@ async function Operations({ ctx, orgIds, sp }: { ctx: Ctx; orgIds: string[]; sp:
 
 /* ---------------------------------------------------------------- management analytics */
 async function Analytics({ ctx, orgIds, sp }: { ctx: Ctx; orgIds: string[]; sp: SP }) {
-  const [a, lookups] = await Promise.all([managementAnalytics(ctx, orgIds, sp), getLookups(ctx)])
+  const [a, lookups, team] = await Promise.all([managementAnalytics(ctx, orgIds, sp), getLookups(ctx), teamAndOperations(ctx, orgIds)])
   const k = a.kpis
   const reg = a.monthly.map((m) => m.registered)
   const growth = k.new_prev ? Math.round(((k.new_period - k.new_prev) / k.new_prev) * 100) : null
@@ -381,6 +381,52 @@ async function Analytics({ ctx, orgIds, sp }: { ctx: Ctx; orgIds: string[]; sp: 
         </Card>
       )}
 
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <Card title="University-wise admissions"><HBarList title="Students by university" data={top(a.byUniversity, 8)} /></Card>
+        <Card title="Intake-wise admissions"><HBarList title="Students by intake" data={top(a.byIntake, 8)} />
+          <p className="mt-3 text-sm"><Link href="/reports/by-intake">Full intake report</Link></p></Card>
+      </div>
+      {a.financeVisible && (
+        <p className="mt-4 text-sm">Finance reports: <Link href="/reports/finance-monthly">monthly</Link> · <Link href="/reports/finance-yearly">yearly</Link> · <Link href="/reports/finance-revenue">revenue</Link> · <Link href="/reports/balances">outstanding</Link></p>
+      )}
+      <section aria-label="Operations" className="mt-6">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Operations</h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <StatCard label="Pending documents" value={team.ops.pending_documents} tone={team.ops.pending_documents ? 'amber' : 'slate'} icon={<Icon name="doc" />} href="/reports/documents" />
+          <StatCard label="Verification requests" value={team.ops.verification_requests} tone="blue" icon={<Icon name="doc" />} href="/pre-admission" />
+          <StatCard label="Open student questions" value={team.ops.open_tickets} tone="purple" icon={<Icon name="clock" />} href="/tickets" />
+          <StatCard label="University application" value={team.ops.university_application} tone="blue" icon={<Icon name="students" />} href="/reports/by-stage" />
+          <StatCard label="Admission letter stage" value={team.ops.admission_letter} tone="green" icon={<Icon name="students" />} href="/reports/by-stage" />
+          <StatCard label="Visa processing" value={team.ops.visa_processing} tone="orange" icon={<Icon name="students" />} href="/reports/by-stage" />
+        </div>
+      </section>
+      <Card title="Upcoming deadlines" className="mt-6" padded={false}>
+        <p className="hint px-4 pt-3">{team.ops.tasks_due_7} task{team.ops.tasks_due_7 === 1 ? '' : 's'} due within 7 days. University application deadlines in the next 30 days:</p>
+        {team.deadlines.length === 0 ? <EmptyState title="No application deadlines in the next 30 days" /> : (
+          <div className="table-wrap"><table>
+            <thead><tr><th>Deadline</th><th>University</th><th>Intake</th><th className="text-right">Active students</th></tr></thead>
+            <tbody>{team.deadlines.map((d) => <tr key={d.id}><td className="whitespace-nowrap">{fmtDate(d.deadline)}</td><td>{d.university}</td><td>{d.intake}</td><td className="text-right tabular-nums">{d.students}</td></tr>)}</tbody>
+          </table></div>
+        )}
+      </Card>
+      {team.attendance.length > 0 && (
+        <Card title="Attendance today" className="mt-6" padded={false}>
+          <div className="table-wrap"><table data-testid="attendance-today">
+            <thead><tr><th>Company</th><th className="text-right">Expected</th><th className="text-right">Present</th><th className="text-right">Of which late</th><th className="text-right">Leave</th><th className="text-right">Recorded absent</th><th className="text-right">No record</th></tr></thead>
+            <tbody>{team.attendance.map((r) => <tr key={r.company}><td className="font-medium">{r.company}</td>{[r.expected, r.present, r.late, r.on_leave, r.absent, r.no_record].map((v, i) => <td key={i} className="text-right tabular-nums">{v}</td>)}</tr>)}</tbody>
+          </table></div>
+          <p className="hint px-4 pb-3">No record is not a recorded absence, and may include staff not required to mark attendance. <Link href="/reports/attendance-summary">Attendance summary</Link></p>
+        </Card>
+      )}
+      {team.tasks.length > 0 && (
+        <Card title="Employee tasks" className="mt-6" padded={false}>
+          <div className="table-wrap"><table data-testid="task-summary">
+            <thead><tr><th>Company</th><th className="text-right">Pending</th><th className="text-right">Overdue</th><th className="text-right">Completed, last 30 days</th></tr></thead>
+            <tbody>{team.tasks.map((r) => <tr key={r.company}><td className="font-medium">{r.company}</td><td className="text-right tabular-nums">{r.open}</td><td className={`text-right tabular-nums ${r.overdue ? 'font-semibold text-red-700' : ''}`}>{r.overdue}</td><td className="text-right tabular-nums">{r.done_30}</td></tr>)}</tbody>
+          </table></div>
+          <p className="hint px-4 pb-3"><Link href="/reports/employee-tasks">Tasks and workload by employee</Link></p>
+        </Card>
+      )}
       {a.canStaff && (
         <Card title="Staff performance (last 30 days)" className="mt-6" padded={false}>
           {a.staff.length === 0 ? <EmptyState title="No staff activity" /> : (
