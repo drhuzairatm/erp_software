@@ -97,7 +97,7 @@ export function AutoSubmitSelect(props: React.SelectHTMLAttributes<HTMLSelectEle
   return <select {...props} onChange={(e) => e.currentTarget.form?.requestSubmit()} />
 }
 
-function usePending() {
+export function usePending() {
   const ctx = useContext(PendingContext)
   const { pending } = useFormStatus()
   return ctx ?? pending

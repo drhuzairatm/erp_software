@@ -13,6 +13,7 @@ import { getNotifications } from '@/services/dashboard'
 import { myNotificationSummary } from '@/services/staff-notifications'
 import { hasMeetingAccess } from '@/services/meetings'
 import { getScope } from '@/services/scope'
+import { ChatNotifier } from './chat-notifier'
 import { HeaderMenu } from './header-menu'
 import { type NavItem, ScopeSelect, Sidebar } from './nav'
 
@@ -92,6 +93,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </form>
             )}
             <div className="ml-auto flex items-center gap-1.5">
+              {ctx.memberships.length > 0 && <ChatNotifier userId={ctx.userId} showCompany={ctx.memberships.length > 1} />}
               <HeaderMenu summaryClassName="flex cursor-pointer list-none items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100" summaryLabel={`Notifications: ${notifications.total}`}
                 panelClassName="p-2 sm:w-80"
                 summary={<>

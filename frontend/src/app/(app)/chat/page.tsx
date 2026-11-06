@@ -43,12 +43,12 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
               <li key={c.id}><Link href={`/chat?c=${c.id}`} className={`flex items-center gap-3 p-3 no-underline hover:bg-slate-50 ${c.id === current?.id ? 'bg-brand-50' : ''}`}>
                 <Avatar name={title(c)} size="sm" src={c.other_id ? staffPhotoUrl(c.other_id, c.photo_version) : null} />
                 <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2 text-sm font-medium text-slate-900"><span className="truncate">{title(c)}</span>{c.unread > 0 && <Badge tone="red">{c.unread}</Badge>}</span>
-                  <span className="block truncate text-xs text-slate-500">{c.kind === 'direct' && c.other_online ? 'Online · ' : ''}{c.last_preview || c.org_name}</span></span>
+                  <span className="block truncate text-xs text-slate-500">{c.kind === 'direct' && c.other_online ? 'Online · ' : ''}{c.muted ? 'Muted · ' : ''}{c.last_preview || c.org_name}</span></span>
               </Link></li>))}</ul>}
           </Card>
         </div>
         <div className="min-w-0">
-          {current ? <ChatRoom key={current.id} conversationId={current.id} title={title(current)} kind={current.kind} groupType={current.group_type} isAdmin={current.role === 'admin'} me={ctx.userId}
+          {current ? <ChatRoom key={current.id} muted={current.muted} conversationId={current.id} title={title(current)} kind={current.kind} groupType={current.group_type} isAdmin={current.role === 'admin'} me={ctx.userId}
             orgPeople={people.filter((p) => p.org_id === current.org_id).map((p) => ({ id: p.id, full_name: p.full_name }))} reactions={[...REACTIONS]} others={conversations.filter((c) => c.org_id === current.org_id && c.id !== current.id).map((c) => ({ id: c.id, title: title(c) }))} tasks={tasks} />
             : <div className="card p-8 text-center text-sm text-slate-500">Choose a conversation.</div>}
         </div>

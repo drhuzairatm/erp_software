@@ -11,7 +11,7 @@ export const REACTIONS = ['👍', '❤️', '😂', '🎉', '✅', '🙏'] as co
 export const GROUP_TYPES = [['custom', 'Custom group'], ['all_employees', 'All Employees'], ['core_team', 'Core Team'], ['sales', 'Sales'], ['marketing', 'Marketing'], ['management', 'Management']] as const
 const ONLINE_SECONDS = 45
 
-export interface ConversationRow { id: string; org_id: string; org_name: string; kind: string; name: string | null; group_type: string | null; other_id: string | null; other_name: string | null; other_online: boolean; role: string; unread: number; last_at: Date | null; last_preview: string | null; photo_version: number | null }
+export interface ConversationRow { id: string; org_id: string; org_name: string; kind: string; name: string | null; group_type: string | null; other_id: string | null; other_name: string | null; other_online: boolean; role: string; unread: number; last_at: Date | null; last_preview: string | null; photo_version: number | null; muted: boolean }
 export interface ChatMessage { id: string; sender_id: string; sender_name: string; sender_photo: number | null; body: string; reply_to_id: string | null; reply_preview: string | null; reply_sender: string | null; forwarded: boolean; task_id: string | null; task_title: string | null; created_at: Date; edited_at: Date | null; deleted_at: Date | null; pinned_at: Date | null; reactions: { emoji: string; count: number; mine: boolean }[]; files: { id: string; name: string; scan: string; mime: string }[]; delivered: number; read: number }
 
 export async function listConversations(ctx: Ctx) {
@@ -21,7 +21,8 @@ export async function listConversations(ctx: Ctx) {
            coalesce(pr.last_seen_at > now() - make_interval(secs => ${ONLINE_SECONDS}), false) as other_online,
            (select p.version from staff_photos p where p.user_id = other.user_id and p.is_current) as photo_version,
            (select count(*)::int from chat_messages m where m.conversation_id = c.id and m.created_at > me.last_read_at and m.sender_id <> ${ctx.userId} and m.deleted_at is null) as unread,
-           last.created_at as last_at, left(last.body, 80) as last_preview
+           last.created_at as last_at, left(last.body, 80) as last_preview,
+           exists (select 1 from chat_conversation_mutes x where x.conversation_id = c.id and x.user_id = ${ctx.userId}) as muted
       from chat_members me join chat_conversations c on c.id = me.conversation_id join organizations o on o.id = c.org_id
       left join chat_members other on c.kind = 'direct' and other.conversation_id = c.id and other.user_id <> ${ctx.userId}
       left join user_profiles ou on ou.id = other.user_id
