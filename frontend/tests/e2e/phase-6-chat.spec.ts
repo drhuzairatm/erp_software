@@ -22,6 +22,7 @@ async function person(browser: Browser, ev: Evidence, email: string, role: strin
 }
 async function openDm(page: Page, org: string, other: string) {
   await page.goto('/chat')
+  await page.getByText('New chat', { exact: true }).click()
   await page.locator('#chat-person').selectOption(`${org}|${other}`)
   await page.getByRole('button', { name: 'Open', exact: true }).click()
   await expect(page).toHaveURL(/\/chat\?c=[0-9a-f-]{36}/)
@@ -102,7 +103,7 @@ test('reply, edit, delete, reactions, pin and forward', async ({ browser }) => {
   await r.getByRole('button', { name: /👍 1/ }).click()
   await expect(msg(a, `Corrected ${s}`).getByRole('button', { name: /👍 1/ })).toHaveCount(0, { timeout: 15_000 })
 
-  await msg(a, `Corrected ${s}`).getByRole('button', { name: 'Pin', exact: true }).click() // its menu is still open from the edit
+  await (await more(a, `Corrected ${s}`)).getByRole('button', { name: 'Pin', exact: true }).click()
   await expect(b.getByRole('list', { name: 'Pinned messages' })).toContainText(`Corrected ${s}`, { timeout: 15_000 })
 
   const fwd = `Forward ${s}`; await say(a, fwd)
@@ -211,6 +212,7 @@ test('groups: permission, live messages, mention, member removal ends access', a
   await expect(b.getByText('Choose a conversation.')).toBeVisible()
   expect((await b.request.get(`/api/chat/sync?c=${c}`)).status()).toBe(404)
 
+  a.once('dialog', (d) => d.accept()) // leaving now asks for confirmation
   await a.getByRole('button', { name: 'Leave group' }).click()
   await expect(a.getByText(/no longer part of this conversation|Choose a conversation/)).toBeVisible({ timeout: 15_000 })
   expect((await a.request.get(`/api/chat/sync?c=${c}`)).status()).toBe(404)
@@ -351,7 +353,7 @@ test('phone: list and conversation fit, and messages can be sent', async ({ brow
   await expect(msg(a, `On a phone ${s}`)).toBeVisible()
   await fits()
   // the message box stays usable on the smallest phone, with Send on screen
-  expect((await a.locator('#chat-body').boundingBox())!.width).toBeGreaterThan(220)
+  expect((await a.locator('#chat-body').boundingBox())!.width).toBeGreaterThan(160) // beside the emoji, attach and Send buttons
   await expect(a.getByRole('button', { name: 'Send', exact: true })).toBeInViewport()
   await say(a, `Small phone ${s}`)
   await ev.finish('List and conversation one at a time; no sideways page scroll at 390px or 320px with a long unbroken message; send works')

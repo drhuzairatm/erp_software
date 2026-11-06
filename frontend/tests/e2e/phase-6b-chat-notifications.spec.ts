@@ -47,6 +47,7 @@ async function person(browser: Browser, ev: Evidence, email: string, role: strin
 const ready = (page: Page) => page.waitForFunction(() => Object.keys(localStorage).some((k) => k.startsWith('erp.chat.notify.')), undefined, POLL)
 async function openDm(page: Page, org: string, other: string) {
   await page.goto('/chat')
+  await page.getByText('New chat', { exact: true }).click()
   await page.locator('#chat-person').selectOption(`${org}|${other}`)
   await page.getByRole('button', { name: 'Open', exact: true }).click()
   await expect(page).toHaveURL(/\/chat\?c=[0-9a-f-]{36}/)
