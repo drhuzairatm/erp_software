@@ -8,6 +8,22 @@ import path from 'node:path'
 
 afterAll(async () => { await adminSql().end() })
 
+describe('0052: chat notifications', () => {
+  it('rolls back with no change to messages or read state, and re-applies', async () => {
+    const url = process.env.DATABASE_ADMIN_URL!; const quiet = () => {}
+    const data = async () => (await adminSql()`select (select count(*)::int from chat_messages) as messages, (select coalesce(md5(string_agg(concat_ws('|', conversation_id, user_id, last_read_at, left_at), ',' order by conversation_id, user_id)), '') from chat_members) as members`)[0]
+    const objects = async () => (await adminSql()`select to_regclass('public.chat_notification_settings') as a, to_regclass('public.chat_conversation_mutes') as b, to_regprocedure('app.auth_peek_session(text)') as c`)[0]
+    const before = await data()
+    expect((await objects()).a).toBe('chat_notification_settings')
+    await rollbackTo(url, '0052', quiet)
+    expect(await objects()).toEqual({ a: null, b: null, c: null })
+    expect(await data()).toEqual(before)
+    await runMigrations(url, { log: quiet })
+    expect((await objects()).b).toBe('chat_conversation_mutes')
+    expect(await data()).toEqual(before)
+  })
+})
+
 describe('0051: student merge fixes', () => {
   it('rolls back with real merges in place, leaves the moved records and the ledger alone, and re-applies', async () => {
     const url = process.env.DATABASE_ADMIN_URL!; const quiet = () => {}; const sql = adminSql()
@@ -222,7 +238,7 @@ describe('0045: internal chat', () => {
     const hash = async (t: string) => (await sql.unsafe(`select coalesce(md5(string_agg(x::text, ',' order by x.id)), '') as m from ${t} x`))[0].m
     const others = async () => ({ tasks: await hash('tasks'), meetings: await hash('meetings'), students: await hash('students'), files: await hash("(select * from secure_files where context_type <> 'chat') ") })
     const before = await objects(); const data = await others()
-    expect(before).toEqual({ tables: 6, fns: 18, policies: 5, perm: 1 })
+    expect(before).toEqual({ tables: 8, fns: 20, policies: 7, perm: 1 }) // 0052 adds 2 tables, 2 functions and 2 policies with chat names
 
     // fictional chat data, with a notification and an attachment record, so the rollback has something to remove
     const [a, b] = await sql`select id from user_profiles where email in ('edx.counsellor@demo.test', 'edx.counsellor2@demo.test') order by email`
@@ -249,7 +265,7 @@ describe('0045: internal chat', () => {
     expect(await others()).toEqual(data)
 
     await runMigrations(url, { log: quiet })
-    expect((await objects()).tables).toBe(6)
+    expect((await objects()).tables).toBe(8)
     expect(await objects()).toEqual(before)
     expect(await sql`select count(*)::int as n from chat_messages`).toEqual([{ n: 0 }])
     expect(await others()).toEqual(data)

@@ -134,8 +134,8 @@ test.describe('staff pages', () => {
       await page.setViewportSize({ width, height: 844 })
       await page.goto('/students')
       const menus = page.locator('header details')
-      await expect(menus).toHaveCount(2)
-      for (const i of [0, 1]) {
+      await expect(menus).toHaveCount(3) // chat, alerts, profile
+      for (const i of [0, 1, 2]) {
         const menu = menus.nth(i)
         await menu.locator('summary').click()
         const box = (await menu.locator('> div').boundingBox())!
@@ -151,7 +151,7 @@ test.describe('staff pages', () => {
   test('a header menu closes with Escape and after navigating from it', async () => {
     await page.setViewportSize({ width: PHONE, height: 844 })
     await page.goto('/students')
-    const profile = page.locator('header details').nth(1)
+    const profile = page.locator('header details').last()
     await profile.locator('summary').click()
     await page.keyboard.press('Escape')
     await expect(profile).not.toHaveAttribute('open')

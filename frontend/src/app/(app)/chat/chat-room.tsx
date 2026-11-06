@@ -1,9 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { chatDeleteAction, chatEditAction, chatForwardAction, chatMemberAction, chatPinAction, chatReactAction, chatSyncGroupAction, sendMessageAction } from '@/app/actions/chat'
-import { ActionForm, SubmitButton } from '@/components/forms'
+import { unstable_rethrow } from 'next/navigation'
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { chatDeleteAction, chatEditAction, chatForwardAction, chatMemberAction, chatMuteAction, chatPinAction, chatReactAction, chatSyncGroupAction, sendMessageAction } from '@/app/actions/chat'
+import type { ActionResult } from '@/components/action-types'
+import { ActionForm, SubmitButton, usePending } from '@/components/forms'
+import { CHAT_READ_EVENT } from '@/components/chat-notify-logic'
 import { Avatar, staffPhotoUrl } from '@/components/ui'
 import type { ChatMessage } from '@/services/chat'
 
@@ -11,10 +14,32 @@ type Sync = { messages: ChatMessage[]; typing: string[]; members: { user_id: str
 const POLL_MS = 3000
 const time = (d: Date | string) => new Intl.DateTimeFormat('en-IN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Kolkata' }).format(new Date(d))
 
-export function ChatRoom({ conversationId, title, kind, groupType, isAdmin, me, orgPeople, reactions, others, tasks }: {
-  conversationId: string; title: string; kind: string; groupType: string | null; isAdmin: boolean; me: string; orgPeople: { id: string; full_name: string }[]; reactions: string[]; others: { id: string; title: string }[]; tasks: { id: string; title: string }[]
+/** The message box. Enter submits the form, so it follows the same path as the Send button; Shift+Enter starts a new line. */
+function MessageBox({ onEnterSend, onTyping }: { onEnterSend: () => void; onTyping: () => void }) {
+  const pending = usePending()
+  // Set at once, because "pending" only arrives with the next render and the form would queue a second submission.
+  const submitting = useRef(false)
+  useEffect(() => { if (!pending) submitting.current = false }, [pending])
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return // this Enter is choosing a word in an input method
+    if (pending || submitting.current || e.repeat) { e.preventDefault(); return }
+    const form = e.currentTarget.form!
+    const file = form.elements.namedItem('file') as HTMLInputElement | null
+    if (!e.currentTarget.value.trim() && !file?.files?.length) return // nothing to send
+    e.preventDefault()
+    submitting.current = true; onEnterSend()
+    form.requestSubmit()
+  }
+  // Read-only while sending: the box is cleared when the send succeeds, which would lose anything typed in between.
+  return <textarea id="chat-body" name="body" rows={2} maxLength={4000} className="input" enterKeyHint="send" readOnly={pending} placeholder="Write a message. Use @name to mention someone." onChange={onTyping} onKeyDown={onKeyDown} />
+}
+
+export function ChatRoom({ conversationId, title, kind, groupType, isAdmin, me, orgPeople, reactions, others, tasks, muted: initialMuted }: {
+  muted: boolean; conversationId: string; title: string; kind: string; groupType: string | null; isAdmin: boolean; me: string; orgPeople: { id: string; full_name: string }[]; reactions: string[]; others: { id: string; title: string }[]; tasks: { id: string; title: string }[]
 }) {
   const [data, setData] = useState<Sync | null>(null)
+  const [muted, setMuted] = useState(initialMuted)
   const [older, setOlder] = useState<ChatMessage[]>([])
   const [offline, setOffline] = useState(false)
   const [gone, setGone] = useState(false)
@@ -25,6 +50,7 @@ export function ChatRoom({ conversationId, title, kind, groupType, isAdmin, me, 
   const [notice, setNotice] = useState<string | null>(null)
   const [formKey, setFormKey] = useState(0)
   const typingRef = useRef(false)
+  const refocusBox = useRef(false)
   const scroller = useRef<HTMLDivElement>(null)
   const lastId = useRef<string | null>(null)
 
@@ -36,6 +62,7 @@ export function ChatRoom({ conversationId, title, kind, groupType, isAdmin, me, 
       if (res.status === 404) { setGone(true); return } // removed from the conversation, or signed out
       if (!res.ok) throw new Error('sync failed')
       setData(await res.json()); setOffline(false)
+      if (q.get('read') === '1') window.dispatchEvent(new CustomEvent(CHAT_READ_EVENT, { detail: conversationId })) // the header badge catches up at once
     } catch { setOffline(true) }
   }, [conversationId])
 
@@ -50,6 +77,15 @@ export function ChatRoom({ conversationId, title, kind, groupType, isAdmin, me, 
     if (last && last !== lastId.current) { lastId.current = last; if (scroller.current) scroller.current.scrollTop = scroller.current.scrollHeight }
   }, [data])
 
+  // The form is rebuilt after a send; the cursor returns to the box so the next message can be typed straight away.
+  useEffect(() => { if (refocusBox.current) { refocusBox.current = false; document.getElementById('chat-body')?.focus() } }, [formKey])
+  // A connection failure rejects instead of returning a result. Reported here, the form and the typed message stay on screen.
+  const send = async (prev: ActionResult, fd: FormData): Promise<ActionResult> => {
+    try { return await sendMessageAction(conversationId, prev, fd) } catch (e) {
+      unstable_rethrow(e) // a redirect, such as an expired session
+      return { ok: false, message: 'The message was not sent. Check your connection and try again.' }
+    }
+  }
   const act = async (fn: () => Promise<{ ok: boolean; message?: string }>) => {
     const r = await fn(); setNotice(r.ok ? null : r.message ?? 'That could not be done.'); await sync()
   }
@@ -72,6 +108,7 @@ export function ChatRoom({ conversationId, title, kind, groupType, isAdmin, me, 
         <div className="min-w-0"><Link href="/chat" className="text-xs lg:hidden">Back to conversations</Link>
           <h2 className="truncate font-semibold">{title}</h2>
           <p className="text-xs text-slate-500" data-testid="chat-status">{data?.typing.length ? `${data.typing.join(', ')} typing…` : kind === 'direct' ? (onlineOther ? 'Online' : 'Offline') : `${data?.members.length ?? 0} members`}</p></div>
+        <button type="button" className="btn-ghost btn-sm" aria-pressed={muted} onClick={() => void act(async () => { const r = await chatMuteAction(conversationId, !muted); if (r.ok) setMuted(!muted); return r })}>{muted ? 'Unmute alerts' : 'Mute alerts'}</button>
         {kind === 'group' && <details className="text-sm"><summary className="cursor-pointer">Members</summary>
           <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">{data?.members.map((m) => <li key={m.user_id} className="flex items-center justify-between gap-2"><span>{m.full_name}{m.role === 'admin' ? ' (admin)' : ''}{m.online ? ' · online' : ''}</span>
             {isAdmin && m.user_id !== me && <button type="button" className="btn-ghost btn-sm" onClick={() => void act(() => chatMemberAction(conversationId, m.user_id, false))}>Remove</button>}</li>)}</ul>
@@ -123,12 +160,12 @@ export function ChatRoom({ conversationId, title, kind, groupType, isAdmin, me, 
       </div>
       <div className="border-t border-slate-100 p-3">
         {reply && <p className="mb-2 flex items-center justify-between gap-2 rounded bg-slate-50 px-2 py-1 text-xs"><span className="truncate">Replying to {reply.sender_name}: {reply.body}</span><button type="button" className="btn-ghost btn-sm" onClick={() => setReply(null)}>Cancel</button></p>}
-        <ActionForm key={formKey} action={sendMessageAction.bind(null, conversationId)} className="flex flex-wrap items-end gap-2" onSuccess={() => { setFormKey((k) => k + 1); setReply(null); void sync() }}>
+        <ActionForm key={formKey} action={send} className="flex flex-wrap items-end gap-2" onSuccess={() => { setFormKey((k) => k + 1); setReply(null); void sync() }}>
           <input type="hidden" name="replyTo" value={reply?.id ?? ''} />
           {tasks.length > 0 && <div className="w-full"><label className="sr-only" htmlFor="chat-task">About a task</label>
             <select id="chat-task" name="taskId" className="input text-xs" defaultValue=""><option value="">No task linked</option>{tasks.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}</select></div>}
           <div className="w-full min-w-0 sm:w-auto sm:flex-1"><label className="sr-only" htmlFor="chat-body">Message</label>
-            <textarea id="chat-body" name="body" rows={2} maxLength={4000} className="input" placeholder="Write a message. Use @name to mention someone." onChange={() => { typingRef.current = true }} /></div>
+            <MessageBox onEnterSend={() => { refocusBox.current = true }} onTyping={() => { typingRef.current = true }} /></div>
           <div className="min-w-0 flex-1 sm:flex-none"><label className="sr-only" htmlFor="chat-file">Attach a file</label><input id="chat-file" type="file" name="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="block w-full max-w-full sm:max-w-40 text-xs file:mr-1 file:rounded file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs" /></div>
           <SubmitButton className="btn-primary btn-sm" pendingText="Sending…">Send</SubmitButton>
         </ActionForm>

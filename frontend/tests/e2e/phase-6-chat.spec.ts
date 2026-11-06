@@ -1,4 +1,4 @@
-import { type Browser, expect, type Page, test } from '@playwright/test'
+import { type Browser, expect, type Page, type Route, test } from '@playwright/test'
 import { adminDb, login } from './helpers'
 import { Evidence } from './evidence'
 
@@ -54,7 +54,7 @@ test('one-to-one: live delivery, typing, unread count, notification, read receip
   await expect(row).toContainText('1')
   await b.goto('/my-notifications')
   await expect(b.getByRole('button', { name: /You have a new direct message/ })).toBeVisible()
-  await expect(b.getByText(t)).toHaveCount(0)
+  await expect(b.getByRole('main').getByText(t)).toHaveCount(0) // the stored notification; the live alert is outside the page content
   await expect(msg(a, t).getByTestId('receipt')).toContainText('Delivered', { timeout: 15_000 })
 
   // opening it marks it read, and the sender sees that without reloading
@@ -355,4 +355,116 @@ test('phone: list and conversation fit, and messages can be sent', async ({ brow
   await expect(a.getByRole('button', { name: 'Send', exact: true })).toBeInViewport()
   await say(a, `Small phone ${s}`)
   await ev.finish('List and conversation one at a time; no sideways page scroll at 390px or 320px with a long unbroken message; send works')
+})
+
+test('keyboard: Enter sends, Shift+Enter makes a new line, nothing blank or doubled is sent, and a failure keeps the text', async ({ browser }) => {
+  const ev = new Evidence('Chat keyboard sending', [/ERR_FAILED/, /Failed to load resource/, /Failed to fetch/]); const { org, u } = await ids(); const s = stamp()
+  const a = await person(browser, ev, A, 'counsellor A'); const b = await person(browser, ev, B, 'counsellor B')
+  const c = await openDm(a, org, u[B].id)
+  await b.goto(`/chat?c=${c}`)
+  const box = a.locator('#chat-body')
+  const count = async () => (await admin`select count(*)::int as n from chat_messages where conversation_id = ${c}`)[0].n as number
+  const bodies = async (t: string) => (await admin`select body from chat_messages where conversation_id = ${c} and body like ${`%${t}%`}`).map((r) => r.body as string)
+  await expect(box).toHaveAttribute('enterkeyhint', 'send')
+
+  // Enter sends, the box clears and keeps the cursor, and the other person receives it
+  await box.click(); await box.pressSequentially(`By Enter ${s}`); await box.press('Enter')
+  await expect(msg(a, `By Enter ${s}`)).toBeVisible({ timeout: 15_000 })
+  await expect(box).toHaveValue(''); await expect(box).toBeFocused()
+  await expect(msg(b, `By Enter ${s}`)).toBeVisible({ timeout: 15_000 })
+
+  // Shift+Enter only makes a new line; the long message keeps its lines
+  await box.pressSequentially(`Line one ${s}`); const sent = await count()
+  await box.press('Shift+Enter'); await box.pressSequentially('Line two'); await box.press('Shift+Enter'); await box.press('Shift+Enter'); await box.pressSequentially('Line four')
+  await expect(box).toHaveValue(`Line one ${s}\nLine two\n\nLine four`)
+  expect(await count()).toBe(sent)
+  await box.press('Enter')
+  await expect(msg(a, `Line one ${s}`)).toBeVisible({ timeout: 15_000 })
+  expect((await bodies(`Line one ${s}`)).map((x) => x.replace(/\r\n/g, '\n'))).toEqual([`Line one ${s}\nLine two\n\nLine four`]) // browsers submit form line breaks as CRLF
+  // shown as four rows, including the blank one, without doubled line breaks
+  expect(await msg(a, `Line one ${s}`).locator('p.whitespace-pre-wrap').evaluate((el) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)))).toBe(4)
+
+  // an input method's Enter chooses a word and does not send
+  await box.fill(`Composing ${s}`)
+  await box.evaluate((el) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, isComposing: true })))
+  await a.waitForTimeout(1000); expect(await bodies(`Composing ${s}`)).toEqual([])
+
+  // empty and spaces-only: nothing is sent
+  const quiet = await count()
+  await box.fill(''); await box.press('Enter'); await box.fill('     '); await box.press('Enter'); await box.fill(' \n \n '); await box.press('Enter')
+  await a.waitForTimeout(1500); expect(await count()).toBe(quiet)
+  await expect(a.getByRole('main').getByRole('alert')).toHaveCount(0) // not even a validation error
+  await box.fill('')
+
+  // rapid presses on a slow connection, and a held key: one message
+  const slow = async (route: Route) => { if (route.request().method() === 'POST') await new Promise((r) => setTimeout(r, 800)); await route.fallback() }
+  await a.route('**/chat?c=*', slow)
+  await box.fill(`Rapid ${s}`)
+  await Promise.all([1, 2, 3, 4, 5].map(() => box.press('Enter')))
+  await expect(a.getByRole('button', { name: 'Sending…' })).toBeVisible()
+  await expect(box).toHaveJSProperty('readOnly', true)
+  await expect(msg(a, `Rapid ${s}`)).toBeVisible({ timeout: 15_000 })
+  await a.waitForTimeout(1500); expect(await bodies(`Rapid ${s}`)).toHaveLength(1)
+  await box.fill(`Held ${s}`); await a.keyboard.down('Enter'); await a.keyboard.down('Enter'); await a.keyboard.down('Enter'); await a.keyboard.up('Enter')
+  await expect(msg(a, `Held ${s}`)).toBeVisible({ timeout: 15_000 })
+  await a.waitForTimeout(1500); expect(await bodies(`Held ${s}`)).toHaveLength(1)
+  await a.unroute('**/chat?c=*', slow)
+  await expect(box).toHaveValue('')
+
+  // the Send button still works
+  await say(a, `By button ${s}`)
+  expect(await bodies(`By button ${s}`)).toHaveLength(1)
+
+  // a refused submission keeps the text and the file
+  await box.fill(`Refused ${s}`)
+  await a.locator('#chat-file').setInputFiles({ name: 'not-really.pdf', mimeType: 'application/pdf', buffer: Buffer.from('MZ this is not a pdf') })
+  await box.press('Enter')
+  await expect(a.getByText('Only PDF, JPEG, PNG or WebP files are accepted.')).toBeVisible()
+  await expect(box).toHaveValue(`Refused ${s}`); expect(await bodies(`Refused ${s}`)).toEqual([])
+  await a.locator('#chat-file').setInputFiles([])
+
+  // a lost connection keeps the text; pressing Enter again sends it once
+  const down = async (route: Route) => { if (route.request().method() === 'POST') await route.abort('failed'); else await route.fallback() }
+  await a.route('**/chat?c=*', down)
+  await box.fill(`Retry ${s}`); await box.press('Enter')
+  await expect(a.getByText('The message was not sent. Check your connection and try again.')).toBeVisible({ timeout: 15_000 })
+  await expect(box).toHaveValue(`Retry ${s}`); expect(await bodies(`Retry ${s}`)).toEqual([])
+  await a.unroute('**/chat?c=*', down)
+  await box.press('Enter')
+  await expect(msg(a, `Retry ${s}`)).toBeVisible({ timeout: 15_000 })
+  await expect(box).toHaveValue(''); expect(await bodies(`Retry ${s}`)).toHaveLength(1)
+
+  // attachments: with text, and on their own
+  await a.locator('#chat-file').setInputFiles({ name: `keyed-${s}.pdf`, mimeType: 'application/pdf', buffer: Buffer.from(`%PDF-1.4\n% fictional-${s}\n%%EOF`) })
+  await box.fill(`With attachment ${s}`); await box.press('Enter')
+  await expect(msg(b, `With attachment ${s}`).getByRole('link', { name: new RegExp(`keyed-${s}.pdf`) })).toBeVisible({ timeout: 20_000 })
+  await a.locator('#chat-file').setInputFiles({ name: `alone-${s}.pdf`, mimeType: 'application/pdf', buffer: Buffer.from(`%PDF-1.4\n% fictional-${s}\n%%EOF`) })
+  await box.click(); await box.press('Enter')
+  await expect(b.getByRole('link', { name: new RegExp(`alone-${s}.pdf`) })).toBeVisible({ timeout: 20_000 })
+
+  // a reply, a mention and a notification all behave as they do from the button
+  await (await more(a, `By Enter ${s}`)).getByRole('button', { name: 'Reply' }).click()
+  await expect(a.getByText(`Replying to ${u[A].full_name}`)).toBeVisible()
+  await box.fill(`Reply by Enter ${s}`); await box.press('Enter')
+  await expect(msg(b, `Reply by Enter ${s}`)).toContainText(`By Enter ${s}`, { timeout: 15_000 })
+  await expect(a.getByText(`Replying to ${u[A].full_name}`)).toHaveCount(0)
+  const [r] = await admin`select r.body from chat_messages m join chat_messages r on r.id = m.reply_to_id where m.conversation_id = ${c} and m.body = ${`Reply by Enter ${s}`}`
+  expect(r.body).toBe(`By Enter ${s}`)
+
+  await ev.finish('Enter sends once through the normal form; new lines, blanks, failures, attachments and replies all behave')
+})
+
+test('keyboard on a phone-sized touch screen: Enter sends and the Send button still works', async ({ browser }) => {
+  const ev = new Evidence('Chat keyboard sending, phone size'); const { org, u } = await ids(); const s = stamp()
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+  const a = ev.watch(await ctx.newPage(), 'counsellor A phone')
+  await login(a, A)
+  await openDm(a, org, u[B].id)
+  const box = a.locator('#chat-body')
+  await box.tap(); await box.pressSequentially(`Phone Enter ${s}`); await box.press('Enter')
+  await expect(msg(a, `Phone Enter ${s}`)).toBeVisible({ timeout: 15_000 })
+  await expect(box).toHaveValue('')
+  await box.fill(`Phone button ${s}`); await a.getByRole('button', { name: 'Send', exact: true }).tap()
+  await expect(msg(a, `Phone button ${s}`)).toBeVisible({ timeout: 15_000 })
+  await ev.finish('Enter and the Send button both send at phone size. This is Chromium with a simulated keyboard, not a real phone keyboard')
 })

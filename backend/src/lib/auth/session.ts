@@ -73,13 +73,13 @@ export async function logout() {
 }
 
 /** Resolve the current session (memoised per request). Returns null if not logged in. */
-export const getSession = cache(async (): Promise<AuthContext | null> => {
+async function loadSession(resolver: 'auth_resolve_session' | 'auth_peek_session'): Promise<AuthContext | null> {
   const jar = await cookies()
   const token = jar.get(SESSION_COOKIE)?.value
   if (!token || token.length > 100) return null
   const ip = await clientIp()
   const [s] = await anonymous((tx) => tx<{ session_id: string; user_id: string; must_change_password: boolean; mfa_pending: boolean; mfa_enabled: boolean }[]>`
-    select * from app.auth_resolve_session(${hashToken(token)})`)
+    select * from ${tx('app')}.${tx(resolver)}(${hashToken(token)})`)
   // A session still waiting for its two-factor code is NOT signed in.
   if (!s || s.mfa_pending) return null
   return withUser(s.user_id, async (tx) => {
@@ -100,7 +100,9 @@ export const getSession = cache(async (): Promise<AuthContext | null> => {
       ip,
     }
   })
-})
+}
+
+export const getSession = cache(() => loadSession('auth_resolve_session'))
 
 /** For pages and actions: require a logged-in user, else redirect to login. */
 export async function requireUser(opts: { allowPasswordChange?: boolean; allowMfaSetup?: boolean } = {}): Promise<AuthContext> {
@@ -114,6 +116,16 @@ export async function requireUser(opts: { allowPasswordChange?: boolean; allowMf
 /** For API routes: a fully signed-in user who has completed required setup steps, or null. */
 export async function getActiveSession(): Promise<AuthContext | null> {
   const ctx = await getSession()
+  if (!ctx || ctx.mustChangePassword || ctx.mfaSetupRequired) return null
+  return ctx
+}
+
+/**
+ * For background polling only: the same checks as getActiveSession, but it does not count as activity. A page left open must
+ * not hold a session open past the idle limit.
+ */
+export async function getPassiveSession(): Promise<AuthContext | null> {
+  const ctx = await loadSession('auth_peek_session')
   if (!ctx || ctx.mustChangePassword || ctx.mfaSetupRequired) return null
   return ctx
 }
